@@ -1,9 +1,16 @@
-Implement TypeScript library "ESNRegression": an Echo State Network (ESN) / Reservoir Computing model for multivariate regression with incremental online learning using RLS readout training and Welford z-score normalization.
+Implement a TypeScript library named "ESNRegression": an Echo State Network (ESN) / Reservoir Computing model for multivariate regression with incremental online learning using RLS readout training and Welford z-score normalization.
+
+OUTPUT REQUIREMENTS (STRICT)
+
+* Output ONLY the complete TypeScript implementation (single self-contained module / file).
+* No markdown, no explanations, no extra text.
+* The code must compile and run without external heavy runtime dependencies.
 
 SCOPE AND GOALS
-Build ONE single self-contained TypeScript library (no heavy runtime deps) that trains online (one sample at a time) and predicts multiple steps ahead.
-Primary use-case is tight CPU and memory environments, so the implementation MUST be deterministic, numerically stable, and allocation-free in hot paths.
-The model MUST learn nonlinear cross-variable relationships and implicit lag structure via a fixed recurrent reservoir state with fading memory within a fixed maximum history cap (maxSequenceLength). History is always capped; truncate instead of allocating.
+
+* Build ONE single self-contained TypeScript library (no heavy runtime deps) that trains online (one sample at a time) and predicts multiple steps ahead.
+* Primary use-case is tight CPU and memory environments, so the implementation MUST be deterministic, numerically stable, and allocation-free in hot paths.
+* The model MUST learn nonlinear cross-variable relationships and implicit lag structure via a fixed recurrent reservoir state with fading memory within a fixed maximum history cap (maxSequenceLength). History is always capped; truncate instead of allocating.
 
 NON-NEGOTIABLE CRITICAL BEHAVIOR (DO NOT VIOLATE)
 
@@ -24,9 +31,10 @@ NON-NEGOTIABLE CRITICAL BEHAVIOR (DO NOT VIOLATE)
 * If recursive roll-forward is enabled: ONLY when explicitly configured; use a dedicated rollforward scratch window and NEVER mutate the main RingBuffer during predict.
 * ResidualStatsTracker and normalization MUST be applied consistently to prevent scale drift and confidence drift.
 
-IMPORTANT CONSTRAINT NOTE
+IMPORTANT CONSTRAINT NOTE (MUST ENFORCE)
 
-* fitOnline does NOT support observe-only. Therefore: xCoordinates.length MUST equal yCoordinates.length; otherwise throw Error (no partial ingestion behavior).
+* fitOnline does NOT support observe-only.
+* Therefore: xCoordinates.length MUST equal yCoordinates.length; otherwise throw Error (no partial ingestion behavior).
 
 MODEL ARCHITECTURE (ESN / RESERVOIR COMPUTING)
 
@@ -38,39 +46,30 @@ Input/shape
 Reservoir state
 
 * Maintain a reservoir state vector r_t with shape [reservoirSize].
-
 * Update per timestep using a leaky integrator ESN:
-
   r_t = (1 - leakRate) * r_{t-1} + leakRate * activation( Win * x_t + W * r_{t-1} + bias )
-
 * activation is tanh by default (or configurable).
-
 * Win (reservoirSize x nFeatures) and W (reservoirSize x reservoirSize) are fixed after initialization (not trained) and MUST be deterministic with seed.
-
 * Enforce echo-state behavior by scaling W to targetSpectralRadius and applying sparse connectivity (optional) at init.
-
 * Optional input scaling and state scaling parameters must be supported (fixed after init).
 
 Readout (trainable)
 
 * Train ONLY a linear readout layer that maps extended state z_t to outputs:
-
   z_t = [r_t; x_t; 1]  (configurable inclusion of x_t and bias)
   y_hat_t = Wout * z_t
-
 * Wout has shape [nTargets * maxFutureSteps, zDim] for direct multi-horizon output (preferred default).
-
 * Alternative: for single-step output, Wout has shape [nTargets, zDim] and multi-step uses optional recursive roll-forward.
 
-Online learning algorithm (readout)
+ONLINE LEARNING ALGORITHM (READOUT)
 
-* Default training MUST be allocation-free and online:
+Default training MUST be allocation-free and online:
 
-  * Use RLS (Recursive Least Squares) to update Wout each sample with forgetting factor rlsLambda, inverse-covariance P matrix, and initialization scale rlsDelta.
-  * Include L2 regularization via l2Lambda on readout weights (implemented in a numerically stable way compatible with RLS).
+* Use RLS (Recursive Least Squares) to update Wout each sample with forgetting factor rlsLambda, inverse-covariance P matrix, and initialization scale rlsDelta.
+* Include L2 regularization via l2Lambda on readout weights (implemented in a numerically stable way compatible with RLS).
 * The readout update is always incremental, with fixed-size matrix updates (no backprop, no Adam).
 
-Multi-step forecasting
+MULTI-STEP FORECASTING
 
 * Direct multi-horizon head (preferred default): outputDim = nTargets * maxFutureSteps; single state update / forward; slice requested steps.
 * Optional recursive roll-forward: generate one step at a time using a separate scratch rollforward buffer (no allocations) and NEVER corrupt the main history buffer.
@@ -131,7 +130,7 @@ reset(): void
 save(): string  (JSON.stringify of all state)
 load(w: string): void  (restore all state)
 
-RESULT TYPES:
+RESULT TYPES (MUST MATCH EXACTLY)
 
 /**
 
@@ -227,7 +226,7 @@ reservoirSize: number                  // Default: 256
 spectralRadius: number                 // Default: 0.9
 leakRate: number                       // Default: 0.3
 inputScale: number                     // Default: 1.0
-biasScale: number                      // Default: 0.1
+biasScale: number                       // Default: 0.1
 reservoirSparsity: number              // Default: 0.9      // fraction of zeros in W
 inputSparsity: number                  // Default: 0.0      // optional sparsity for Win
 activation: "tanh" | "relu"            // Default: "tanh"
@@ -273,8 +272,7 @@ IMPLEMENTATION ORDER (KEEP FOCUSED AND FAST)
 3. Readout training: RLSState + RLSOptimizer (online, fixed-size P matrix).
 4. Reservoir: init masks, sparse W/Win init, spectral radius scaling, ESNReservoir update kernel.
 5. Readout/head: LinearReadout for direct multi-horizon, slicing logic, optional recursive roll-forward with scratch state.
-6. Training utilities: RingBuffer, ResidualStatsTracker, outlier downweighting, metrics.
+6. Training utilities: RingBuffer, ResidualStatsTracker, outinglier downweighting, metrics.
 7. ESNModel assembly and parameter registry (trainable readout only).
 8. ESNRegression public API enforcing the Critical Behavioral Requirements (especially: ingest X first, correct predict window).
 9. Serialization save/load for full state and determinism.
-
