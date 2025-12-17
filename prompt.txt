@@ -4,96 +4,127 @@ OUTPUT REQUIREMENTS (STRICT)
 
 * Output ONLY the complete TypeScript implementation (single self-contained module / file).
 * No markdown, no explanations, no extra text.
-* The code must compile and run without external heavy runtime dependencies.
+* The code must compile and run without external heavy runtime dependencies (no Node-only APIs; no DOM APIs).
 
 SCOPE AND GOALS
 
 * Build ONE single self-contained TypeScript library (no heavy runtime deps) that trains online (one sample at a time) and predicts multiple steps ahead.
 * Primary use-case is tight CPU and memory environments, so the implementation MUST be deterministic, numerically stable, and allocation-free in hot paths.
 * The model MUST learn nonlinear cross-variable relationships and implicit lag structure via a fixed recurrent reservoir state with fading memory within a fixed maximum history cap (maxSequenceLength). History is always capped; truncate instead of allocating.
+* The model MUST support native multi-horizon forecasting for arbitrary futureSteps (within deterministic fixed memory limits) without requiring a special “direct multi-horizon” mode and without requiring a fixed maxFutureSteps setting.
 
 NON-NEGOTIABLE CRITICAL BEHAVIOR (DO NOT VIOLATE)
 
 1. Latest-X is always internal and authoritative
 
-* fitOnline() MUST push each xCoordinates row into the internal RingBuffer BEFORE any training decision.
-* predict() MUST assemble its input window ONLY from the internal RingBuffer; it MUST NOT require the caller to pass the latest X.
+* fitOnline() MUST push each xCoordinates row into the internal RingBuffer BEFORE any per-sample training decision.
+* predict() MUST assemble/read its input ONLY from the internal RingBuffer; it MUST NOT require the caller to pass the latest X.
 
 2. Correct timestep (no off-by-one)
 
-* For any predict(futureSteps), the input window MUST end at the most recently ingested X (the last pushed row).
-* Never use “features.length - 2” or any off-by-one logic; the window MUST include the newest X.
+* For any predict(futureSteps), the prediction context MUST end at the most recently ingested X (the last pushed row).
+* Never use “features.length - 2” or any off-by-one logic; the prediction context MUST include the newest X.
 
 3. Prevent “all prices always increasing” bias (common failure)
 
-* Output head MUST NOT drift to monotonic increase due to recursive feeding mistakes, wrong timestep, or history corruption.
-* If useDirectMultiHorizon=true: output [nTargets * maxFutureSteps] from the current reservoir state (and optional current input); DO NOT feed predicted Y back into X.
-* If recursive roll-forward is enabled: ONLY when explicitly configured; use a dedicated rollforward scratch window and NEVER mutate the main RingBuffer during predict.
+* Output head MUST NOT drift to monotonic increase due to wrong timestep, history corruption, or unintended recursive feeding.
+* Multi-step forecasting MUST use a dedicated roll-forward scratch state/window and MUST NEVER mutate the main RingBuffer during predict.
 * ResidualStatsTracker and normalization MUST be applied consistently to prevent scale drift and confidence drift.
 
 IMPORTANT CONSTRAINT NOTE (MUST ENFORCE)
 
 * fitOnline does NOT support observe-only.
-* Therefore: xCoordinates.length MUST equal yCoordinates.length; otherwise throw Error (no partial ingestion behavior).
+* Therefore: xCoordinates.length MUST equal yCoordinates.length; otherwise throw Error BEFORE pushing anything (no partial ingestion).
 
 MODEL ARCHITECTURE (ESN / RESERVOIR COMPUTING)
 
 Input/shape
 
-* Input is a multivariate time series row x_t with shape [nFeatures] (batch fixed to 1).
-* The internal history window has shape [seqLen, nFeatures] assembled from RingBuffer with seqLen <= maxSequenceLength.
+* Input is a multivariate time series row x_t with shape [nFeatures] (batch fixed to 1 per timestep).
+* The internal history window has shape [seqLen, nFeatures] from RingBuffer with seqLen <= maxSequenceLength.
+* predict() reads the latest x_t (and optionally the latest window) ONLY from RingBuffer (no external latest-X argument).
 
 Reservoir state
 
 * Maintain a reservoir state vector r_t with shape [reservoirSize].
 * Update per timestep using a leaky integrator ESN:
-  r_t = (1 - leakRate) * r_{t-1} + leakRate * activation( Win * x_t + W * r_{t-1} + bias )
+  r_t = (1 - leakRate) * r_{t-1} + leakRate * activation( (Win * x_t) + (W * r_{t-1}) + b )
 * activation is tanh by default (or configurable).
-* Win (reservoirSize x nFeatures) and W (reservoirSize x reservoirSize) are fixed after initialization (not trained) and MUST be deterministic with seed.
-* Enforce echo-state behavior by scaling W to targetSpectralRadius and applying sparse connectivity (optional) at init.
-* Optional input scaling and state scaling parameters must be supported (fixed after init).
+* Win (reservoirSize x nFeatures) and W (reservoirSize x reservoirSize) are fixed after initialization (NOT trained) and MUST be deterministic given seed.
+* Enforce echo-state behavior by scaling W to spectralRadius and applying sparse connectivity (reservoirSparsity) at init.
+* Support inputScale (applied to x before Win) and biasScale (applied to b).
 
 Readout (trainable)
 
 * Train ONLY a linear readout layer that maps extended state z_t to outputs:
-  z_t = [r_t; x_t; 1]  (configurable inclusion of x_t and bias)
+  z_t = [r_t; x_t; 1]  (configurable inclusion of x_t and bias term)
   y_hat_t = Wout * z_t
-* Wout has shape [nTargets * maxFutureSteps, zDim] for direct multi-horizon output (preferred default).
-* Alternative: for single-step output, Wout has shape [nTargets, zDim] and multi-step uses optional recursive roll-forward.
+* Define:
+  zDim = reservoirSize + (useInputInReadout ? nFeatures : 0) + (useBiasInReadout ? 1 : 0)
+* Wout shape is ALWAYS [nTargets, zDim] (single-step head). There is NO separate “direct multi-horizon” head.
 
 ONLINE LEARNING ALGORITHM (READOUT)
 
 Default training MUST be allocation-free and online:
 
 * Use RLS (Recursive Least Squares) to update Wout each sample with forgetting factor rlsLambda, inverse-covariance P matrix, and initialization scale rlsDelta.
-* Include L2 regularization via l2Lambda on readout weights (implemented in a numerically stable way compatible with RLS).
-* The readout update is always incremental, with fixed-size matrix updates (no backprop, no Adam).
+* RLS must update all output rows of Wout using the same gain vector and shared P (zDim x zDim).
+* Include L2 regularization via l2Lambda on readout weights (implement in a numerically stable way compatible with RLS; do NOT break determinism).
+* The readout update is always incremental, fixed-size matrix updates (no backprop, no Adam).
 
-MULTI-STEP FORECASTING
+NATIVE MULTI-HORIZON FORECASTING (NO useDirectMultiHorizon, NO maxFutureSteps)
 
-* Direct multi-horizon head (preferred default): outputDim = nTargets * maxFutureSteps; single state update / forward; slice requested steps.
-* Optional recursive roll-forward: generate one step at a time using a separate scratch rollforward buffer (no allocations) and NEVER corrupt the main history buffer.
-* Recursive roll-forward MUST be explicitly configured and MUST NOT implicitly feed predictions into the RingBuffer.
+Key rule: multi-step prediction is performed by rolling the ESN forward in time using a scratch copy of the reservoir state, without touching RingBuffer or the live reservoir state.
 
-SCOPE OF “AUTOMATIC LAGS”
+* predict(futureSteps) MUST support futureSteps as any integer >= 1, bounded only by a deterministic fixed-memory cap derived from existing settings:
 
-* The model learns effective lags implicitly via reservoir fading memory and nonlinear state dynamics.
-* Enforce maxSequenceLength as a HARD cap for any window assembly and optional state warmup; truncate history rather than allocate larger buffers.
-* Reservoir memory length is controlled by leakRate, spectralRadius, and (optional) input scaling; document these relationships.
+  * HARD CAP: futureSteps MUST be <= maxSequenceLength (this is required so all scratch buffers and output containers can be preallocated deterministically).
+  * If futureSteps > maxSequenceLength, throw Error.
+* Roll-forward inputs MUST be deterministic and MUST NOT require future exogenous features from the caller.
+* Default roll-forward input rule (MUST IMPLEMENT):
+
+  * holdLastX mode: for each rolled step k, use the latest ingested x_last (from RingBuffer) as x_{t+k} (same vector each step), normalized consistently.
+  * This advances reservoir dynamics via recurrence while keeping exogenous inputs fixed.
+* Optional roll-forward enhancement (MAY IMPLEMENT, but only if deterministic and allocation-free):
+
+  * If nFeatures === nTargets, you may support an “autoregressive” mode where you set x_{t+k} := y_hat_{t+k-1} (after appropriate scaling/normalization rules) for k>1.
+  * This mode MUST be explicitly configured; default MUST remain holdLastX to avoid unintended recursive feeding bias.
+
+Uncertainty for horizons > 1 (MUST BE WELL-DEFINED)
+
+* ResidualStatsTracker primarily observes 1-step residuals from training.
+* For multi-step predict, uncertainty bounds MUST increase with horizon deterministically:
+
+  * Example acceptable rule: sigma_k = sigma_1 * sqrt(k+1) (or sigma_1 * (1 + alpha*k) with a small deterministic alpha).
+  * Do NOT return identical bounds for all horizons unless sigma_1 is zero.
+* confidence MUST remain deterministic, finite, and clamped to [0,1].
+
+NORMALIZATION (WELFORD) + UNCERTAINTY (RESIDUAL STATS)
+
+* Use Welford online mean/variance per feature for x normalization (WelfordNormalizer).
+* Apply normalization consistently in BOTH fitOnline() and predict() using the same running stats:
+  x_norm[j] = (x[j] - mean[j]) / max(std[j], normalizationEpsilon)
+* normalizationWarmup controls NormalizationStats.isActive, but normalization computation must still be safe and deterministic before warmup (variance floors + epsilon guards).
+* ResidualStatsTracker tracks recent residuals per target using residualWindowSize.
+* predict() MUST return lower/upper bounds:
+  lower = y_hat - uncertaintyMultiplier * sigma
+  upper = y_hat + uncertaintyMultiplier * sigma
+  using sigma adjusted per horizon as described above.
 
 PERFORMANCE PRINCIPLES (HARD REQUIREMENTS)
 
-* Fixed-size memory: preallocate all parameter, state, covariance (P) for RLS, buffers, and scratch once at initialization; never grow during training.
+* Fixed-size memory: preallocate all parameters, state, covariance (P) for RLS, buffers, and scratch once at initialization; never grow during training.
 * No attention matrices and no convolutions: do not implement self-attention or Conv1D; all temporal mixing is via reservoir recurrence with fixed buffers.
-* Typed-array only core: all tensors live in contiguous Float64Array slabs in row-major layout; expose zero-copy views via (data, offset, shape, strides).
+* Typed-array only core: all internal tensors live in contiguous Float64Array slabs in row-major layout; expose internal zero-copy views via (data, offset, shape, strides).
 * No hot-path allocations: updateReservoirState(), forward(), fitOnline(), predict() MUST allocate 0 arrays/objects per call; all temporaries come from TensorArena and BufferPool.
-* Strict reuse policy: rent scratch buffers by size class, return immediately; no new Float64Array inside inner loops.
-* In-place and fused kernels: prefer fused ops (matvec+bias+activation, leaky update, readout matvec, RLS update steps) and in-place transforms to avoid intermediates.
-* Deterministic caps: enforce maxSequenceLength and maxBatch=1; if inputs exceed limits, truncate/stride rather than allocating more memory.
-* Minimal training tape: no full backprop tape; store only what RLS needs (current z_t, scalar denom, gain vector, and small stats).
+* Output objects MUST be reused:
+
+  * Reuse a single FitResult object for fitOnline().
+  * Reuse a single PredictionResult object AND its nested number[][] arrays for predict() (preallocate for [maxSequenceLength][nTargets] and fill in-place; never allocate new arrays per call).
+  * If the caller needs persistence, it is their responsibility to copy.
 * Tight loops only: classic for-loops with manual indexing; avoid map/reduce/forEach, closures, iterator protocols, and polymorphic dispatch in inner loops.
-* Cache once, reuse forever: initialization masks, sparsity patterns, scale factors, and shape metadata computed once and reused; lazy init allowed, but never re-init.
-* GC guardrails: pool small objects (TensorView, ForwardContext shells); keep debug and verbose metrics off by default.
+* Cache once, reuse forever: sparsity patterns, scale factors, and shape metadata computed once and reused; lazy init allowed, but never re-init.
+* GC guardrails: pool small objects (TensorView shells); keep debug and verbose metrics off by default.
 
 DESIGN PRINCIPLES (HARD REQUIREMENTS)
 
@@ -102,26 +133,54 @@ DESIGN PRINCIPLES (HARD REQUIREMENTS)
 * JSDoc on public methods and key classes (@param, @returns, @example).
 * Inline math formula notes where it clarifies behavior (normalization, loss, RLS, reservoir update, spectral radius scaling).
 * NO full backpropagation through time and NO training of reservoir weights; only trainable component is the readout Wout.
+* Spectral radius scaling MUST be deterministic and lightweight:
+
+  * Use a fixed-iteration power method to estimate the largest eigenvalue magnitude of W.
+  * Scale W so estimatedSpectralRadius becomes config.spectralRadius.
 
 PUBLIC API (MUST MATCH EXACTLY)
 
 fitOnline({ xCoordinates: number[][], yCoordinates: number[][] }): FitResult
 
-* Validate strictly: xCoordinates.length === yCoordinates.length. If mismatch, throw Error.
+* Validate strictly BEFORE ingestion:
+
+  * xCoordinates.length === yCoordinates.length else throw Error (no partial ingestion).
+  * On first non-empty call, infer nFeatures from xCoordinates[0].length and validate all x rows match.
+  * Infer nTargets from yCoordinates[0].length and validate all y rows match.
+
 * For i in 0..N-1, the order is mandatory and must never change:
 
   1. Push xCoordinates[i] into RingBuffer FIRST.
-  2. Then run: normalize, updateReservoirState (state warmup uses history window ending at latest X), forwardTrain, loss, outlier weight, L2/readout regularization, readoutUpdate (RLS), residual update.
+  2. Then run (using ONLY internal buffers/scratch): normalize x, updateReservoirState with latest x, build z_t, forwardTrain, compute loss vs yCoordinates[i], compute outlier weight, apply L2 regularization, perform RLS readout update, update residual stats and metrics.
+
 * Reuse a single FitResult object (no per-call allocations).
 
-predict(futureSteps: number): PredictionResult (with confidence based on loss)
+* driftDetected MUST remain in FitResult for API compatibility; since ADWIN is not required, set driftDetected=false always (unless you implement a deterministic, allocation-free drift heuristic).
 
-* Uses ONLY internal RingBuffer to assemble the latest input window (ending at the most recent ingested X).
-* Validate: 1 <= futureSteps <= maxFutureSteps.
-* Direct multi-horizon (default): compute current reservoir state consistently (including normalization) and do single readout; slice requested steps.
-* Recursive (optional): uses separate scratch rollforward window and scratch state copy; never mutates RingBuffer or live reservoir state.
-* Denormalize outputs and return uncertainty bounds from ResidualStatsTracker.
-* MUST be deterministic and allocation-free in hot path.
+predict(futureSteps: number): PredictionResult
+
+* Validate:
+
+  * If no samples ingested (RingBuffer empty / model not initialized), throw Error("predict: model not initialized (call fitOnline first)").
+  * futureSteps must be integer >= 1.
+  * futureSteps MUST be <= maxSequenceLength; otherwise throw Error (preallocation guarantee).
+* Uses ONLY internal RingBuffer to read the latest x and/or latest window (ending at the most recent ingested X).
+* Multi-step roll-forward (MANDATORY implementation):
+
+  * Copy live reservoir state to scratch reservoir state.
+  * Read latest x_last from RingBuffer into scratch x buffer.
+  * For step=0..futureSteps-1:
+
+    * Normalize x_step consistently.
+    * Update scratch reservoir state by one timestep using x_step.
+    * Compute y_hat_step from scratch z_step via Wout.
+    * Store y_hat_step into PredictionResult.predictions[step][target].
+    * For default holdLastX mode: x_step remains x_last for all steps.
+    * For optional explicit autoregressive mode (only if configured and valid): derive next x_step from y_hat_step deterministically without allocating.
+  * NEVER mutate RingBuffer or the live reservoir state during predict().
+* Fill and return uncertainty bounds using residual stats adjusted per horizon.
+* confidence MUST be deterministic, finite, and clamped to [0,1].
+* MUST be deterministic and allocation-free in hot path (reuse PredictionResult and nested arrays).
 
 getModelSummary(): ModelSummary
 getWeights(): WeightInfo
@@ -130,105 +189,56 @@ reset(): void
 save(): string  (JSON.stringify of all state)
 load(w: string): void  (restore all state)
 
-RESULT TYPES (MUST MATCH EXACTLY)
+PUBLIC RESULT TYPES (MUST MATCH EXACTLY)
 
-/**
+export interface FitResult {
+samplesProcessed: number;
+averageLoss: number;
+gradientNorm: number;
+driftDetected: boolean;
+sampleWeight: number;
+}
 
-* Result of fitOnline() call.
-  */
-  export interface FitResult {
-  /** Number of samples processed */
-  samplesProcessed: number;
-  /** Average loss over processed samples */
-  averageLoss: number;
-  /** Final readout update norm */
-  gradientNorm: number;
-  /** Whether concept drift was detected */
-  driftDetected: boolean;
-  /** Current sample weight (outlier-adjusted) */
-  sampleWeight: number;
-  }
+export interface PredictionResult {
+predictions: number[][];
+lowerBounds: number[][];
+upperBounds: number[][];
+confidence: number;
+}
 
-Note: driftDetected MUST remain in FitResult for API compatibility; since ADWIN is removed, set driftDetected=false always (unless you implement an alternative drift heuristic without extra allocations).
+export interface ModelSummary {
+totalParameters: number;
+receptiveField: number;
+spectralRadius: number;
+reservoirSize: number;
+nFeatures: number;
+nTargets: number;
+maxSequenceLength: number;
+sampleCount: number;
+}
 
-/**
+export interface WeightInfo {
+weights: Array<{ name: string; shape: number[]; values: number[] }>;
+}
 
-* Result of predict() call.
-  */
-  export interface PredictionResult {
-  /** Predictions for each future step: [step][target] */
-  predictions: number[][];
-  /** Lower confidence bounds: [step][target] */
-  lowerBounds: number[][];
-  /** Upper confidence bounds: [step][target] */
-  upperBounds: number[][];
-  /** Confidence score based on recent loss */
-  confidence: number;
-  }
-
-/**
-
-* Model summary information.
-  */
-  export interface ModelSummary {
-  /** Total number of trainable parameters */
-  totalParameters: number;
-  /** Effective memory horizon in timesteps (approx from config) */
-  receptiveField: number;
-  /** Reservoir spectral radius */
-  spectralRadius: number;
-  /** Reservoir size */
-  reservoirSize: number;
-  /** Input features */
-  nFeatures: number; //automatic by x[0].length
-  /** Output targets */
-  nTargets: number; //automatic by y[0].length
-  /** Maximum sequence length */
-  maxSequenceLength: number;
-  /** Maximum future steps */
-  maxFutureSteps: number;
-  /** Training samples seen */
-  sampleCount: number;
-  /** Whether direct multi-horizon is enabled */
-  useDirectMultiHorizon: boolean;
-  }
-
-/**
-
-* Weight information for inspection.
-  */
-  export interface WeightInfo {
-  /** Named weight tensors */
-  weights: Array<{ name: string; shape: number[]; values: number[] }>;
-  }
-
-/**
-
-* Normalization statistics.
-  */
-  export interface NormalizationStats {
-  /** Feature-wise means */
-  means: number[];
-  /** Feature-wise standard deviations */
-  stds: number[];
-  /** Number of samples used */
-  count: number;
-  /** Whether normalization is active (warmup complete) */
-  isActive: boolean;
-  }
+export interface NormalizationStats {
+means: number[];
+stds: number[];
+count: number;
+isActive: boolean;
+}
 
 SETTINGS WITH DEFAULT VALUES (MUST MATCH)
 
-ESNRegressionConfig {
-maxSequenceLength: number              // Default: 64
-maxFutureSteps: number                 // Default: 1
+export interface ESNRegressionConfig {
+maxSequenceLength: number              // Default: 64        // also acts as hard cap for predict(futureSteps)
 reservoirSize: number                  // Default: 256
 spectralRadius: number                 // Default: 0.9
 leakRate: number                       // Default: 0.3
 inputScale: number                     // Default: 1.0
-biasScale: number                       // Default: 0.1
-reservoirSparsity: number              // Default: 0.9      // fraction of zeros in W
-inputSparsity: number                  // Default: 0.0      // optional sparsity for Win
+biasScale: number                      // Default: 0.1
+reservoirSparsity: number              // Default: 0.9        // fraction of zeros in W
+inputSparsity: number                  // Default: 0.0        // fraction of zeros in Win
 activation: "tanh" | "relu"            // Default: "tanh"
 useInputInReadout: boolean             // Default: true
 useBiasInReadout: boolean              // Default: true
@@ -237,17 +247,17 @@ rlsLambda: number                      // Default: 0.999
 rlsDelta: number                       // Default: 1.0
 epsilon: number                        // Default: 1e-8
 l2Lambda: number                       // Default: 0.0001
-gradientClipNorm: number               // Default: 1.0      // applies to readout updates
+gradientClipNorm: number               // Default: 1.0
 normalizationEpsilon: number           // Default: 1e-8
 normalizationWarmup: number            // Default: 10
 outlierThreshold: number               // Default: 3.0
 outlierMinWeight: number               // Default: 0.1
-useDirectMultiHorizon: boolean         // Default: true
 residualWindowSize: number             // Default: 100
 uncertaintyMultiplier: number          // Default: 1.96
 weightInitScale: number                // Default: 0.1
 seed: number                           // Default: 42
 verbose: boolean                       // Default: false
+rollforwardMode: "holdLastX" | "autoregressive"   // Default: "holdLastX"
 }
 
 INPUT EXAMPLE:
@@ -267,29 +277,36 @@ const yTrain = [
   [30, 31, 32], //t+4
 ];
 
-CLASSES (MUST IMPLEMENT EXACTLY AS LISTED)
-Implement the following classes exactly as listed, using typed arrays, fixed-size preallocation, and pooled shell objects as required:
-TensorShape, TensorView, TensorArena, BufferPool, TensorOps, ActivationOps, RandomGenerator,
-WelfordAccumulator, WelfordNormalizer, LayerNormParams, LayerNormOps,
-GradientAccumulator,
-ReservoirInitMask, SpectralRadiusScaler, ESNReservoirParams, ESNReservoir,
-ReadoutConfig, ReadoutParams, LinearReadout, RLSState, RLSOptimizer,
-LinearLayerParams, LinearLayer, DropoutMask,
-ForwardContext, BackwardContext, GradientTape,
-RingBuffer, ResidualStatsTracker,
-OutlierDownweighter, LossFunction, MetricsAccumulator,
-ESNModelConfig, ESNModel, TrainingState, InferenceState,
-FitResult, PredictionResult, ModelSummary, WeightInfo, NormalizationStats,
-SerializationHelper, ESNRegression.
+NOTES ON MULTI-HORIZON PREDICT USAGE
+
+* predict(1) returns the 1-step ahead forecast.
+* predict(K) returns steps 1..K forecasts, computed via deterministic roll-forward using scratch state (default holdLastX).
+* The library MUST NOT require the caller to provide future exogenous features for predict(K).
+
+INTERNAL CLASSES / MODULES TO IMPLEMENT (ONLY WHAT IS NEEDED; DO NOT INVENT BACKPROP/TAPES)
+
+Implement the following internal classes exactly as listed, using typed arrays, fixed-size preallocation, and pooled shell objects as required:
+TensorShape, TensorView, BufferPool, TensorArena, TensorOps,
+ActivationOps, RandomGenerator,
+WelfordAccumulator, WelfordNormalizer,
+RingBuffer,
+ResidualStatsTracker,
+OutlierDownweighter,
+LossFunction, MetricsAccumulator,
+ReservoirInitMask, SpectralRadiusScaler,
+ESNReservoirParams, ESNReservoir,
+ReadoutConfig, ReadoutParams, LinearReadout,
+RLSState, RLSOptimizer,
+SerializationHelper,
+ESNRegression.
 
 IMPLEMENTATION ORDER (KEEP FOCUSED AND FAST)
 
 1. Memory infra: TensorShape, TensorView, BufferPool, TensorArena, TensorOps.
-2. Numerics: RNG, activations, Welford normalizers, loss.
-3. Readout training: RLSState + RLSOptimizer (online, fixed-size P matrix).
-4. Reservoir: init masks, sparse W/Win init, spectral radius scaling, ESNReservoir update kernel.
-5. Readout/head: LinearReadout for direct multi-horizon, slicing logic, optional recursive roll-forward with scratch state.
-6. Training utilities: RingBuffer, ResidualStatsTracker, outinglier downweighting, metrics.
-7. ESNModel assembly and parameter registry (trainable readout only).
-8. ESNRegression public API enforcing the Critical Behavioral Requirements (especially: ingest X first, correct predict window).
-9. Serialization save/load for full state and determinism.
+2. Numerics: RNG (seeded), activations, Welford normalizers, loss, metrics.
+3. Readout training: RLSState + RLSOptimizer (online, fixed-size P matrix, shared across outputs).
+4. Reservoir: sparse W/Win init with masks, deterministic power-iteration spectral radius estimate, spectral radius scaling, ESNReservoir update kernel.
+5. Readout/head: LinearReadout for single-step output; multi-step roll-forward implemented by advancing scratch reservoir state step-by-step (default holdLastX; optional explicit autoregressive mode if configured and valid).
+6. Training utilities: RingBuffer, ResidualStatsTracker, outlier downweighting, metrics accumulator; ensure all are allocation-free per call.
+7. ESNRegression public API enforcing the Critical Behavioral Requirements (validate lengths before ingestion, ingest X first per sample, correct predict window, never mutate RingBuffer in predict).
+8. Serialization save/load for full state and determinism (restore typed arrays and counters exactly).
