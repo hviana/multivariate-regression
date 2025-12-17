@@ -1,12 +1,9 @@
-# 🌊 ESNRegression - Echo State Network for Multivariate Time Series
+# 🧠 ESNRegression
 
 <div align="center">
+**Self-contained TypeScript Echo State Network (ESN) / Reservoir Computing library for online multivariate regression**
 
-**A powerful, deterministic Echo State Network implementation for online
-multivariate time series regression and forecasting**
-
-[📦 Installation](#-installation) • [🚀 Quick Start](#-quick-start) •
-[📖 Documentation](#-documentation) • [⚙️ Configuration](#️-configuration)
+_Created by **Henrique Emanoel Viana**_
 
 </div>
 
@@ -15,23 +12,15 @@ multivariate time series regression and forecasting**
 ## 📋 Table of Contents
 
 - [✨ Features](#-features)
-- [📦 Installation](#-installation)
-- [🚀 Quick Start](#-quick-start)
-- [🧠 Core Concepts](#-core-concepts)
-  - [Echo State Networks](#echo-state-networks-esn)
-  - [Reservoir Computing](#reservoir-computing)
-  - [Online Learning with RLS](#online-learning-with-rls)
-  - [Multi-Horizon Forecasting](#multi-horizon-forecasting)
-- [⚙️ Configuration](#️-configuration)
-  - [Reservoir Parameters](#1-reservoir-parameters)
-  - [Training Parameters](#2-training-parameters)
-  - [Normalization Parameters](#3-normalization-parameters)
-  - [Prediction Parameters](#4-prediction-parameters)
-- [📊 API Reference](#-api-reference)
-- [🎯 Use Cases & Optimization](#-use-cases--optimization)
-- [💾 Model Persistence](#-model-persistence)
-- [🔬 Advanced Topics](#-advanced-topics)
-- [📝 License](#-license)
+- [🚀 Installation](#-installation)
+- [⚡ Quick Start](#-quick-start)
+- [🎓 Understanding Echo State Networks](#-understanding-echo-state-networks)
+- [🔧 Configuration Parameters](#-configuration-parameters)
+- [📖 API Reference](#-api-reference)
+- [💡 Examples & Use Cases](#-examples--use-cases)
+- [🎯 Parameter Optimization Guide](#-parameter-optimization-guide)
+- [📊 Performance Tips](#-performance-tips)
+- [📜 License](#-license)
 
 ---
 
@@ -39,249 +28,233 @@ multivariate time series regression and forecasting**
 
 <div align="center">
 
-| Feature                           | Description                                         |
-| --------------------------------- | --------------------------------------------------- |
-| 🔄 **Online Learning**            | Incremental training without storing entire dataset |
-| 🎯 **Multi-Step Forecasting**     | Predict multiple future time steps simultaneously   |
-| 🔒 **Deterministic**              | Same seed produces identical results every time     |
-| ⚡ **Zero-Allocation Hot Paths**  | Efficient memory management for fit/predict         |
-| 📈 **Uncertainty Quantification** | Built-in confidence intervals for predictions       |
-| 🛡️ **Outlier Robustness**         | Automatic outlier detection and downweighting       |
-| 💾 **Serializable**               | Save and load trained models easily                 |
-| 🎛️ **Highly Configurable**        | 25+ tunable parameters for optimization             |
+| Feature                           | Description                                                       |
+| --------------------------------- | ----------------------------------------------------------------- |
+| 🔄 **Online Learning**            | Real-time incremental learning with RLS (Recursive Least Squares) |
+| 📈 **Multivariate Regression**    | Handle multiple input features and output targets simultaneously  |
+| 🔮 **Multi-Horizon Prediction**   | Forecast multiple steps into the future with confidence intervals |
+| 🎯 **Outlier Robust**             | Automatic outlier detection and downweighting                     |
+| 📊 **Adaptive Normalization**     | Welford's online algorithm for streaming statistics               |
+| 🔒 **Deterministic**              | Reproducible results with seeded random number generation         |
+| ⚡ **Zero Dependencies**          | Self-contained implementation with no external libraries          |
+| 🧮 **Memory Efficient**           | Pre-allocated tensor arena with minimal garbage collection        |
+| 💾 **Serialization**              | Full save/load support for model persistence                      |
+| 📐 **Uncertainty Quantification** | Prediction intervals with configurable confidence levels          |
 
 </div>
 
+### 🌟 Key Highlights
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                                                                         │
+│  ⚡ REAL-TIME          🎯 ACCURATE           📊 INTERPRETABLE           │
+│     Processing            Predictions            Results                │
+│                                                                         │
+│  • Stream data          • Multi-horizon        • Confidence bounds      │
+│  • No batching            forecasting          • Residual tracking      │
+│  • Instant updates      • Autoregressive       • Weight inspection      │
+│                           rollout                                       │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
 ---
 
-## 📦 Installation
+## 🚀 Installation
+
+### Deno / JSR
 
 ```typescript
 import { ESNRegression } from "jsr:@hviana/multivariate-regression";
 ```
 
+### NPM (via JSR)
+
+```bash
+npx jsr add @hviana/multivariate-regression
+```
+
+```typescript
+import { ESNRegression } from "@hviana/multivariate-regression";
+```
+
 ---
 
-## 🚀 Quick Start
-
-### Basic Example
+## ⚡ Quick Start
 
 ```typescript
 import { ESNRegression } from "jsr:@hviana/multivariate-regression";
 
-// Create model instance
-const esn = new ESNRegression({
+// 🔨 Create model with configuration
+const model = new ESNRegression({
   reservoirSize: 256,
-  maxFutureSteps: 3,
+  maxSequenceLength: 64,
   spectralRadius: 0.9,
+  leakRate: 0.3,
 });
 
-// Prepare training data
-// X: input features, Y: target values
-const xTrain = [
-  [1.0, 2.0],
-  [1.5, 2.5],
-  [2.0, 3.0],
-  [2.5, 3.5],
-  [3.0, 4.0],
+// 📥 Prepare training data
+const xCoordinates = [
+  [1.0, 2.0, 3.0], // Features at t=0
+  [1.1, 2.1, 3.1], // Features at t=1
+  [1.2, 2.2, 3.2], // Features at t=2
+  // ... more samples
 ];
 
-// For direct multi-horizon with maxFutureSteps=3 and 1 target:
-// Y should have shape [nSamples][nTargets * maxFutureSteps]
-const yTrain = [
-  [10, 11, 12], // predictions for t+1, t+2, t+3
-  [15, 16, 17],
-  [20, 21, 22],
-  [25, 26, 27],
-  [30, 31, 32],
+const yCoordinates = [
+  [4.0, 5.0], // Targets at t=0
+  [4.1, 5.1], // Targets at t=1
+  [4.2, 5.2], // Targets at t=2
+  // ... more samples
 ];
 
-// Train online
-const result = esn.fitOnline({
-  xCoordinates: xTrain,
-  yCoordinates: yTrain,
-});
+// 🎯 Train the model (online, incremental)
+const fitResult = model.fitOnline({ xCoordinates, yCoordinates });
 
-console.log(`📊 Samples processed: ${result.samplesProcessed}`);
-console.log(`📉 Average loss: ${result.averageLoss.toFixed(6)}`);
+console.log(`📊 Samples processed: ${fitResult.samplesProcessed}`);
+console.log(`📉 Average loss: ${fitResult.averageLoss.toFixed(6)}`);
 
-// Predict future steps
-const prediction = esn.predict(3);
+// 🔮 Predict future values
+const predictions = model.predict(10); // Predict 10 steps ahead
 
-console.log("\n🔮 Predictions:");
-prediction.predictions.forEach((step, i) => {
-  console.log(`  Step ${i + 1}: ${step.map((v) => v.toFixed(2)).join(", ")}`);
-});
+console.log("🔮 Predictions:", predictions.predictions);
+console.log("📊 Confidence:", predictions.confidence);
+console.log("📉 Lower bounds:", predictions.lowerBounds);
+console.log("📈 Upper bounds:", predictions.upperBounds);
 ```
 
 ---
 
-## 🧠 Core Concepts
+## 🎓 Understanding Echo State Networks
 
-### Echo State Networks (ESN)
+### 🧠 What is an Echo State Network?
 
-Echo State Networks are a type of Recurrent Neural Network (RNN) belonging to
-the **Reservoir Computing** paradigm. The key insight is that only the output
-layer needs training, while the recurrent connections remain fixed.
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    ECHO STATE NETWORK ARCHITECTURE              │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│    ┌──────────┐      ┌────────────────────┐      ┌──────────┐   │
-│    │          │      │                    │      │          │   │
-│    │  INPUT   │────▶│     RESERVOIR      │────▶│  OUTPUT  │   │
-│    │  (X)     │ Win  │   (Fixed Weights)  │ Wout │   (Y)    │   │
-│    │          │      │                    │      │          │   │
-│    └──────────┘      └────────────────────┘      └──────────┘   │
-│                              │     ▲                            │
-│                              │     │                            │
-│                              └─────┘                            │
-│                           W (recurrent)                         │
-│                                                                 │
-│    ✅ Win, W, bias: Randomly initialized, FIXED                 │
-│    🎯 Wout: TRAINED via Recursive Least Squares (RLS)           │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-**Key Advantages:**
-
-- 🚀 **Fast training**: Only output weights are learned
-- 🔄 **Online learning**: Natural fit for streaming data
-- 💾 **Memory efficient**: No backpropagation through time
-- 📊 **Stable dynamics**: Controlled via spectral radius
-
----
-
-### Reservoir Computing
-
-The reservoir acts as a high-dimensional nonlinear expansion of the input
-signal. Think of it as a "liquid" that transforms inputs into rich temporal
-features.
+An **Echo State Network (ESN)** is a type of recurrent neural network that
+belongs to the **Reservoir Computing** paradigm. The key innovation is that only
+the **output weights are trained**, while the internal reservoir weights remain
+fixed after initialization.
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    RESERVOIR DYNAMICS                           │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│   State Update (Leaky Integrator):                              │
-│                                                                 │
-│   ┌─────────────────────────────────────────────────────────┐   │
-│   │                                                         │   │
-│   │  r(t) = (1-α)·r(t-1) + α·act(Win·x(t) + W·r(t-1) + b)   │   │
-│   │                                                         │   │
-│   └─────────────────────────────────────────────────────────┘   │
-│                                                                 │
-│   Where:                                                        │
-│   • r(t)  = reservoir state at time t                           │
-│   • α     = leak rate (memory decay control)                    │
-│   • act   = activation function (tanh or relu)                  │
-│   • Win   = input weight matrix                                 │
-│   • W     = reservoir weight matrix                             │
-│   • b     = bias vector                                         │
-│                                                                 │
-│   ┌───────────────────────────────────────────────────────────┐ │
-│   │ High α (→1): Fast dynamics, responds quickly to inputs    │ │
-│   │ Low α  (→0): Slow dynamics, long memory of past states    │ │
-│   └───────────────────────────────────────────────────────────┘ │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                             │
+│                    ECHO STATE NETWORK ARCHITECTURE                          │
+│                                                                             │
+│    ┌─────────┐      ┌────────────────────────────────────┐     ┌─────────┐  │
+│    │         │      │           RESERVOIR                │     │         │  │
+│    │  INPUT  │────▶│    ┌───┐  ┌───┐  ┌───┐  ┌───┐      │───▶│ OUTPUT  │  │
+│    │   x(t)  │ Win  │    │ N₁├──┤ N₂├──┤ N₃├──┤ N₄│      │Wout │  y(t)   │  │
+│    │         │      │    └─┬─┘  └─┬─┘  └─┬─┘  └─┬─┘      │     │         │  │
+│    └─────────┘      │      │      │      │      │        │     └─────────┘  │
+│                     │      └──────┴──────┴──────┘        │                  │
+│                     │           Recurrent W              │                  │
+│                     │         (Fixed weights)            │                  │
+│                     └────────────────────────────────────┘                  │
+│                                                                             │
+│    Legend:                                                                  │
+│    ═══════                                                                  │
+│    Win  = Input weights (fixed after init)                                  │
+│    W    = Reservoir weights (fixed after init)                              │
+│    Wout = Output weights (TRAINED via RLS)                                  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
----
-
-### Online Learning with RLS
-
-The Recursive Least Squares (RLS) algorithm enables true online learning without
-storing historical data.
+### 🔄 Data Flow Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    RLS ALGORITHM FLOW                           │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│   For each new sample (x, y):                                   │
-│                                                                 │
-│   ┌─────────────┐                                               │
-│   │ 1. COMPUTE  │  Pz = P · z                                   │
-│   │    Pz       │  (where z = [r; x; 1] extended state)         │
-│   └──────┬──────┘                                               │
-│          ▼                                                      │
-│   ┌─────────────┐                                               │
-│   │ 2. COMPUTE  │  k = Pz / (λ + z'·Pz)                         │
-│   │    GAIN k   │  (Kalman-like gain vector)                    │
-│   └──────┬──────┘                                               │
-│          ▼                                                      │
-│   ┌─────────────┐                                               │
-│   │ 3. UPDATE   │  Wout += k · (y - Wout·z)'                    │
-│   │    WEIGHTS  │  (gradient descent step)                      │
-│   └──────┬──────┘                                               │
-│          ▼                                                      │
-│   ┌─────────────┐                                               │
-│   │ 4. UPDATE   │  P = (P - k·Pz') / λ                          │
-│   │    P MATRIX │  (inverse correlation update)                 │
-│   └─────────────┘                                               │
-│                                                                 │
-│   λ (forgetting factor):                                        │
-│   • λ = 1.0: Equal weight to all samples                        │
-│   • λ < 1.0: More weight to recent samples (concept drift)      │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                             │
+│                         ESN PROCESSING PIPELINE                             │
+│                                                                             │
+│   ┌──────────┐    ┌────────────┐    ┌────────────┐    ┌──────────────┐      │
+│   │ Raw Data │──▶│ Normalize  │──▶│  Reservoir │──▶│ Build State  │      │
+│   │  x_raw   │    │   x_norm   │    │   Update   │    │   Vector z   │      │
+│   └──────────┘    └────────────┘    └────────────┘    └──────┬───────┘      │
+│                                                              │              │
+│                                                              ▼              │
+│   ┌──────────┐    ┌────────────┐    ┌────────────┐    ┌──────────────┐      │
+│   │  Output  │◀──│   Linear   │◀──│  Weighted  │◀──│   Concat:    │      │
+│   │   y_hat  │    │   Readout  │    │     RLS    │    │ [r, x, bias] │      │
+│   └──────────┘    └────────────┘    └────────────┘    └──────────────┘      │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
----
+### 📐 Mathematical Foundation
 
-### Multi-Horizon Forecasting
+#### Reservoir State Update (Leaky Integration)
 
-The library supports two forecasting strategies:
+The reservoir state evolves according to:
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│               MULTI-HORIZON FORECASTING STRATEGIES              │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│ ┌─────────────────────────────────────────────────────────────┐ │
-│ │ DIRECT METHOD (useDirectMultiHorizon: true)                 │ │
-│ │                                                             │ │
-│ │   Single forward pass predicts ALL future steps:            │ │
-│ │                                                             │ │
-│ │   Input ──▶ Reservoir ──▶ Wout ──▶ [ŷ₁, ŷ₂, ŷ₃, ..., ŷₕ] │ │
-│ │                                                             │ │
-│ │   ✅ Pros: Fast, no error accumulation                      │ │
-│ │   ❌ Cons: Larger output layer, independent step errors     │ │
-│ │                                                             │ │
-│ └─────────────────────────────────────────────────────────────┘ │
-│                                                                 │
-│ ┌─────────────────────────────────────────────────────────────┐ │
-│ │ RECURSIVE METHOD (useDirectMultiHorizon: false)             │ │
-│ │                                                             │ │
-│ │   Roll forward step by step:                                │ │
-│ │                                                             │ │
-│ │   t+1: Reservoir(x_t) ──▶ ŷ₁                               │ │
-│ │   t+2: Reservoir(x_t) ──▶ ŷ₂  (reservoir continues)        │ │
-│ │   t+3: Reservoir(x_t) ──▶ ŷ₃  (same x, evolving state)     │ │
-│ │                                                             │ │
-│ │   ✅ Pros: Smaller model, consistent dynamics               │ │
-│ │   ❌ Cons: Slower, potential error accumulation             │ │
-│ │                                                             │ │
-│ └─────────────────────────────────────────────────────────────┘ │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+r(t) = (1 - α) · r(t-1) + α · f(Win · (s · x(t)) + W · r(t-1) + b)
+```
+
+Where:
+
+- **r(t)** = Current reservoir state
+- **α** = Leak rate (temporal smoothing)
+- **f** = Activation function (tanh or ReLU)
+- **Win** = Input weight matrix
+- **s** = Input scale factor
+- **W** = Reservoir weight matrix
+- **b** = Bias vector
+
+#### Output Computation
+
+```
+z(t) = [r(t), x(t), 1]  (concatenation)
+y(t) = Wout · z(t)
+```
+
+#### Recursive Least Squares (RLS) Update
+
+```
+k = P·z / (λ + z'·P·z)
+Wout = Wout + k·(y_true - y_hat)'
+P = (P - k·z'·P) / λ
+```
+
+### 🌀 Why Reservoir Computing Works
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                             │
+│                    THE ECHO STATE PROPERTY                                  │
+│                                                                             │
+│  ┌──────────────────────────────────────────────────────────────────┐       │
+│  │                                                                  │       │
+│  │  When spectral radius < 1, the reservoir has "fading memory":    │       │
+│  │                                                                  │       │
+│  │  • Past inputs influence decays exponentially over time          │       │
+│  │  • Network state is uniquely determined by input history         │       │
+│  │  • No exploding/vanishing gradient problems                      │       │
+│  │                                                                  │       │
+│  │            Memory Decay                                          │       │
+│  │        ▲                                                         │       │
+│  │        │  ████                                                   │       │
+│  │        │  ████ ▓▓▓▓                                              │       │
+│  │        │  ████ ▓▓▓▓ ░░░░                                         │       │
+│  │        │  ████ ▓▓▓▓ ░░░░ ····                                    │       │
+│  │        └──────────────────────▶ Time                            │       │
+│  │           t-3   t-2   t-1   t                                    │       │
+│  │                                                                  │       │
+│  └──────────────────────────────────────────────────────────────────┘       │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## ⚙️ Configuration
+## 🔧 Configuration Parameters
 
-### Complete Configuration Interface
+### 📊 Complete Configuration Reference
 
 ```typescript
 interface ESNRegressionConfig {
-  // Reservoir Architecture
+  // 🔄 Reservoir Architecture
   maxSequenceLength: number; // Default: 64
-  maxFutureSteps: number; // Default: 1
   reservoirSize: number; // Default: 256
   spectralRadius: number; // Default: 0.9
   leakRate: number; // Default: 0.3
@@ -291,80 +264,82 @@ interface ESNRegressionConfig {
   inputSparsity: number; // Default: 0.0
   activation: "tanh" | "relu"; // Default: "tanh"
 
-  // Readout Configuration
+  // 📤 Readout Configuration
   useInputInReadout: boolean; // Default: true
   useBiasInReadout: boolean; // Default: true
-  useDirectMultiHorizon: boolean; // Default: true
 
-  // RLS Training
+  // 🎯 Training (RLS)
   readoutTraining: "rls"; // Default: "rls"
   rlsLambda: number; // Default: 0.999
   rlsDelta: number; // Default: 1.0
+  epsilon: number; // Default: 1e-8
   l2Lambda: number; // Default: 0.0001
   gradientClipNorm: number; // Default: 1.0
 
-  // Normalization
+  // 📊 Normalization
   normalizationEpsilon: number; // Default: 1e-8
   normalizationWarmup: number; // Default: 10
 
-  // Outlier Handling
+  // 🛡️ Outlier Handling
   outlierThreshold: number; // Default: 3.0
   outlierMinWeight: number; // Default: 0.1
 
-  // Uncertainty Estimation
+  // 📈 Uncertainty
   residualWindowSize: number; // Default: 100
   uncertaintyMultiplier: number; // Default: 1.96
 
-  // Initialization
+  // ⚙️ Initialization
   weightInitScale: number; // Default: 0.1
   seed: number; // Default: 42
-  epsilon: number; // Default: 1e-8
   verbose: boolean; // Default: false
+  rollforwardMode: "holdLastX" | "autoregressive"; // Default: "holdLastX"
 }
 ```
 
 ---
 
-### 1. Reservoir Parameters
+### 🔄 Reservoir Architecture Parameters
 
-#### `reservoirSize` 🧠
+#### `reservoirSize` 🎯
 
-**The number of neurons in the reservoir.**
+**What it does:** Determines the number of neurons in the reservoir (hidden
+layer).
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│  RESERVOIR SIZE IMPACT                                       │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  Small (64-128)        Medium (256-512)      Large (1024+)   │
-│  ├── Fast training     ├── Good balance      ├── High        │
-│  ├── Low memory        ├── Most use cases    │   capacity    │
-│  └── Limited capacity  └── Recommended       ├── Slow        │
-│                                              └── Memory      │
-│                                                  intensive   │
-└──────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      RESERVOIR SIZE IMPACT                                  │
+│                                                                             │
+│   Size: 64              Size: 256             Size: 1024                    │
+│   ┌───────┐             ┌───────────┐         ┌─────────────────┐           │
+│   │ • • • │             │ • • • • • │         │ • • • • • • • • │           │
+│   │ • • • │             │ • • • • • │         │ • • • • • • • • │           │
+│   │ • • • │             │ • • • • • │         │ • • • • • • • • │           │
+│   └───────┘             │ • • • • • │         │ • • • • • • • • │           │
+│   Fast, limited         │ • • • • • │         │ • • • • • • • • │           │
+│   expressiveness        └───────────┘         └─────────────────┘           │
+│                         Balanced              High capacity,                │
+│                                               slower training               │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Optimization Guide:**
+| Use Case              | Recommended Size | Rationale            |
+| --------------------- | ---------------- | -------------------- |
+| Simple linear trends  | 32-64            | Low complexity, fast |
+| Standard time series  | 128-256          | Good balance         |
+| Complex patterns      | 512-1024         | High capacity needed |
+| Multi-variate complex | 256-512          | Per-target capacity  |
 
-| Scenario                      | Recommended Size     | Rationale             |
-| ----------------------------- | -------------------- | --------------------- |
-| Simple patterns, few features | 64-128               | Avoid overfitting     |
-| Standard time series          | 256-512              | Good generalization   |
-| Complex, multi-scale patterns | 512-1024             | Capture rich dynamics |
-| High-dimensional inputs       | 2-4x input dimension | Sufficient expansion  |
+**Example:**
 
 ```typescript
-// Example: Simple univariate forecasting
-const simple = new ESNRegression({
-  reservoirSize: 128,
-  // ...
+// 🚀 For simple univariate prediction
+const simpleModel = new ESNRegression({
+  reservoirSize: 64,
 });
 
-// Example: Complex multivariate with many patterns
-const complex = new ESNRegression({
+// 🎯 For complex multivariate forecasting
+const complexModel = new ESNRegression({
   reservoirSize: 512,
-  // ...
 });
 ```
 
@@ -372,49 +347,49 @@ const complex = new ESNRegression({
 
 #### `spectralRadius` 📊
 
-**Controls the "echo" property - how long information persists in the
-reservoir.**
+**What it does:** Controls the "memory" of the network. It's the largest
+eigenvalue of the reservoir weight matrix.
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│  SPECTRAL RADIUS EFFECT ON MEMORY                            │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  Memory Length                                               │
-│       │                                                      │
-│  Long │                         ╭────●                       │
-│       │                    ╭────╯                            │
-│       │               ╭────╯                                 │
-│       │          ╭────╯                                      │
-│  Short│     ●────╯                                           │
-│       └────────────────────────────────────────────▶        │
-│            0.5   0.7   0.9   0.95   0.99                     │
-│                  Spectral Radius                             │
-│                                                              │
-│  ⚠️  MUST BE < 1.0 for stability (Echo State Property)       │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     SPECTRAL RADIUS EFFECT                                  │
+│                                                                             │
+│  Memory Retention                                                           │
+│       ▲                                                                     │
+│       │                                                                     │
+│  1.0 ─┤                               ┌───── ρ = 0.99 (Long memory)         │
+│       │                          ┌────┘                                     │
+│       │                     ┌────┘                                          │
+│  0.5 ─┤                ┌────┘          ┌───── ρ = 0.9 (Medium memory)       │
+│       │           ┌────┘               │                                    │
+│       │      ┌────┘              ┌─────┘                                    │
+│       │ ┌────┘              ┌────┘      ┌───── ρ = 0.5 (Short memory)       │
+│  0.0 ─┴─┴───────────────────┴──────────┴────────────▶ Time Steps           │
+│       0         5         10        15        20                            │
+│                                                                             │
+│  ⚠️  Warning: ρ ≥ 1.0 can cause instability (loss of echo state property)   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Optimization Guide:**
+| Data Characteristics          | Recommended ρ | Why                               |
+| ----------------------------- | ------------- | --------------------------------- |
+| Rapid changes, short patterns | 0.5 - 0.7     | Quick adaptation                  |
+| Standard time series          | 0.8 - 0.95    | Balanced memory                   |
+| Long-term dependencies        | 0.95 - 0.99   | Extended memory                   |
+| Near edge of chaos            | 0.99          | Maximum expressiveness (careful!) |
 
-| Pattern Type            | Recommended Range | Example                 |
-| ----------------------- | ----------------- | ----------------------- |
-| Short-term dependencies | 0.5 - 0.7         | High-frequency trading  |
-| Medium-term patterns    | 0.8 - 0.95        | Daily sales forecasting |
-| Long-term dependencies  | 0.95 - 0.99       | Climate, seasonal data  |
+**Example:**
 
 ```typescript
-// Short memory for reactive systems
-const reactive = new ESNRegression({
-  spectralRadius: 0.6,
-  leakRate: 0.8, // Pair with high leak rate
+// 📈 Stock prices (long memory needed)
+const stockModel = new ESNRegression({
+  spectralRadius: 0.95,
 });
 
-// Long memory for seasonal patterns
-const seasonal = new ESNRegression({
-  spectralRadius: 0.98,
-  leakRate: 0.1, // Pair with low leak rate
+// ⚡ Sensor data (rapid changes)
+const sensorModel = new ESNRegression({
+  spectralRadius: 0.7,
 });
 ```
 
@@ -422,612 +397,709 @@ const seasonal = new ESNRegression({
 
 #### `leakRate` 💧
 
-**Controls how quickly the reservoir "forgets" previous states.**
+**What it does:** Controls temporal smoothing in the reservoir update. Values
+closer to 1 mean faster updates; values closer to 0 provide more smoothing.
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│  LEAK RATE DYNAMICS                                          │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  r(t) = (1-α)·r(t-1) + α·f(input)                            │
-│         ─────────────   ───────────                          │
-│         Memory term     Input term                           │
-│                                                              │
-│  ┌────────────────────────────────────────────────────────┐  │
-│  │ α → 0: Heavy memory, slow response to new inputs       │  │
-│  │ α → 1: Fast adaptation, quick response (less memory)   │  │
-│  └────────────────────────────────────────────────────────┘  │
-│                                                              │
-│  Effective Memory ≈ 1 / (1 - spectralRadius × (1 - α))       │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         LEAK RATE DYNAMICS                                  │
+│                                                                             │
+│  r(t) = (1 - α) · r(t-1) + α · f(...)                                       │
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────┐        │
+│  │                                                                 │        │
+│  │    α = 0.1 (Slow leak)     │    α = 0.9 (Fast leak)             │        │
+│  │    ┌──────────────────┐    │    ┌──────────────────┐            │        │
+│  │    │   ▓▓▓▓▓▓▓▓▓▓▓    │    │    │   ▓▓▓▓           │            │        │
+│  │    │  ▓▓▓▓▓▓▓▓▓▓▓▓▓   │    │    │  ▓▓▓▓▓▓▓▓        │            │        │
+│  │    │ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  │    │    │ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ │            │        │
+│  │    └──────────────────┘    │    └──────────────────┘            │        │
+│  │    Smooth, averaged        │    Responsive, reactive            │        │
+│  │                            │                                    │        │
+│  └─────────────────────────────────────────────────────────────────┘        │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Optimization Guide:**
+| Application           | Recommended α | Behavior           |
+| --------------------- | ------------- | ------------------ |
+| Noisy data            | 0.1 - 0.3     | Smoothing effect   |
+| Standard forecasting  | 0.3 - 0.5     | Balanced           |
+| Fast-changing signals | 0.6 - 0.9     | Quick response     |
+| Real-time tracking    | 0.8 - 1.0     | Immediate reaction |
 
-| Scenario              | Leak Rate | Spectral Radius | Effect           |
-| --------------------- | --------- | --------------- | ---------------- |
-| Fast-changing signals | 0.7 - 1.0 | 0.7 - 0.9       | Quick adaptation |
-| Slow trends           | 0.1 - 0.3 | 0.9 - 0.99      | Long memory      |
-| Mixed frequencies     | 0.3 - 0.5 | 0.85 - 0.95     | Balanced         |
+**Example:**
 
 ```typescript
-// Fast adaptation for volatile data
-const volatile = new ESNRegression({
-  leakRate: 0.9,
-  spectralRadius: 0.7,
-});
-
-// Smooth, trend-following
-const trending = new ESNRegression({
+// 🌊 Noisy sensor smoothing
+const smoothModel = new ESNRegression({
   leakRate: 0.2,
-  spectralRadius: 0.95,
+});
+
+// ⚡ High-frequency trading
+const fastModel = new ESNRegression({
+  leakRate: 0.8,
 });
 ```
 
 ---
 
-#### `inputScale` & `biasScale` 📏
+#### `inputScale` 📏
 
-**Control the magnitude of input and bias influence on reservoir dynamics.**
+**What it does:** Scales the input before feeding to the reservoir.
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│  SCALING EFFECTS                                             │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│Pre-activation = inputScale × Win × x + W × r + biasScale × b │
-│                 ───────────────────   ─────   ─────────────  │
-│                 Input influence       Recurrence  Baseline   │
-│                                                              │
-│  ┌─────────────────────────────────────────────────────────┐ │
-│  │ High inputScale: Reservoir strongly driven by inputs    │ │
-│  │ Low inputScale:  Reservoir dominated by internal        │ │
-│  │                  dynamics (autonomous behavior)         │ │
-│  │                                                         │ │
-│  │ biasScale: Adds diversity to neuron firing thresholds   │ │
-│  └─────────────────────────────────────────────────────────┘ │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        INPUT SCALING EFFECT                                 │
+│                                                                             │
+│   Input Scale = 0.1          Input Scale = 1.0          Input Scale = 3.0   │
+│   ┌────────────────┐         ┌────────────────┐         ┌────────────────┐  │
+│   │    ·····       │         │   ╱╲           │         │ ███████████████│  │
+│   │   ·····        │         │  ╱  ╲          │         │██████████████ █│  │
+│   │    ·····       │         │ ╱    ╲╱╲       │         │████ ████  ███  │  │
+│   └────────────────┘         └────────────────┘         └────────────────┘  │
+│   Weak influence             Balanced                   Strong, may saturate│
+│   (underutilized)            (recommended)              activation function │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Optimization Guide:**
-
-```typescript
-// Strong input influence (data-driven)
-const inputDriven = new ESNRegression({
-  inputScale: 2.0,
-  biasScale: 0.1,
-});
-
-// Balanced dynamics
-const balanced = new ESNRegression({
-  inputScale: 1.0,
-  biasScale: 0.2,
-});
-
-// Autonomous reservoir (rich internal dynamics)
-const autonomous = new ESNRegression({
-  inputScale: 0.5,
-  biasScale: 0.3,
-});
-```
+| Data Type                 | Recommended Scale | Notes                       |
+| ------------------------- | ----------------- | --------------------------- |
+| Pre-normalized (-1 to 1)  | 0.5 - 1.0         | Standard range              |
+| Large magnitude           | 0.1 - 0.5         | Prevent saturation          |
+| Small signals             | 1.0 - 2.0         | Amplify for better dynamics |
+| With online normalization | 1.0               | Let normalizer handle it    |
 
 ---
 
-#### `reservoirSparsity` & `inputSparsity` 🕸️
+#### `biasScale` ⚖️
 
-**Control the connectivity density of weight matrices.**
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│  SPARSITY VISUALIZATION                                      │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  reservoirSparsity = 0.0 (Dense)   reservoirSparsity = 0.9   │
-│  ┌─────────────────────┐           ┌─────────────────────┐   │
-│  │ ● ● ● ● ● ● ● ● ● ● │           │ ●     ●         ●   │   │
-│  │ ● ● ● ● ● ● ● ● ● ● │           │     ●     ●         │   │
-│  │ ● ● ● ● ● ● ● ● ● ● │           │ ●         ●     ●   │   │
-│  │ ● ● ● ● ● ● ● ● ● ● │           │       ●       ●     │   │
-│  │ ● ● ● ● ● ● ● ● ● ● │           │ ●   ●     ●         │   │
-│  └─────────────────────┘           └─────────────────────┘   │
-│  100% connections                  10% connections           │
-│  Slow, memory heavy                Fast, diverse dynamics    │
-│                                                              │
-│  ⚠️ Higher sparsity = fewer connections = faster but may     │
-│     lose expressiveness for small reservoirs                 │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
-```
-
-**Optimization Guide:**
-
-| Reservoir Size | Recommended Sparsity | Rationale                |
-| -------------- | -------------------- | ------------------------ |
-| < 100          | 0.0 - 0.5            | Maintain connectivity    |
-| 100 - 500      | 0.7 - 0.9            | Balance speed & richness |
-| > 500          | 0.9 - 0.95           | Computational efficiency |
+**What it does:** Scales the random bias values in the reservoir.
 
 ```typescript
-// Small reservoir, keep dense
-const smallDense = new ESNRegression({
-  reservoirSize: 64,
-  reservoirSparsity: 0.3,
+// Typical configurations
+const model = new ESNRegression({
+  biasScale: 0.1, // Default - small bias contribution
 });
 
-// Large sparse reservoir
-const largeSparse = new ESNRegression({
-  reservoirSize: 1024,
+// For breaking symmetry in sparse reservoirs
+const sparseModel = new ESNRegression({
   reservoirSparsity: 0.95,
+  biasScale: 0.2, // Slightly larger to add diversity
 });
 ```
+
+---
+
+#### `reservoirSparsity` 🕸️
+
+**What it does:** Controls the proportion of zero connections in the reservoir
+matrix.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       RESERVOIR SPARSITY                                    │
+│                                                                             │
+│   Sparsity = 0.0 (Dense)      Sparsity = 0.9 (90% zeros)                    │
+│   ┌────────────────────┐      ┌──────────────────┐                          │
+│   │ ████████████████   │      │ ·  ·  █  ·  ·  · │                          │
+│   │ ████████████████   │      │ ·  █  ·  ·  █  · │                          │
+│   │ ████████████████   │      │ █  ·  ·  ·  ·  █ │                          │
+│   │ ████████████████   │      │ ·  ·  █  ·  ·  · │                          │
+│   └────────────────────┘      └──────────────────┘                          │
+│   Slow, potentially           Fast, biologically                            │
+│   overfit                     plausible                                     │
+│                                                                             │
+│   🎯 Recommended: 0.8 - 0.95 for most applications                          │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Example:**
+
+```typescript
+// Standard sparse reservoir (recommended)
+const model = new ESNRegression({
+  reservoirSparsity: 0.9, // 90% zeros, 10% connections
+});
+
+// Dense reservoir (more capacity, slower)
+const denseModel = new ESNRegression({
+  reservoirSparsity: 0.5,
+});
+```
+
+---
+
+#### `inputSparsity` 📥
+
+**What it does:** Controls sparsity of input-to-reservoir connections.
+
+| Setting     | Use Case                       |
+| ----------- | ------------------------------ |
+| 0.0 (dense) | All features equally important |
+| 0.3 - 0.5   | Feature selection effect       |
+| 0.7 - 0.9   | Very high-dimensional inputs   |
 
 ---
 
 #### `activation` ⚡
 
-**The nonlinear activation function for reservoir neurons.**
+**What it does:** Non-linear activation function for reservoir neurons.
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│  ACTIVATION FUNCTIONS                                        │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  "tanh" (default)              "relu"                        │
-│       │                             │                        │
-│    1 ─┤     ╭─────────          1 ─┤           /             │
-│       │    ╱                       │         /               │
-│    0 ─┼───●                     0 ─┼────────●                │
-│       │    ╲                       │                         │
-│   -1 ─┤     ╰─────────         -1 ─┤                         │
-│       └──────────────────          └──────────────────       │
-│       -3  -1   0   1   3           -1   0   1   2   3        │
-│                                                              │
-│  tanh:                         relu:                         │
-│  ✅ Bounded output [-1, 1]     ✅ Faster computation         │
-│  ✅ Smooth gradients           ✅ Sparse activations         │
-│  ✅ Default choice             ❌ Unbounded (may explode)    │
-│  ❌ Saturation at extremes     ❌ Dead neurons possible      │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       ACTIVATION FUNCTIONS                                  │
+│                                                                             │
+│      tanh                              relu                                 │
+│       ▲                                 ▲                                   │
+│   1.0─┤      ╭────────              1.0─┤           ╱╱╱╱                    │
+│       │    ╭─╯                          │         ╱╱                        │
+│   0.0─┼────╯──────────              0.0─┼────────╱────────                  │
+│       │──╮                              │────────                           │
+│  -1.0─┤  ╰────────                 -1.0─┤                                   │
+│       └────────────▶                    └────────────▶                    │
+│                                                                             │
+│   • Bounded (-1, 1)              • Unbounded (0, ∞)                         │
+│   • Smoother gradients           • Sparse activations                       │
+│   • ✅ Default choice            • Good for positive data                   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+**Example:**
 
 ```typescript
-// Standard choice (recommended)
-const standard = new ESNRegression({
+// Standard (recommended for most cases)
+const tanhModel = new ESNRegression({
   activation: "tanh",
 });
 
-// For non-negative patterns, experiment with relu
-const reluReservoir = new ESNRegression({
+// For positive-only predictions
+const reluModel = new ESNRegression({
   activation: "relu",
-  spectralRadius: 0.7, // Lower for stability
-  inputScale: 0.5, // Reduce to prevent explosion
 });
 ```
 
 ---
 
-### 2. Training Parameters
+#### `maxSequenceLength` 📏
 
-#### `rlsLambda` (Forgetting Factor) 🔄
-
-**Controls how much weight is given to recent vs. older samples.**
+**What it does:** Maximum temporal context window and prediction horizon limit.
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│  FORGETTING FACTOR EFFECT                                    │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  Weight of sample at time (t - k):  w(k) = λᵏ                │
-│                                                              │
-│  Weight                                                      │
-│    │                                                         │
-│  1 ┤●──●──●──●──●──●──●   λ = 1.0 (no forgetting)            │
-│    │                                                         │
-│    │●                                                        │
-│ .5 ┤  ●                                                      │
-│    │    ●──●──●          λ = 0.99 (slow forgetting)          │
-│    │                                                         │
-│    │●                                                        │
-│  0 ┤  ●──●──●──●         λ = 0.95 (fast forgetting)          │
-│    └─────────────────▶                                      │
-│      t  t-5  t-10  t-15   Samples ago                        │
-│                                                              │
-│  Effective memory ≈ 1 / (1 - λ)                              │
-│  λ = 0.999 → ~1000 samples effective memory                  │
-│  λ = 0.99  → ~100 samples effective memory                   │
-│  λ = 0.95  → ~20 samples effective memory                    │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     SEQUENCE LENGTH CONTEXT                                 │
+│                                                                             │
+│   maxSequenceLength = 64                                                    │
+│                                                                             │
+│   ◀──────────── History Buffer (Ring Buffer) ──────────────▶              │
+│   ┌────┬────┬────┬────┬────┬────┬────┬────┬────┬────┬────┬────┐             │
+│   │ t₀ │ t₁ │ t₂ │ t₃ │ .. │t₆₁│t₆₂│t₆₃│ 🔮 │ 🔮 │ 🔮 │ .. │                │
+│   └────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┘             │
+│   ◀─────────── Stored Data ──────────▶│◀── predict(N) ────▶             │
+│                                                                             │
+│   ⚠️  predict(futureSteps) must be ≤ maxSequenceLength                      │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Optimization Guide:**
+| Scenario            | Recommended Length | Notes                   |
+| ------------------- | ------------------ | ----------------------- |
+| Real-time streaming | 32-64              | Low latency             |
+| Daily forecasting   | 64-128             | ~2 months of daily data |
+| Long-term patterns  | 128-512            | Seasonal effects        |
 
-| Scenario               | rlsLambda      | Effective Memory   |
-| ---------------------- | -------------- | ------------------ |
-| Stationary data        | 0.9999 - 1.0   | Very long          |
-| Slow concept drift     | 0.999 - 0.9995 | ~1000-2000 samples |
-| Moderate drift         | 0.99 - 0.999   | ~100-1000 samples  |
-| Fast-changing dynamics | 0.95 - 0.99    | ~20-100 samples    |
+---
+
+### 📤 Readout Configuration
+
+#### `useInputInReadout` 📎
+
+**What it does:** When `true`, appends current input to reservoir state for
+output computation.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      READOUT STATE COMPOSITION                              │
+│                                                                             │
+│   useInputInReadout: true    │    useInputInReadout: false                  │
+│   useBiasInReadout: true     │    useBiasInReadout: false                   │
+│                              │                                              │
+│   z = [r₁,r₂,...,rₙ, x₁,x₂,xₘ, 1]    z = [r₁,r₂,...,rₙ]                     │
+│       └────┬─────┘  └───┬───┘  └┬┘       └────┬─────┘                       │
+│        reservoir      input   bias        reservoir                         │
+│         state                  only                                         │
+│                                                                             │
+│   ✅ Better for:             │    ✅ Better for:                            │
+│   • Direct input influence   │    • Pure temporal features                  │
+│   • Skip connections         │    • Minimal state size                      │
+│                              │                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Default recommendation:** Keep both `true` for most applications.
+
+---
+
+### 🎯 Training Parameters (RLS)
+
+#### `rlsLambda` λ
+
+**What it does:** Forgetting factor for Recursive Least Squares. Controls how
+quickly old information is discarded.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       RLS FORGETTING FACTOR                                 │
+│                                                                             │
+│   λ = 0.99 (Slow forget)         λ = 0.95 (Fast forget)                     │
+│                                                                             │
+│   Weight on past data:           Weight on past data:                       │
+│   ████████████████████           ██████████████                             │
+│    ██████████████████             █████████████                             │
+│     █████████████████              ███████████                              │
+│      ████████████████               █████████                               │
+│       ███████████████                ███████                                │
+│   ◀─── Past ─────────▶           ◀─── Past ────▶                        │
+│                                                                             │
+│   • Stable learning              • Adaptive to changes                      │
+│   • Good for stationary data     • Good for non-stationary data             │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+| Data Behavior   | λ Value        | Why                      |
+| --------------- | -------------- | ------------------------ |
+| Stationary      | 0.999 - 0.9999 | Stable, uses all history |
+| Slowly drifting | 0.995 - 0.999  | Balanced                 |
+| Concept drift   | 0.95 - 0.99    | Quick adaptation         |
+| Rapid changes   | 0.9 - 0.95     | Very responsive          |
+
+**Example:**
 
 ```typescript
-// Stationary environment
-const stationary = new ESNRegression({
-  rlsLambda: 0.9999,
+// Stable environment
+const stableModel = new ESNRegression({
+  rlsLambda: 0.999,
 });
 
-// Adapting to concept drift
-const adaptive = new ESNRegression({
-  rlsLambda: 0.995, // ~200 samples effective memory
+// Non-stationary data with drift
+const adaptiveModel = new ESNRegression({
+  rlsLambda: 0.97,
 });
 ```
 
 ---
 
-#### `rlsDelta` (Initial P Scale) 📐
+#### `rlsDelta` δ
 
-**Controls the initial confidence/uncertainty in weight estimates.**
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│  RLS DELTA INITIALIZATION                                    │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  P₀ = (1/δ) × I   (Identity matrix scaled)                   │
-│                                                              │
-│  ┌─────────────────────────────────────────────────────────┐ │
-│  │ Small δ (0.01-0.1): Large initial P                     │ │
-│  │   → High initial learning rate                          │ │
-│  │   → Fast initial adaptation                             │ │
-│  │   → Risk of instability                                 │ │
-│  │                                                         │ │
-│  │ Large δ (1.0-10.0): Small initial P                     │ │
-│  │   → Conservative initial learning                       │ │
-│  │   → Stable but slower convergence                       │ │
-│  │   → Recommended for most cases                          │ │
-│  └─────────────────────────────────────────────────────────┘ │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
-```
+**What it does:** Initial value for the diagonal of the P matrix (inverse
+covariance). Larger values = faster initial learning.
 
 ```typescript
-// Conservative (recommended default)
-const conservative = new ESNRegression({
-  rlsDelta: 1.0,
+// Quick initial convergence
+const quickStart = new ESNRegression({
+  rlsDelta: 10.0,
 });
 
-// Aggressive initial learning
-const aggressive = new ESNRegression({
+// Conservative start
+const conservativeStart = new ESNRegression({
   rlsDelta: 0.1,
 });
 ```
 
+| Setting       | Effect                             |
+| ------------- | ---------------------------------- |
+| 0.01 - 0.1    | Slow, conservative initial updates |
+| 1.0 (default) | Balanced                           |
+| 10.0 - 100.0  | Aggressive initial learning        |
+
 ---
 
-#### `l2Lambda` (Regularization) 🛡️
+#### `l2Lambda` 🛡️
 
-**L2 regularization strength to prevent overfitting.**
+**What it does:** L2 regularization (weight decay) applied to readout weights.
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│  L2 REGULARIZATION                                           │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  Loss = MSE + l2Lambda × ||Wout||²                           │
-│                                                              │
-│  Effect: Weight decay towards zero                           │
-│                                                              │
-│  ┌─────────────────────────────────────────────────────────┐ │
-│  │ l2Lambda = 0:      No regularization                    │ │
-│  │ l2Lambda = 1e-4:   Light regularization (default)       │ │
-│  │ l2Lambda = 1e-3:   Moderate regularization              │ │
-│  │ l2Lambda = 1e-2:   Strong regularization                │ │
-│  └─────────────────────────────────────────────────────────┘ │
-│                                                              │
-│  ⚠️ Too high: Underfitting, poor predictions                 │
-│  ⚠️ Too low:  Overfitting, unstable weights                  │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        L2 REGULARIZATION EFFECT                             │
+│                                                                             │
+│   No Regularization (l2Lambda = 0)    With Regularization (l2Lambda > 0)    │
+│                                                                             │
+│   Weight magnitudes:                  Weight magnitudes:                    │
+│   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓                     ▓▓▓▓▓▓                                 │
+│       ▓▓▓▓▓▓▓▓▓▓▓▓▓▓                     ▓▓▓▓▓                              │
+│   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓                 ▓▓▓▓▓▓▓                                │
+│                                                                             │
+│   • May overfit                      • Prevents overfitting                 │
+│   • Potentially unstable             • More stable                          │
+│   • Large weight swings              • Smoother predictions                 │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-```typescript
-// Standard regularization
-const standard = new ESNRegression({
-  l2Lambda: 0.0001,
-});
-
-// High regularization for noisy data
-const noisy = new ESNRegression({
-  l2Lambda: 0.001,
-});
-```
+| Data Size            | Recommended l2Lambda | Notes                 |
+| -------------------- | -------------------- | --------------------- |
+| Small (<100 samples) | 0.01 - 0.1           | Strong regularization |
+| Medium (100-1000)    | 0.0001 - 0.001       | Moderate              |
+| Large (>1000)        | 0.00001 - 0.0001     | Light regularization  |
 
 ---
 
 #### `gradientClipNorm` ✂️
 
-**Clips weight updates to prevent explosive learning.**
+**What it does:** Clips the update norm to prevent explosive updates.
 
 ```typescript
-// Default clipping
-const defaultClip = new ESNRegression({
+// Standard (default)
+const model = new ESNRegression({
   gradientClipNorm: 1.0,
 });
 
 // More aggressive clipping for unstable data
-const conservativeClip = new ESNRegression({
+const safeModel = new ESNRegression({
   gradientClipNorm: 0.5,
 });
 
-// Disable clipping (not recommended)
-const noClip = new ESNRegression({
-  gradientClipNorm: 0, // Disabled when <= 0
+// Disabled (not recommended)
+const unclippedModel = new ESNRegression({
+  gradientClipNorm: 0, // No clipping
 });
 ```
 
 ---
 
-### 3. Normalization Parameters
+### 📊 Normalization Parameters
 
 #### `normalizationWarmup` 🔥
 
-**Number of samples before activating normalization.**
+**What it does:** Number of samples before online normalization becomes active.
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│  WELFORD ONLINE NORMALIZATION                                │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  Phase 1: Warmup (samples < warmup)                          │
-│  ┌─────────────────────────────────────────────────────────┐ │
-│  │ • Collect statistics only                               │ │
-│  │ • No normalization applied                              │ │
-│  │ • Accumulate mean and variance estimates                │ │
-│  └─────────────────────────────────────────────────────────┘ │
-│                                                              │
-│  Phase 2: Active (samples >= warmup)                         │
-│  ┌─────────────────────────────────────────────────────────┐ │
-│  │ • Apply normalization: x_norm = (x - μ) / σ             │ │
-│  │ • Continue updating statistics with each sample         │ │
-│  │ • Welford's algorithm for numerical stability           │ │
-│  └─────────────────────────────────────────────────────────┘ │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────┐
+│                      NORMALIZATION WARMUP                                  │
+│                                                                            │
+│   Samples:  1   2   3   4   5   6   7   8   9  10  11  12 ...              │
+│            ─────────────────┬────────────────────────────────              │
+│            Warmup Phase     │    Normal Operation                          │
+│            (collecting      │    (active normalization)                    │
+│             statistics)     │                                              │
+│                             │                                              │
+│   normalizationWarmup = 10 ─┘                                              │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+### 🛡️ Outlier Handling Parameters
+
+#### `outlierThreshold` 🎯
+
+**What it does:** Z-score threshold above which samples are considered outliers.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       OUTLIER DETECTION                                     │
+│                                                                             │
+│   Residual Distribution                                                     │
+│                                                                             │
+│                        ┌───────┐                                            │
+│                       ╱│       │╲                                           │
+│                      ╱ │       │ ╲                                          │
+│                     ╱  │       │  ╲                                         │
+│                    ╱   │       │   ╲                                        │
+│   ─────────────────────┴───────┴─────────────────────                       │
+│            ◀─3σ─▶│◀──Normal──▶│◀─3σ─▶                                 │
+│                  │            │                                             │
+│            Outlier Zone  │    Outlier Zone                                  │
+│                                                                             │
+│   outlierThreshold = 3.0 → Samples beyond 3σ are downweighted               │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+| Setting       | Detection Rate   | Use Case              |
+| ------------- | ---------------- | --------------------- |
+| 2.0           | ~5% outliers     | Aggressive filtering  |
+| 3.0 (default) | ~0.3% outliers   | Standard              |
+| 4.0           | ~0.006% outliers | Only extreme outliers |
+
+---
+
+#### `outlierMinWeight` ⚖️
+
+**What it does:** Minimum weight assigned to detected outliers (prevents
+complete exclusion).
 
 ```typescript
-// Quick warmup for stationary data
-const quickWarmup = new ESNRegression({
-  normalizationWarmup: 5,
+// Standard - outliers still contribute minimally
+const model = new ESNRegression({
+  outlierThreshold: 3.0,
+  outlierMinWeight: 0.1, // 10% weight for outliers
 });
 
-// Longer warmup for varying statistics
-const longerWarmup = new ESNRegression({
-  normalizationWarmup: 50,
+// Zero tolerance - completely ignore extreme outliers
+const strictModel = new ESNRegression({
+  outlierThreshold: 2.5,
+  outlierMinWeight: 0.0, // Full exclusion
 });
 ```
 
 ---
 
-### 4. Prediction Parameters
+### 📈 Uncertainty Quantification
 
-#### `maxFutureSteps` 🔮
+#### `residualWindowSize` 📊
 
-**Maximum number of future steps the model can predict.**
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│  MULTI-STEP PREDICTION                                       │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  With useDirectMultiHorizon = true:                          │
-│                                                              │
-│  Training Y shape: [nSamples][nTargets × maxFutureSteps]     │
-│                                                              │
-│  Example: 2 targets, 3 future steps                          │
-│  Y[i] = [y1_t+1, y2_t+1, y1_t+2, y2_t+2, y1_t+3, y2_t+3]     │
-│          ─────────────  ─────────────  ─────────────         │
-│            Step 1          Step 2         Step 3             │
-│                                                              │
-│  Prediction output:                                          │
-│  predict(3).predictions = [                                  │
-│    [y1_t+1, y2_t+1],  // Step 1                              │
-│    [y1_t+2, y2_t+2],  // Step 2                              │
-│    [y1_t+3, y2_t+3],  // Step 3                              │
-│  ]                                                           │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
-```
+**What it does:** Number of recent residuals used to estimate prediction
+uncertainty.
 
 ```typescript
-// Single-step prediction
-const singleStep = new ESNRegression({
-  maxFutureSteps: 1,
+// Short window - reacts quickly to error changes
+const reactiveModel = new ESNRegression({
+  residualWindowSize: 50,
 });
 
-// Multi-step with 5-step horizon
-const multiStep = new ESNRegression({
-  maxFutureSteps: 5,
-  useDirectMultiHorizon: true,
+// Long window - stable uncertainty estimates
+const stableModel = new ESNRegression({
+  residualWindowSize: 200,
 });
-
-// Training data for multiStep (2 features, 1 target, 5 steps)
-const xTrain = [[1, 2], [3, 4], [5, 6]];
-const yTrain = [
-  [10, 11, 12, 13, 14], // targets for t+1 through t+5
-  [20, 21, 22, 23, 24],
-  [30, 31, 32, 33, 34],
-];
 ```
 
 ---
 
-#### `uncertaintyMultiplier` 📈
+#### `uncertaintyMultiplier` 📐
 
-**Multiplier for confidence interval width.**
+**What it does:** Multiplier for confidence interval width (default 1.96 ≈ 95%
+CI).
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│  CONFIDENCE INTERVALS                                        │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  Bounds = prediction ± (uncertaintyMultiplier × std)         │
-│                                                              │
-│  ┌─────────────────────────────────────────────────────────┐ │
-│  │ Multiplier │ Coverage (Normal dist)                     │ │
-│  │────────────┼────────────────────────────────────────────│ │
-│  │    1.00    │ ~68% (1 standard deviation)                │ │
-│  │    1.64    │ ~90%                                       │ │
-│  │    1.96    │ ~95% (default, 2σ)                         │ │
-│  │    2.58    │ ~99%                                       │ │
-│  │    3.00    │ ~99.7%                                     │ │
-│  └─────────────────────────────────────────────────────────┘ │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                   UNCERTAINTY MULTIPLIER (Gaussian)                         │
+│                                                                             │
+│   Multiplier │ Confidence Level │ Interpretation                            │
+│   ───────────┼──────────────────┼─────────────────────────                  │
+│     1.00     │      68.3%       │ Within 1 std deviation                    │
+│     1.64     │      90.0%       │ Common for forecasting                    │
+│     1.96     │      95.0%       │ Standard (default)                        │
+│     2.58     │      99.0%       │ High confidence                           │
+│     3.00     │      99.7%       │ Very conservative                         │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+**Example:**
 
 ```typescript
-// 95% confidence (default)
-const ci95 = new ESNRegression({
-  uncertaintyMultiplier: 1.96,
+// 90% confidence intervals
+const model90 = new ESNRegression({
+  uncertaintyMultiplier: 1.64,
 });
 
-// 99% confidence (wider intervals)
-const ci99 = new ESNRegression({
+// 99% confidence intervals (wider bands)
+const model99 = new ESNRegression({
   uncertaintyMultiplier: 2.58,
 });
 ```
 
 ---
 
-#### `outlierThreshold` & `outlierMinWeight` 🎯
+### ⚙️ Initialization & Control
 
-**Control outlier detection and downweighting during training.**
+#### `seed` 🌱
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│  OUTLIER HANDLING                                            │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  Z-score = |residual - mean| / std                           │
-│                                                              │
-│  Weight calculation:                                         │
-│  ┌─────────────────────────────────────────────────────────┐ │
-│  │ if Z ≤ threshold:  weight = 1.0                         │ │
-│  │ if Z > threshold:  weight = max(threshold/Z, minWeight) │ │
-│  └─────────────────────────────────────────────────────────┘ │
-│                                                              │
-│  Weight                                                      │
-│    │                                                         │
-│  1 ┤────────────┐                                            │
-│    │            │                                            │
-│    │            └─────────────                               │
-│  .1┤                          ─────────── (minWeight floor)  │
-│    └────────────────────────────────────▶                   │
-│         threshold            Z-score                         │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
-```
+**What it does:** Random seed for deterministic weight initialization.
 
 ```typescript
-// Aggressive outlier rejection
-const aggressiveOutlier = new ESNRegression({
-  outlierThreshold: 2.0, // Tighter threshold
-  outlierMinWeight: 0.05, // Stronger downweighting
+// Same seed = identical results
+const model1 = new ESNRegression({ seed: 42 });
+const model2 = new ESNRegression({ seed: 42 });
+// model1 and model2 will produce identical results
+
+// Different seeds for ensemble diversity
+const ensemble = [
+  new ESNRegression({ seed: 1 }),
+  new ESNRegression({ seed: 2 }),
+  new ESNRegression({ seed: 3 }),
+];
+```
+
+---
+
+#### `rollforwardMode` 🔄
+
+**What it does:** Determines how multi-step predictions are generated.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     PREDICTION ROLLFORWARD MODES                            │
+│                                                                             │
+│   "holdLastX" (Default)           │   "autoregressive"                      │
+│   ────────────────────            │   ───────────────────                   │
+│                                   │                                         │
+│   x_known ─┬─▶ ŷ₁                │   x_known ─┬─▶ ŷ₁ ──┐                  │
+│            │                      │            │        │                   │
+│   x_known ─┼─▶ ŷ₂                │            └─▶ ŷ₂ ──┤ (ŷ₁ as x)        │
+│            │                      │               │     │                   │
+│   x_known ─┴─▶ ŷ₃                │               └─▶ ŷ₃ (ŷ₂ as x)         │
+│                                   │                                         │
+│   ✅ Safe, no error              │   ✅ True multi-step                     │
+│      accumulation                │      (requires nFeatures == nTargets)    │
+│                                   │                                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Example:**
+
+```typescript
+// Standard forecasting (safer)
+const holdModel = new ESNRegression({
+  rollforwardMode: "holdLastX",
 });
 
-// Permissive (keep more data)
-const permissive = new ESNRegression({
-  outlierThreshold: 4.0, // Wider threshold
-  outlierMinWeight: 0.3, // Less downweighting
+// Autoregressive (when features = targets)
+const arModel = new ESNRegression({
+  rollforwardMode: "autoregressive",
 });
 ```
 
 ---
 
-## 📊 API Reference
+## 📖 API Reference
 
-### Constructor
+### 🔨 Constructor
 
 ```typescript
-const esn = new ESNRegression(config?: Partial<ESNRegressionConfig>);
+constructor(config?: Partial<ESNRegressionConfig>)
 ```
 
-### Methods
+Creates a new ESNRegression instance with optional configuration overrides.
 
-#### `fitOnline({ xCoordinates, yCoordinates }): FitResult`
+---
 
-Train the model incrementally with new data.
+### 📥 `fitOnline()`
+
+```typescript
+fitOnline(args: { 
+  xCoordinates: number[][]; 
+  yCoordinates: number[][] 
+}): FitResult
+```
+
+Incrementally trains the model with new samples.
 
 ```typescript
 interface FitResult {
   samplesProcessed: number; // Number of samples in this batch
-  averageLoss: number; // Mean squared error
-  gradientNorm: number; // Magnitude of weight updates
-  driftDetected: boolean; // Concept drift indicator
-  sampleWeight: number; // Last sample's outlier weight
+  averageLoss: number; // Running average MSE
+  gradientNorm: number; // L2 norm of last weight update
+  driftDetected: boolean; // Reserved for drift detection
+  sampleWeight: number; // Weight of last sample (outlier handling)
 }
+```
 
-// Example
-const result = esn.fitOnline({
-  xCoordinates: [[1, 2], [3, 4]],
-  yCoordinates: [[10], [20]],
+**Example:**
+
+```typescript
+// Single sample update
+const result = model.fitOnline({
+  xCoordinates: [[1.0, 2.0]],
+  yCoordinates: [[3.0]],
+});
+
+// Batch update
+const batchResult = model.fitOnline({
+  xCoordinates: [
+    [1.0, 2.0],
+    [1.1, 2.1],
+    [1.2, 2.2],
+  ],
+  yCoordinates: [
+    [3.0],
+    [3.1],
+    [3.2],
+  ],
 });
 ```
 
 ---
 
-#### `predict(futureSteps: number): PredictionResult`
+### 🔮 `predict()`
 
-Generate predictions for future time steps.
+```typescript
+predict(futureSteps: number): PredictionResult
+```
+
+Generates multi-horizon predictions with uncertainty bounds.
 
 ```typescript
 interface PredictionResult {
-  predictions: number[][]; // [step][target] predicted values
+  predictions: number[][]; // [futureSteps][nTargets]
   lowerBounds: number[][]; // Lower confidence bounds
   upperBounds: number[][]; // Upper confidence bounds
-  confidence: number; // Overall confidence score [0, 1]
+  confidence: number; // Overall confidence (0-1)
 }
+```
 
-// Example
-const pred = esn.predict(3);
-console.log(pred.predictions[0]); // First step predictions
-console.log(pred.lowerBounds[0]); // First step lower bounds
+**Example:**
+
+```typescript
+const predictions = model.predict(5);
+
+for (let step = 0; step < predictions.predictions.length; step++) {
+  console.log(`Step ${step + 1}:`);
+  console.log(`  Prediction: ${predictions.predictions[step]}`);
+  console.log(
+    `  95% CI: [${predictions.lowerBounds[step]}, ${
+      predictions.upperBounds[step]
+    }]`,
+  );
+}
+console.log(
+  `Overall confidence: ${(predictions.confidence * 100).toFixed(1)}%`,
+);
 ```
 
 ---
 
-#### `getModelSummary(): ModelSummary`
+### 📊 `getModelSummary()`
 
-Get model architecture information.
+```typescript
+getModelSummary(): ModelSummary
+```
+
+Returns model architecture and training statistics.
 
 ```typescript
 interface ModelSummary {
-  totalParameters: number; // Trainable parameter count
-  receptiveField: number; // Effective memory length
-  spectralRadius: number; // Current spectral radius
-  reservoirSize: number; // Number of reservoir neurons
-  nFeatures: number; // Input dimension
-  nTargets: number; // Output dimension
-  maxSequenceLength: number; // Ring buffer capacity
-  maxFutureSteps: number; // Maximum forecast horizon
-  sampleCount: number; // Total samples trained
-  useDirectMultiHorizon: boolean;
+  totalParameters: number;
+  receptiveField: number;
+  spectralRadius: number;
+  reservoirSize: number;
+  nFeatures: number;
+  nTargets: number;
+  maxSequenceLength: number;
+  sampleCount: number;
 }
 ```
 
 ---
 
-#### `getWeights(): WeightInfo`
+### ⚖️ `getWeights()`
 
-Retrieve all weight matrices.
+```typescript
+getWeights(): WeightInfo
+```
+
+Returns all model weights for inspection or custom analysis.
 
 ```typescript
 interface WeightInfo {
   weights: Array<{
-    name: string; // "Win", "W", "bias", "Wout"
+    name: string; // "Win", "W", "b", "Wout", "P"
     shape: number[]; // Dimensions
     values: number[]; // Flattened values
   }>;
@@ -1036,295 +1108,524 @@ interface WeightInfo {
 
 ---
 
-#### `getNormalizationStats(): NormalizationStats`
+### 📈 `getNormalizationStats()`
 
-Get normalization parameters.
+```typescript
+getNormalizationStats(): NormalizationStats
+```
+
+Returns current normalization statistics.
 
 ```typescript
 interface NormalizationStats {
-  means: number[]; // Per-feature means
-  stds: number[]; // Per-feature standard deviations
-  count: number; // Samples observed
-  isActive: boolean; // Whether normalization is active
+  means: number[]; // Running means per feature
+  stds: number[]; // Running standard deviations
+  count: number; // Samples seen
+  isActive: boolean; // Whether warmup is complete
 }
 ```
 
 ---
 
-#### `save(): string`
-
-Serialize the model to JSON.
+### 🔄 `reset()`
 
 ```typescript
-const serialized = esn.save();
-localStorage.setItem("model", serialized);
+reset(): void
 ```
+
+Resets model to initial state while preserving configuration.
 
 ---
 
-#### `load(data: string): void`
-
-Deserialize a saved model.
+### 💾 `save()` / `load()`
 
 ```typescript
-const serialized = localStorage.getItem("model");
-esn.load(serialized!);
+save(): string
+load(serialized: string): void
 ```
 
----
+Serializes/deserializes the complete model state.
 
-#### `reset(): void`
-
-Reset the model to initial state.
+**Example:**
 
 ```typescript
-esn.reset(); // Clears all learned weights and statistics
+// Save model
+const modelState = model.save();
+localStorage.setItem("myModel", modelState);
+
+// Load model
+const loadedModel = new ESNRegression();
+loadedModel.load(localStorage.getItem("myModel")!);
 ```
 
 ---
 
-## 🎯 Use Cases & Optimization
+## 💡 Examples & Use Cases
 
-### 📈 Stock Price Prediction
-
-```typescript
-const stockPredictor = new ESNRegression({
-  reservoirSize: 512,
-  spectralRadius: 0.95, // Long memory for trends
-  leakRate: 0.2, // Slow dynamics
-  maxFutureSteps: 5, // 5-day forecast
-  rlsLambda: 0.998, // Adapt to market changes
-  outlierThreshold: 2.5, // Handle volatility
-  useDirectMultiHorizon: true,
-});
-
-// Features: [open, high, low, close, volume]
-// Target: next 5 days' closing prices
-```
-
----
-
-### 🌡️ Sensor Time Series
-
-```typescript
-const sensorModel = new ESNRegression({
-  reservoirSize: 256,
-  spectralRadius: 0.85, // Medium memory
-  leakRate: 0.5, // Moderate adaptation
-  maxFutureSteps: 10, // 10-step prediction
-  inputScale: 0.5, // Sensors often pre-scaled
-  normalizationWarmup: 100, // Let stats stabilize
-  residualWindowSize: 200, // Larger window for stability
-});
-```
-
----
-
-### 📊 Demand Forecasting
-
-```typescript
-const demandForecaster = new ESNRegression({
-  reservoirSize: 384,
-  spectralRadius: 0.92,
-  leakRate: 0.3,
-  maxFutureSteps: 7, // Weekly forecast
-  rlsLambda: 0.9995, // Stable patterns
-  l2Lambda: 0.0005, // Some regularization
-  useDirectMultiHorizon: true,
-});
-
-// Features: [day_of_week, promotions, weather, ...]
-// Target: daily demand for next 7 days
-```
-
----
-
-### ⚡ Real-Time Signal Processing
-
-```typescript
-const signalProcessor = new ESNRegression({
-  reservoirSize: 128, // Small for speed
-  spectralRadius: 0.7, // Fast dynamics
-  leakRate: 0.9, // Quick adaptation
-  maxFutureSteps: 1, // Single-step prediction
-  reservoirSparsity: 0.95, // Very sparse for speed
-  rlsLambda: 0.99, // Fast forgetting
-  normalizationWarmup: 5, // Quick startup
-});
-```
-
----
-
-### 🎛️ Parameter Optimization Cheatsheet
-
-```
-┌──────────────────────────────────────────────────────────────────┐
-│  QUICK OPTIMIZATION GUIDE                                        │
-├──────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  Problem                        Solution                         │
-│  ─────────────────────────────────────────────────────────────── │
-│  Underfitting                   ↑ reservoirSize, ↓ l2Lambda      │
-│  Overfitting                    ↓ reservoirSize, ↑ l2Lambda      │
-│  Slow convergence               ↓ rlsDelta, ↓ rlsLambda          │
-│  Unstable training              ↓ gradientClipNorm, ↑ l2Lambda   │
-│  Missing long patterns          ↑ spectralRadius, ↓ leakRate     │
-│  Too slow response              ↓ spectralRadius, ↑ leakRate     │
-│  Noisy predictions              ↑ l2Lambda, ↑ residualWindowSize │
-│  Concept drift                  ↓ rlsLambda (0.99-0.999)         │
-│  Memory issues                  ↑ reservoirSparsity, ↓ reservoir │
-│                                                                  │
-└──────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 💾 Model Persistence
-
-### Save and Load Example
+### 📈 Time Series Forecasting
 
 ```typescript
 import { ESNRegression } from "jsr:@hviana/multivariate-regression";
 
-// Create and train model
-const esn = new ESNRegression({
+// Configuration for daily sales forecasting
+const salesModel = new ESNRegression({
   reservoirSize: 256,
-  maxFutureSteps: 3,
-  seed: 42, // Important: must match when loading
+  maxSequenceLength: 90, // 3 months of history
+  spectralRadius: 0.95, // Long-term patterns
+  leakRate: 0.3, // Smooth transitions
+  rlsLambda: 0.998, // Slow forgetting
+  uncertaintyMultiplier: 1.96, // 95% CI
 });
 
-// Train with data
-esn.fitOnline({
-  xCoordinates: trainingX,
-  yCoordinates: trainingY,
+// Train with historical data
+const historicalSales = [
+  { features: [100, 5, 1], target: [120] }, // [base_sales, promo, weekday] -> [actual]
+  { features: [110, 0, 2], target: [105] },
+  // ... more data
+];
+
+for (const sample of historicalSales) {
+  salesModel.fitOnline({
+    xCoordinates: [sample.features],
+    yCoordinates: [sample.target],
+  });
+}
+
+// Forecast next 7 days
+const forecast = salesModel.predict(7);
+
+console.log("📊 7-Day Sales Forecast:");
+forecast.predictions.forEach((pred, day) => {
+  console.log(
+    `  Day ${day + 1}: ${pred[0].toFixed(0)} ` +
+      `[${forecast.lowerBounds[day][0].toFixed(0)} - ${
+        forecast.upperBounds[day][0].toFixed(0)
+      }]`,
+  );
 });
-
-// Save model
-const modelJson = esn.save();
-// Store to file, database, localStorage, etc.
-await Deno.writeTextFile("model.json", modelJson);
-
-// Later: Load model
-const loadedJson = await Deno.readTextFile("model.json");
-
-// Create new instance with SAME config
-const loadedEsn = new ESNRegression({
-  reservoirSize: 256,
-  maxFutureSteps: 3,
-  seed: 42, // Must match original
-});
-
-loadedEsn.load(loadedJson);
-
-// Continue training or predict
-const prediction = loadedEsn.predict(3);
 ```
 
 ---
 
-## 🔬 Advanced Topics
-
-### Understanding the Extended State Vector
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│  EXTENDED STATE VECTOR z                                     │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  z = [ r₁, r₂, ..., rₙ | x₁, x₂, ..., xₘ | 1 ]               │
-│       ─────────────────  ─────────────────  ─                │
-│       Reservoir state    Input (optional)   Bias             │
-│       (N neurons)        (F features)       (optional)       │
-│                                                              │
-│  Configuration:                                              │
-│  • useInputInReadout = true:  Include input features         │
-│  • useBiasInReadout = true:   Include bias term              │
-│                                                              │
-│  zDim = N + (useInputInReadout ? F : 0)                      │
-│           + (useBiasInReadout ? 1 : 0)                       │
-│                                                              │
-│  Example: N=256, F=10, both enabled                          │
-│  zDim = 256 + 10 + 1 = 267                                   │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
-```
-
----
-
-### Memory Architecture
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│  INTERNAL DATA FLOW                                          │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  Input X ──┬──▶ RingBuffer (stores last maxSequenceLength)  │
-│            │                                                 │
-│            ├──▶ WelfordNormalizer ──▶ xNorm                │
-│            │                                                 │
-│            └──▶ ESNReservoir ──▶ r (state)                 │
-│                                   │                          │
-│                                   ▼                          │
-│                    z = [r; xNorm; 1] (extended state)        │
-│                                   │                          │
-│                                   ▼                          │
-│                    LinearReadout (Wout) ──▶ ŷ               │
-│                                   │                          │
-│                                   ▼                          │
-│                    ResidualStats ──▶ Confidence bounds      │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
-```
-
----
-
-### Deterministic Behavior
-
-The library guarantees deterministic results:
+### 🤖 Online Sensor Fusion
 
 ```typescript
-// Same configuration + same seed = identical results
-const esn1 = new ESNRegression({ seed: 12345 });
-const esn2 = new ESNRegression({ seed: 12345 });
+// Real-time sensor data processing
+const sensorModel = new ESNRegression({
+  reservoirSize: 128,
+  maxSequenceLength: 32,
+  leakRate: 0.7, // Fast response
+  spectralRadius: 0.8, // Short memory
+  rlsLambda: 0.95, // Quick adaptation
+  outlierThreshold: 2.5, // Aggressive outlier rejection
+  activation: "tanh",
+});
 
-esn1.fitOnline({ xCoordinates: data, yCoordinates: labels });
-esn2.fitOnline({ xCoordinates: data, yCoordinates: labels });
+// Streaming sensor loop
+async function processSensorStream(sensorStream: AsyncIterable<SensorReading>) {
+  for await (const reading of sensorStream) {
+    // Input: [temperature, humidity, pressure, light]
+    // Output: [predicted_occupancy, energy_demand]
 
-const pred1 = esn1.predict(3);
-const pred2 = esn2.predict(3);
+    const result = sensorModel.fitOnline({
+      xCoordinates: [[
+        reading.temp,
+        reading.humidity,
+        reading.pressure,
+        reading.light,
+      ]],
+      yCoordinates: [[reading.occupancy, reading.energy]],
+    });
 
-// pred1.predictions === pred2.predictions  ✅
+    if (result.sampleWeight < 0.5) {
+      console.warn("⚠️ Potential sensor anomaly detected!");
+    }
+
+    // Get 1-step ahead prediction for real-time control
+    const prediction = sensorModel.predict(1);
+
+    await sendToController({
+      predictedOccupancy: prediction.predictions[0][0],
+      predictedEnergy: prediction.predictions[0][1],
+      confidence: prediction.confidence,
+    });
+  }
+}
 ```
 
 ---
 
-## 🛠️ Troubleshooting
+### 📊 Multivariate Financial Prediction
 
-### Common Issues
+```typescript
+// Multi-asset price prediction
+const financeModel = new ESNRegression({
+  reservoirSize: 512, // High capacity
+  maxSequenceLength: 128, // ~6 months daily data
+  spectralRadius: 0.99, // Long memory (markets have trends)
+  leakRate: 0.2, // Smooth (noisy data)
+  inputSparsity: 0.3, // Feature selection
+  rlsLambda: 0.995,
+  l2Lambda: 0.001, // Regularization
+  rollforwardMode: "autoregressive", // True multi-step
+  uncertaintyMultiplier: 2.58, // 99% CI for risk management
+});
 
-| Issue                   | Possible Cause      | Solution                                                 |
-| ----------------------- | ------------------- | -------------------------------------------------------- |
-| `NaN` in predictions    | Exploding gradients | ↓ `inputScale`, ↓ `spectralRadius`, ↑ `gradientClipNorm` |
-| Poor accuracy           | Underfitting        | ↑ `reservoirSize`, tune `spectralRadius`/`leakRate`      |
-| Slow training           | Large reservoir     | ↑ `reservoirSparsity`, ↓ `reservoirSize`                 |
-| Config mismatch on load | Different settings  | Ensure identical config when loading                     |
-| Memory errors           | Too large reservoir | ↓ `reservoirSize`, ↑ `sparsity`                          |
+// Input: [asset1_return, asset2_return, volatility_index, interest_rate]
+// Output: [asset1_next, asset2_next] (same features for autoregressive)
+
+const trainingData = prepareFinancialData();
+
+// Batch training
+financeModel.fitOnline({
+  xCoordinates: trainingData.x,
+  yCoordinates: trainingData.y,
+});
+
+// 5-day forecast
+const forecast = financeModel.predict(5);
+
+console.log("📈 5-Day Multi-Asset Forecast:");
+console.log(`Confidence: ${(forecast.confidence * 100).toFixed(1)}%`);
+forecast.predictions.forEach((pred, day) => {
+  console.log(
+    `  Day ${day + 1}: Asset1=${pred[0].toFixed(4)}, Asset2=${
+      pred[1].toFixed(4)
+    }`,
+  );
+});
+```
 
 ---
 
-## 📝 License
+### 🔄 Model Persistence & Deployment
 
-MIT License © 2025 [Henrique Emanoel Viana](https://github.com/hviana)
+```typescript
+// Training phase
+const model = new ESNRegression({ reservoirSize: 256 });
+
+// ... train model ...
+
+// Save for deployment
+const modelState = model.save();
+await Deno.writeTextFile("model.json", modelState);
+
+// -----------------------------------
+
+// Deployment / Loading
+const deployedModel = new ESNRegression();
+const savedState = await Deno.readTextFile("model.json");
+deployedModel.load(savedState);
+
+// Continue training (transfer learning)
+deployedModel.fitOnline({
+  xCoordinates: newData.x,
+  yCoordinates: newData.y,
+});
+```
+
+---
+
+## 🎯 Parameter Optimization Guide
+
+### 🗺️ Decision Flowchart
+
+```
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                            │
+│                    PARAMETER SELECTION GUIDE                               │
+│                                                                            │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │                     START HERE                                      │   │
+│  │                          │                                          │   │
+│  │                          ▼                                          │   │
+│  │    ┌─────────────────────────────────────────┐                      │   │
+│  │    │     What is your data volume?           │                      │   │
+│  │    └───────────────┬─────────────────────────┘                      │   │
+│  │                    │                                                │   │
+│  │         ┌──────────┼──────────┐                                     │   │
+│  │         ▼          ▼          ▼                                     │   │
+│  │      Small      Medium      Large                                   │   │
+│  │    (<1000)    (1K-100K)    (>100K)                                  │   │
+│  │         │          │          │                                     │   │
+│  │         ▼          ▼          ▼                                     │   │
+│  │    reservoirSize  reservoirSize  reservoirSize                      │   │
+│  │      64-128       128-512      256-1024                             │   │
+│  │    l2Lambda      l2Lambda     l2Lambda                              │   │
+│  │     0.01          0.001       0.0001                                │   │
+│  │                                                                     │   │
+│  │                          │                                          │   │
+│  │                          ▼                                          │   │
+│  │    ┌─────────────────────────────────────────┐                      │   │
+│  │    │     Is your data stationary?            │                      │   │
+│  │    └───────────────┬─────────────────────────┘                      │   │
+│  │                    │                                                │   │
+│  │              ┌─────┴─────┐                                          │   │
+│  │              ▼           ▼                                          │   │
+│  │            Yes          No                                          │   │
+│  │              │           │                                          │   │
+│  │              ▼           ▼                                          │   │
+│  │        rlsLambda    rlsLambda                                       │   │
+│  │         0.999        0.95-0.99                                      │   │
+│  │                                                                     │   │
+│  │                          │                                          │   │
+│  │                          ▼                                          │   │
+│  │    ┌─────────────────────────────────────────┐                      │   │
+│  │    │     Pattern length in your data?        │                      │   │
+│  │    └───────────────┬─────────────────────────┘                      │   │
+│  │                    │                                                │   │
+│  │         ┌──────────┼──────────┐                                     │   │
+│  │         ▼          ▼          ▼                                     │   │
+│  │       Short     Medium      Long                                    │   │
+│  │      (<10)     (10-50)     (>50)                                    │   │
+│  │         │          │          │                                     │   │
+│  │         ▼          ▼          ▼                                     │   │
+│  │   spectralRadius  spectralRadius  spectralRadius                    │   │
+│  │      0.5-0.7      0.8-0.9       0.95-0.99                           │   │
+│  │   leakRate       leakRate      leakRate                             │   │
+│  │      0.6-0.9      0.3-0.6      0.1-0.3                              │   │
+│  │                                                                     │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 📋 Quick Reference Presets
+
+#### 🚀 Fast & Simple
+
+```typescript
+const quickModel = new ESNRegression({
+  reservoirSize: 64,
+  maxSequenceLength: 32,
+  spectralRadius: 0.8,
+  leakRate: 0.5,
+  reservoirSparsity: 0.9,
+});
+```
+
+#### ⚖️ Balanced (Default-like)
+
+```typescript
+const balancedModel = new ESNRegression({
+  reservoirSize: 256,
+  maxSequenceLength: 64,
+  spectralRadius: 0.9,
+  leakRate: 0.3,
+  rlsLambda: 0.999,
+});
+```
+
+#### 🎯 High Accuracy
+
+```typescript
+const accurateModel = new ESNRegression({
+  reservoirSize: 512,
+  maxSequenceLength: 128,
+  spectralRadius: 0.95,
+  leakRate: 0.2,
+  rlsLambda: 0.9995,
+  l2Lambda: 0.0001,
+});
+```
+
+#### 🔄 Adaptive (Non-Stationary)
+
+```typescript
+const adaptiveModel = new ESNRegression({
+  reservoirSize: 256,
+  maxSequenceLength: 64,
+  spectralRadius: 0.85,
+  leakRate: 0.5,
+  rlsLambda: 0.97,
+  outlierThreshold: 2.5,
+});
+```
+
+#### 🛡️ Robust (Noisy Data)
+
+```typescript
+const robustModel = new ESNRegression({
+  reservoirSize: 256,
+  maxSequenceLength: 64,
+  spectralRadius: 0.9,
+  leakRate: 0.2, // More smoothing
+  outlierThreshold: 2.0, // Stricter
+  outlierMinWeight: 0.05,
+  l2Lambda: 0.01, // Strong regularization
+});
+```
+
+---
+
+## 📊 Performance Tips
+
+### ⚡ Speed Optimization
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                             │
+│                    PERFORMANCE OPTIMIZATION                                 │
+│                                                                             │
+│  1. RESERVOIR SIZE - Primary cost factor                                    │
+│     ─────────────────────────────────────                                   │
+│     Memory:  O(N²)     Computation: O(N² + N×F)                             │
+│                                                                             │
+│     Tip: Start small (64-128), increase only if needed                      │
+│                                                                             │
+│  2. SPARSITY - Reduce effective computations                                │
+│     ────────────────────────────────────────                                │
+│     reservoirSparsity: 0.9  →  10% of weights active                        │
+│     inputSparsity: 0.5      →  50% of inputs connected                      │
+│                                                                             │
+│  3. BATCH SIZE - Amortize overhead                                          │
+│     ──────────────────────────────────                                      │
+│     Single samples: Higher overhead                                         │
+│     Batches of 10-100: Better throughput                                    │
+│                                                                             │
+│  4. PRE-ALLOCATION - Arena already handles this ✅                          │
+│     ───────────────────────────────────────────                             │
+│     No GC pressure from model internals                                     │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 🎯 Accuracy Tips
+
+1. **Feature Engineering**: Normalize inputs before feeding to model
+2. **Proper Warmup**: Allow `normalizationWarmup` samples before expecting good
+   predictions
+3. **Hyperparameter Tuning**: Use validation set to tune `spectralRadius`,
+   `leakRate`
+4. **Ensemble Methods**: Create multiple models with different seeds, average
+   predictions
+
+```typescript
+// Simple ensemble
+const ensemble = [
+  new ESNRegression({ seed: 1, reservoirSize: 256 }),
+  new ESNRegression({ seed: 2, reservoirSize: 256 }),
+  new ESNRegression({ seed: 3, reservoirSize: 256 }),
+];
+
+function ensemblePredict(models: ESNRegression[], steps: number) {
+  const predictions = models.map((m) => m.predict(steps));
+
+  // Average predictions
+  return predictions[0].predictions.map((_, stepIdx) =>
+    predictions[0].predictions[stepIdx].map((_, targetIdx) => {
+      const sum = predictions.reduce(
+        (acc, p) => acc + p.predictions[stepIdx][targetIdx],
+        0,
+      );
+      return sum / predictions.length;
+    })
+  );
+}
+```
+
+---
+
+## 🧪 Testing Your Configuration
+
+```typescript
+import { ESNRegression } from "jsr:@hviana/multivariate-regression";
+
+function evaluateConfig(
+  config: Partial<ESNRegressionConfig>,
+  data: { x: number[][]; y: number[][] },
+) {
+  const model = new ESNRegression(config);
+
+  // Split data
+  const trainSize = Math.floor(data.x.length * 0.8);
+  const trainX = data.x.slice(0, trainSize);
+  const trainY = data.y.slice(0, trainSize);
+  const testX = data.x.slice(trainSize);
+  const testY = data.y.slice(trainSize);
+
+  // Train
+  model.fitOnline({ xCoordinates: trainX, yCoordinates: trainY });
+
+  // Evaluate
+  let mse = 0;
+  for (let i = 0; i < testX.length; i++) {
+    model.fitOnline({ xCoordinates: [testX[i]], yCoordinates: [testY[i]] });
+    const pred = model.predict(1);
+
+    for (let t = 0; t < testY[i].length; t++) {
+      mse += Math.pow(pred.predictions[0][t] - testY[i][t], 2);
+    }
+  }
+
+  mse /= testX.length * testY[0].length;
+
+  return {
+    mse,
+    rmse: Math.sqrt(mse),
+    summary: model.getModelSummary(),
+  };
+}
+
+// Test different configurations
+const configs = [
+  { name: "Small", config: { reservoirSize: 64 } },
+  { name: "Medium", config: { reservoirSize: 256 } },
+  { name: "Large", config: { reservoirSize: 512 } },
+];
+
+for (const { name, config } of configs) {
+  const result = evaluateConfig(config, myData);
+  console.log(`${name}: RMSE = ${result.rmse.toFixed(4)}`);
+}
+```
+
+---
+
+## 📚 Additional Resources
+
+### 📖 Learn More About ESNs
+
+- [Scholarpedia: Echo State Network](http://www.scholarpedia.org/article/Echo_state_network)
+- [A Practical Guide to ESNs](http://www.faculty.jacobs-university.de/hjaeger/pubs/ESNTutorialRev.pdf)
+
+### 🔗 Related Projects
+
+- [JSR Package](https://jsr.io/@hviana/multivariate-regression)
+- [GitHub Repository](https://github.com/hviana/multivariate-regression)
+
+---
+
+## 📜 License
+
+**MIT License** © 2025 Henrique Emanoel Viana
+
+```
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
 
 ---
 
 <div align="center">
 
-**[⬆ Back to Top](#-esnregression---echo-state-network-for-multivariate-time-series)**
+**Made with ❤️ by [Henrique Emanoel Viana](https://github.com/hviana)**
 
-Made with ❤️ for the time series community
-
-[GitHub](https://github.com/hviana/multivariate-regression) •
-[JSR Package](https://jsr.io/@hviana/multivariate-regression)
+⭐ Star this repo if you find it useful!
 
 </div>
