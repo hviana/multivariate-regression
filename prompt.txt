@@ -250,6 +250,23 @@ seed: number                           // Default: 42
 verbose: boolean                       // Default: false
 }
 
+INPUT EXAMPLE:
+const xTrain = [
+  [1.0, 2.0], //t
+  [1.5, 2.5], //t+1
+  [2.0, 3.0], //t+2
+  [2.5, 3.5], //t+3
+  [3.0, 4.0], //t+4
+];
+
+const yTrain = [
+  [10, 11, 12], //t
+  [15, 16, 17], //t+1
+  [20, 21, 22], //t+2
+  [25, 26, 27], //t+3
+  [30, 31, 32], //t+4
+];
+
 CLASSES (MUST IMPLEMENT EXACTLY AS LISTED)
 Implement the following classes exactly as listed, using typed arrays, fixed-size preallocation, and pooled shell objects as required:
 TensorShape, TensorView, TensorArena, BufferPool, TensorOps, ActivationOps, RandomGenerator,
