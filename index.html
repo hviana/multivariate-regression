@@ -1194,9 +1194,19 @@ function createModel(config) {
 
 function trainSingle(x, y) {
   if (!model) throw new Error('No model created');
+
+  if (!Array.isArray(x) || !Array.isArray(y)) {
+  throw new Error('Invalid sample: expected { x: number[], y: number[] }');
+  }
+  if (x.length === 0 || y.length === 0) {
+  throw new Error('Invalid sample: x/y cannot be empty (check random test dims)');
+  }
+
   if (nFeatures === 0) { nFeatures = x.length; nTargets = y.length; }
+
   if (x.length !== nFeatures) throw new Error('Feature dim mismatch: expected ' + nFeatures + ', got ' + x.length);
   if (y.length !== nTargets) throw new Error('Target dim mismatch: expected ' + nTargets + ', got ' + y.length);
+
   model.fitOnline(x, y);
   dataset.push({ x, y });
   samplesProcessed++;
@@ -1205,17 +1215,27 @@ function trainSingle(x, y) {
 
 function trainBatch(samples, requestId) {
   if (!model) throw new Error('No model created');
-  const results = [];
+  if (!Array.isArray(samples)) throw new Error('Invalid batch: samples must be an array');
+
   for (let i = 0; i < samples.length; i++) {
-    if (cancelRequests.has(requestId)) {
-      cancelRequests.delete(requestId);
-      return { cancelled: true, processed: i };
-    }
-    const { x, y } = samples[i];
-    trainSingle(x, y);
-    if (i % 10 === 0 || i === samples.length - 1) {
-      self.postMessage({ type: 'progress', requestId, processed: i + 1, total: samples.length, percent: Math.round((i + 1) / samples.length * 100), stage: 'training' });
-    }
+  if (cancelRequests.has(requestId)) {
+  cancelRequests.delete(requestId);
+  return { cancelled: true, processed: i };
+  }
+
+  const s = samples[i];
+  trainSingle(s?.x, s?.y);
+
+  if (i % 10 === 0 || i === samples.length - 1) {
+    self.postMessage({
+      type: 'progress',
+      requestId,
+      processed: i + 1,
+      total: samples.length,
+      percent: Math.round((i + 1) / samples.length * 100),
+      stage: 'training'
+    });
+  }
   }
   return { processed: samples.length, samplesProcessed, nFeatures, nTargets };
 }
@@ -2689,7 +2709,14 @@ self.onmessage = async (e) => {
         $("#testOutlier").oninput = (e) =>
           $("#outlierVal").textContent = e.target.value;
       }
-
+      function toIntClamped(v, def, min, max) {
+        const n = Number(v);
+        if (!Number.isFinite(n)) return def;
+        const i = Math.trunc(n);
+        if (i < min) return min;
+        if (i > max) return max;
+        return i;
+      }
       function seededRandom(seed) {
         let s = seed;
         return () => {
@@ -2699,10 +2726,20 @@ self.onmessage = async (e) => {
       }
 
       window.runRandomTest = async () => {
-        const seed = parseInt($("#testSeed").value) || 42;
-        const nSamples = parseInt($("#testSamples").value) || 200;
-        const nFeat = parseInt($("#testFeatures").value) || 5;
-        const nTarg = parseInt($("#testTargets").value) || 3;
+        const seed = toIntClamped(
+          $("#testSeed").value,
+          42,
+          -2147483648,
+          2147483647,
+        );
+        const nSamples = toIntClamped(
+          $("#testSamples").value,
+          200,
+          10,
+          5000,
+        );
+        const nFeat = toIntClamped($("#testFeatures").value, 5, 1, 50);
+        const nTarg = toIntClamped($("#testTargets").value, 3, 1, 20);
         const noise = parseFloat($("#testNoise").value) || 0.1;
         const outlierRate = parseFloat($("#testOutlier").value) || 0.02;
 
