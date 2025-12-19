@@ -1,0 +1,2488 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧠 ESN Regression Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: {
+                50: "#f0f9ff",
+                100: "#e0f2fe",
+                200: "#bae6fd",
+                300: "#7dd3fc",
+                400: "#38bdf8",
+                500: "#0ea5e9",
+                600: "#0284c7",
+                700: "#0369a1",
+                800: "#075985",
+                900: "#0c4a6e",
+              },
+              accent: {
+                50: "#fdf4ff",
+                100: "#fae8ff",
+                200: "#f5d0fe",
+                300: "#f0abfc",
+                400: "#e879f9",
+                500: "#d946ef",
+                600: "#c026d3",
+                700: "#a21caf",
+                800: "#86198f",
+                900: "#701a75",
+              },
+            },
+            animation: {
+              "pulse-slow":
+                "pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+              "spin-slow": "spin 2s linear infinite",
+              "fade-in": "fadeIn 0.3s ease-out",
+              "slide-up": "slideUp 0.3s ease-out",
+              "slide-down": "slideDown 0.3s ease-out",
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes slideUp {
+        from {
+          transform: translateY(20px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+      @keyframes slideDown {
+        from {
+          transform: translateY(-20px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      .scrollbar-thin::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      .scrollbar-thin::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .scrollbar-thin::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 3px;
+      }
+      .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+
+      .gradient-bg {
+        background: linear-gradient(
+          135deg,
+          #0c4a6e 0%,
+          #1e3a5f 50%,
+          #2d1b4e 100%
+        );
+      }
+      .glass {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .glass-light {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+      }
+
+      .loader {
+        width: 40px;
+        height: 40px;
+        border: 3px solid #e0f2fe;
+        border-top-color: #0ea5e9;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      details summary {
+        cursor: pointer;
+        list-style: none;
+      }
+      details summary::-webkit-details-marker {
+        display: none;
+      }
+      details[open] summary .chevron {
+        transform: rotate(180deg);
+      }
+
+      input[type="number"]::-webkit-inner-spin-button,
+      input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      input[type="number"] {
+        -moz-appearance: textfield;
+      }
+    </style>
+  </head>
+  <body class="gradient-bg min-h-screen text-white">
+    <!-- Loading Overlay -->
+    <div
+      id="loadingOverlay"
+      class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center hidden"
+    >
+      <div class="text-center animate-fade-in">
+        <div class="loader mx-auto mb-4"></div>
+        <p id="loadingText" class="text-lg font-medium text-primary-200">
+          Processing...
+        </p>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <header class="glass sticky top-0 z-40">
+      <div
+        class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between"
+      >
+        <div class="flex items-center gap-3">
+          <button
+            id="menuBtn"
+            class="p-2 hover:bg-white/10 rounded-lg transition-colors lg:hidden"
+          >
+            <svg
+              class="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
+          </button>
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">🧠</span>
+            <h1
+              class="text-xl font-bold bg-gradient-to-r from-primary-300 to-accent-300 bg-clip-text text-transparent"
+            >
+              ESN Studio
+            </h1>
+          </div>
+        </div>
+        <div id="statusIndicator" class="flex items-center gap-2 text-sm">
+          <span class="w-2 h-2 rounded-full bg-gray-400" id="statusDot"></span>
+          <span id="statusText" class="hidden sm:inline">No Model</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Mobile Menu Overlay -->
+    <div
+      id="mobileMenuOverlay"
+      class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden"
+      onclick="closeMobileMenu()"
+    >
+    </div>
+
+    <!-- Main Layout -->
+    <div class="flex">
+      <!-- Sidebar -->
+      <aside
+        id="sidebar"
+        class="fixed lg:sticky top-0 left-0 h-screen w-72 glass-light lg:glass lg:bg-transparent transform -translate-x-full lg:translate-x-0 transition-transform z-40 overflow-y-auto scrollbar-thin"
+      >
+        <div class="p-4 pt-20 lg:pt-4 text-gray-800 lg:text-white">
+          <nav class="space-y-2">
+            <h3
+              class="text-xs font-semibold uppercase tracking-wider text-gray-500 lg:text-gray-400 mb-3"
+            >
+              Model
+            </h3>
+
+            <button
+              onclick="openModal('instantiateModal')"
+              class="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-primary-500/20 transition-all group"
+            >
+              <span class="text-xl">⚙️</span>
+              <span class="font-medium">Instantiate Model</span>
+            </button>
+
+            <button
+              onclick="openModal('loadModal')"
+              class="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-primary-500/20 transition-all group"
+            >
+              <span class="text-xl">📂</span>
+              <span class="font-medium">Load State</span>
+            </button>
+
+            <button
+              onclick="saveModel()"
+              class="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-primary-500/20 transition-all group"
+            >
+              <span class="text-xl">💾</span>
+              <span class="font-medium">Save State</span>
+            </button>
+
+            <button
+              onclick="resetModel()"
+              class="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-primary-500/20 transition-all group text-red-600 lg:text-red-400"
+            >
+              <span class="text-xl">🔄</span>
+              <span class="font-medium">Reset Model</span>
+            </button>
+
+            <hr class="my-4 border-gray-300 lg:border-gray-700">
+            <h3
+              class="text-xs font-semibold uppercase tracking-wider text-gray-500 lg:text-gray-400 mb-3"
+            >
+              Training
+            </h3>
+
+            <button
+              onclick="openModal('manualTrainModal')"
+              class="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-accent-500/20 transition-all group"
+            >
+              <span class="text-xl">✏️</span>
+              <span class="font-medium">Manual Input</span>
+            </button>
+
+            <button
+              onclick="openModal('bulkTrainModal')"
+              class="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-accent-500/20 transition-all group"
+            >
+              <span class="text-xl">📤</span>
+              <span class="font-medium">Bulk Upload</span>
+            </button>
+
+            <button
+              onclick="generateRandomTest()"
+              class="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-accent-500/20 transition-all group"
+            >
+              <span class="text-xl">🎲</span>
+              <span class="font-medium">Random Test</span>
+            </button>
+
+            <hr class="my-4 border-gray-300 lg:border-gray-700">
+            <h3
+              class="text-xs font-semibold uppercase tracking-wider text-gray-500 lg:text-gray-400 mb-3"
+            >
+              Prediction
+            </h3>
+
+            <button
+              onclick="openModal('predictModal')"
+              class="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-green-500/20 transition-all group"
+            >
+              <span class="text-xl">🔮</span>
+              <span class="font-medium">Make Prediction</span>
+            </button>
+          </nav>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="flex-1 p-4 lg:p-6 min-h-screen">
+        <div class="max-w-6xl mx-auto space-y-6">
+          <!-- Welcome Card (shown when no model) -->
+          <div
+            id="welcomeCard"
+            class="glass rounded-2xl p-8 text-center animate-fade-in"
+          >
+            <div class="text-6xl mb-4">🧠</div>
+            <h2 class="text-2xl font-bold mb-2">
+              Welcome to ESN Regression Studio
+            </h2>
+            <p class="text-gray-300 mb-6 max-w-lg mx-auto">
+              An interactive tool for Echo State Networks. Create a model, train
+              it with your data, and make predictions with confidence intervals.
+            </p>
+            <button
+              onclick="openModal('instantiateModal')"
+              class="px-6 py-3 bg-gradient-to-r from-primary-500 to-accent-500 rounded-xl font-semibold hover:opacity-90 transition-opacity"
+            >
+              Create Your First Model
+            </button>
+          </div>
+
+          <!-- Model Summary Card -->
+          <div
+            id="modelCard"
+            class="glass rounded-2xl p-6 hidden animate-slide-up"
+          >
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-xl font-bold flex items-center gap-2">
+                <span>📊</span> Model Summary
+              </h2>
+              <span
+                class="px-3 py-1 bg-green-500/20 text-green-300 text-sm rounded-full"
+              >Active</span>
+            </div>
+            <div
+              id="modelSummary"
+              class="grid grid-cols-2 md:grid-cols-4 gap-4"
+            >
+              <!-- Filled dynamically -->
+            </div>
+          </div>
+
+          <!-- Training Stats Card -->
+          <div
+            id="trainingCard"
+            class="glass rounded-2xl p-6 hidden animate-slide-up"
+          >
+            <h2 class="text-xl font-bold flex items-center gap-2 mb-4">
+              <span>📈</span> Training Statistics
+            </h2>
+            <div
+              id="trainingStats"
+              class="grid grid-cols-2 md:grid-cols-4 gap-4"
+            >
+              <!-- Filled dynamically -->
+            </div>
+          </div>
+
+          <!-- Predictions Card -->
+          <div
+            id="predictionsCard"
+            class="glass rounded-2xl p-6 hidden animate-slide-up"
+          >
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-xl font-bold flex items-center gap-2">
+                <span>🔮</span> Predictions
+              </h2>
+              <div class="flex items-center gap-2">
+                <label class="text-sm text-gray-400">View:</label>
+                <select
+                  id="viewSelector"
+                  onchange="updatePredictionView()"
+                  class="bg-white/10 border border-white/20 rounded-lg px-3 py-1 text-sm"
+                >
+                  <option value="chart">Chart</option>
+                  <option value="parallel">Parallel Coords</option>
+                  <option value="table">Table</option>
+                </select>
+              </div>
+            </div>
+
+            <div
+              id="predictionConfidence"
+              class="mb-4 p-3 bg-white/5 rounded-xl"
+            >
+              <!-- Confidence display -->
+            </div>
+
+            <div id="dimensionSelector" class="mb-4 hidden">
+              <label class="text-sm text-gray-400 block mb-2"
+              >Select dimensions to display:</label>
+              <div id="dimensionButtons" class="flex flex-wrap gap-2">
+                <!-- Filled dynamically -->
+              </div>
+            </div>
+
+            <div
+              id="predictionViz"
+              class="bg-gray-900/50 rounded-xl p-4 min-h-[300px]"
+            >
+              <!-- Visualization goes here -->
+            </div>
+
+            <div id="predictionTable" class="mt-4 hidden overflow-x-auto">
+              <!-- Table goes here -->
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Instantiate Modal -->
+    <div id="instantiateModal" class="fixed inset-0 z-50 hidden">
+      <div
+        class="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onclick="closeModal('instantiateModal')"
+      >
+      </div>
+      <div
+        class="absolute inset-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-2xl md:max-h-[90vh] glass-light rounded-2xl overflow-hidden flex flex-col animate-slide-up"
+      >
+        <div class="p-6 border-b border-gray-200">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+              <span>⚙️</span> Instantiate Model
+            </h3>
+            <button
+              onclick="closeModal('instantiateModal')"
+              class="p-2 hover:bg-gray-100 rounded-lg"
+            >
+              <svg
+                class="w-5 h-5 text-gray-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-6 scrollbar-thin">
+          <form id="instantiateForm" class="space-y-4">
+            <!-- Preset Selector -->
+            <div class="mb-6">
+              <label class="block text-sm font-semibold text-gray-700 mb-2"
+              >Quick Presets</label>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <button
+                  type="button"
+                  onclick="applyPreset('fast')"
+                  class="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition-colors"
+                >
+                  🚀 Fast
+                </button>
+                <button
+                  type="button"
+                  onclick="applyPreset('balanced')"
+                  class="px-3 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors"
+                >
+                  ⚖️ Balanced
+                </button>
+                <button
+                  type="button"
+                  onclick="applyPreset('accurate')"
+                  class="px-3 py-2 bg-purple-100 text-purple-700 rounded-lg text-sm font-medium hover:bg-purple-200 transition-colors"
+                >
+                  🎯 Accurate
+                </button>
+                <button
+                  type="button"
+                  onclick="applyPreset('adaptive')"
+                  class="px-3 py-2 bg-orange-100 text-orange-700 rounded-lg text-sm font-medium hover:bg-orange-200 transition-colors"
+                >
+                  🔄 Adaptive
+                </button>
+              </div>
+            </div>
+
+            <!-- Reservoir Architecture -->
+            <details class="group" open>
+              <summary
+                class="flex items-center justify-between p-3 bg-gray-100 rounded-xl cursor-pointer"
+              >
+                <span class="font-semibold text-gray-700"
+                >🔄 Reservoir Architecture</span>
+                <svg
+                  class="w-5 h-5 text-gray-500 chevron transition-transform"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </summary>
+              <div class="mt-3 space-y-4 pl-2">
+                <!-- Reservoir Size -->
+                <div>
+                  <div class="flex items-center justify-between">
+                    <label class="text-sm font-medium text-gray-700"
+                    >Reservoir Size</label>
+                    <input
+                      type="number"
+                      name="reservoirSize"
+                      value="256"
+                      min="16"
+                      max="2048"
+                      class="w-24 px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800"
+                    >
+                  </div>
+                  <details class="mt-1">
+                    <summary
+                      class="text-xs text-primary-600 cursor-pointer hover:underline"
+                    >
+                      ℹ️ What is this?
+                    </summary>
+                    <p
+                      class="mt-1 text-xs text-gray-500 bg-gray-50 p-2 rounded"
+                    >
+                      <strong>Reservoir Size</strong> determines the number of
+                      neurons in the hidden layer. Larger sizes capture more
+                      complex patterns but require more computation.
+                      <br><br>
+                      <strong>Optimization:</strong><br>
+                      • Simple data: 32-64<br>
+                      • Standard time series: 128-256<br>
+                      • Complex patterns: 512-1024
+                    </p>
+                  </details>
+                </div>
+
+                <!-- Max Sequence Length -->
+                <div>
+                  <div class="flex items-center justify-between">
+                    <label class="text-sm font-medium text-gray-700"
+                    >Max Sequence Length</label>
+                    <input
+                      type="number"
+                      name="maxSequenceLength"
+                      value="64"
+                      min="8"
+                      max="512"
+                      class="w-24 px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800"
+                    >
+                  </div>
+                  <details class="mt-1">
+                    <summary
+                      class="text-xs text-primary-600 cursor-pointer hover:underline"
+                    >
+                      ℹ️ What is this?
+                    </summary>
+                    <p
+                      class="mt-1 text-xs text-gray-500 bg-gray-50 p-2 rounded"
+                    >
+                      <strong>Max Sequence Length</strong> is the maximum
+                      temporal context window and prediction horizon limit.
+                      <br><br>
+                      <strong>Optimization:</strong><br>
+                      • Real-time streaming: 32-64<br>
+                      • Daily forecasting: 64-128<br>
+                      • Seasonal patterns: 128-512
+                    </p>
+                  </details>
+                </div>
+
+                <!-- Spectral Radius -->
+                <div>
+                  <div class="flex items-center justify-between">
+                    <label class="text-sm font-medium text-gray-700"
+                    >Spectral Radius</label>
+                    <input
+                      type="number"
+                      name="spectralRadius"
+                      value="0.9"
+                      min="0.1"
+                      max="0.99"
+                      step="0.01"
+                      class="w-24 px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800"
+                    >
+                  </div>
+                  <details class="mt-1">
+                    <summary
+                      class="text-xs text-primary-600 cursor-pointer hover:underline"
+                    >
+                      ℹ️ What is this?
+                    </summary>
+                    <p
+                      class="mt-1 text-xs text-gray-500 bg-gray-50 p-2 rounded"
+                    >
+                      <strong>Spectral Radius</strong> controls the "memory" of
+                      the network. Higher values = longer memory of past inputs.
+                      <br><br>
+                      <strong>⚠️ Must be &lt; 1.0 for stability!</strong>
+                      <br><br>
+                      <strong>Optimization:</strong><br>
+                      • Rapid changes: 0.5-0.7<br>
+                      • Standard series: 0.8-0.95<br>
+                      • Long-term dependencies: 0.95-0.99
+                    </p>
+                  </details>
+                </div>
+
+                <!-- Leak Rate -->
+                <div>
+                  <div class="flex items-center justify-between">
+                    <label class="text-sm font-medium text-gray-700"
+                    >Leak Rate</label>
+                    <input
+                      type="number"
+                      name="leakRate"
+                      value="0.3"
+                      min="0.01"
+                      max="1.0"
+                      step="0.01"
+                      class="w-24 px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800"
+                    >
+                  </div>
+                  <details class="mt-1">
+                    <summary
+                      class="text-xs text-primary-600 cursor-pointer hover:underline"
+                    >
+                      ℹ️ What is this?
+                    </summary>
+                    <p
+                      class="mt-1 text-xs text-gray-500 bg-gray-50 p-2 rounded"
+                    >
+                      <strong>Leak Rate</strong> controls temporal smoothing.
+                      Lower values = more smoothing, higher = faster response.
+                      <br><br>
+                      <strong>Optimization:</strong><br>
+                      • Noisy data: 0.1-0.3<br>
+                      • Standard: 0.3-0.5<br>
+                      • Fast-changing signals: 0.6-0.9
+                    </p>
+                  </details>
+                </div>
+
+                <!-- Input Scale -->
+                <div>
+                  <div class="flex items-center justify-between">
+                    <label class="text-sm font-medium text-gray-700"
+                    >Input Scale</label>
+                    <input
+                      type="number"
+                      name="inputScale"
+                      value="1.0"
+                      min="0.01"
+                      max="5.0"
+                      step="0.1"
+                      class="w-24 px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800"
+                    >
+                  </div>
+                  <details class="mt-1">
+                    <summary
+                      class="text-xs text-primary-600 cursor-pointer hover:underline"
+                    >
+                      ℹ️ What is this?
+                    </summary>
+                    <p
+                      class="mt-1 text-xs text-gray-500 bg-gray-50 p-2 rounded"
+                    >
+                      <strong>Input Scale</strong> scales input values before
+                      feeding to reservoir. Prevents activation saturation.
+                      <br><br>
+                      <strong>Optimization:</strong><br>
+                      • Pre-normalized data: 0.5-1.0<br>
+                      • Large magnitudes: 0.1-0.5<br>
+                      • Small signals: 1.0-2.0
+                    </p>
+                  </details>
+                </div>
+
+                <!-- Reservoir Sparsity -->
+                <div>
+                  <div class="flex items-center justify-between">
+                    <label class="text-sm font-medium text-gray-700"
+                    >Reservoir Sparsity</label>
+                    <input
+                      type="number"
+                      name="reservoirSparsity"
+                      value="0.9"
+                      min="0"
+                      max="0.99"
+                      step="0.05"
+                      class="w-24 px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800"
+                    >
+                  </div>
+                  <details class="mt-1">
+                    <summary
+                      class="text-xs text-primary-600 cursor-pointer hover:underline"
+                    >
+                      ℹ️ What is this?
+                    </summary>
+                    <p
+                      class="mt-1 text-xs text-gray-500 bg-gray-50 p-2 rounded"
+                    >
+                      <strong>Reservoir Sparsity</strong> controls the
+                      proportion of zero connections (0.9 = 90% zeros). Higher
+                      sparsity = faster computation.
+                      <br><br>
+                      <strong>Recommendation:</strong> 0.8-0.95 for most
+                      applications.
+                    </p>
+                  </details>
+                </div>
+
+                <!-- Activation -->
+                <div>
+                  <div class="flex items-center justify-between">
+                    <label class="text-sm font-medium text-gray-700"
+                    >Activation</label>
+                    <select
+                      name="activation"
+                      class="w-24 px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800"
+                    >
+                      <option value="tanh">tanh</option>
+                      <option value="relu">relu</option>
+                    </select>
+                  </div>
+                  <details class="mt-1">
+                    <summary
+                      class="text-xs text-primary-600 cursor-pointer hover:underline"
+                    >
+                      ℹ️ What is this?
+                    </summary>
+                    <p
+                      class="mt-1 text-xs text-gray-500 bg-gray-50 p-2 rounded"
+                    >
+                      <strong>Activation Function</strong> introduces
+                      non-linearity.<br>
+                      • <strong>tanh:</strong> Bounded (-1,1), smoother -
+                      recommended for most cases<br>
+                      • <strong>relu:</strong> Unbounded, sparse activations -
+                      good for positive-only data
+                    </p>
+                  </details>
+                </div>
+              </div>
+            </details>
+
+            <!-- Training Parameters -->
+            <details class="group">
+              <summary
+                class="flex items-center justify-between p-3 bg-gray-100 rounded-xl cursor-pointer"
+              >
+                <span class="font-semibold text-gray-700"
+                >🎯 Training (RLS)</span>
+                <svg
+                  class="w-5 h-5 text-gray-500 chevron transition-transform"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </summary>
+              <div class="mt-3 space-y-4 pl-2">
+                <!-- RLS Lambda -->
+                <div>
+                  <div class="flex items-center justify-between">
+                    <label class="text-sm font-medium text-gray-700"
+                    >RLS Lambda (λ)</label>
+                    <input
+                      type="number"
+                      name="rlsLambda"
+                      value="0.999"
+                      min="0.9"
+                      max="0.9999"
+                      step="0.001"
+                      class="w-24 px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800"
+                    >
+                  </div>
+                  <details class="mt-1">
+                    <summary
+                      class="text-xs text-primary-600 cursor-pointer hover:underline"
+                    >
+                      ℹ️ What is this?
+                    </summary>
+                    <p
+                      class="mt-1 text-xs text-gray-500 bg-gray-50 p-2 rounded"
+                    >
+                      <strong>Forgetting Factor (λ)</strong> controls how
+                      quickly old information is discarded. Lower = faster
+                      adaptation to changes.
+                      <br><br>
+                      <strong>Optimization:</strong><br>
+                      • Stationary data: 0.999-0.9999<br>
+                      • Slowly drifting: 0.995-0.999<br>
+                      • Concept drift: 0.95-0.99
+                    </p>
+                  </details>
+                </div>
+
+                <!-- RLS Delta -->
+                <div>
+                  <div class="flex items-center justify-between">
+                    <label class="text-sm font-medium text-gray-700"
+                    >RLS Delta (δ)</label>
+                    <input
+                      type="number"
+                      name="rlsDelta"
+                      value="1.0"
+                      min="0.01"
+                      max="100"
+                      step="0.1"
+                      class="w-24 px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800"
+                    >
+                  </div>
+                  <details class="mt-1">
+                    <summary
+                      class="text-xs text-primary-600 cursor-pointer hover:underline"
+                    >
+                      ℹ️ What is this?
+                    </summary>
+                    <p
+                      class="mt-1 text-xs text-gray-500 bg-gray-50 p-2 rounded"
+                    >
+                      <strong>Initial P matrix scaling (δ)</strong> affects
+                      initial learning speed. Larger = faster initial
+                      convergence.
+                      <br><br>
+                      <strong>Typical values:</strong> 0.1 (conservative) to
+                      10.0 (aggressive)
+                    </p>
+                  </details>
+                </div>
+
+                <!-- L2 Lambda -->
+                <div>
+                  <div class="flex items-center justify-between">
+                    <label class="text-sm font-medium text-gray-700"
+                    >L2 Regularization</label>
+                    <input
+                      type="number"
+                      name="l2Lambda"
+                      value="0.0001"
+                      min="0"
+                      max="0.1"
+                      step="0.0001"
+                      class="w-24 px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800"
+                    >
+                  </div>
+                  <details class="mt-1">
+                    <summary
+                      class="text-xs text-primary-600 cursor-pointer hover:underline"
+                    >
+                      ℹ️ What is this?
+                    </summary>
+                    <p
+                      class="mt-1 text-xs text-gray-500 bg-gray-50 p-2 rounded"
+                    >
+                      <strong>L2 Regularization</strong> prevents overfitting by
+                      penalizing large weights.
+                      <br><br>
+                      <strong>Optimization:</strong><br>
+                      • Small datasets (&lt;100): 0.01-0.1<br>
+                      • Medium (100-1000): 0.0001-0.001<br>
+                      • Large (&gt;1000): 0.00001-0.0001
+                    </p>
+                  </details>
+                </div>
+              </div>
+            </details>
+
+            <!-- Outlier & Uncertainty -->
+            <details class="group">
+              <summary
+                class="flex items-center justify-between p-3 bg-gray-100 rounded-xl cursor-pointer"
+              >
+                <span class="font-semibold text-gray-700"
+                >🛡️ Outlier & Uncertainty</span>
+                <svg
+                  class="w-5 h-5 text-gray-500 chevron transition-transform"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </summary>
+              <div class="mt-3 space-y-4 pl-2">
+                <!-- Outlier Threshold -->
+                <div>
+                  <div class="flex items-center justify-between">
+                    <label class="text-sm font-medium text-gray-700"
+                    >Outlier Threshold</label>
+                    <input
+                      type="number"
+                      name="outlierThreshold"
+                      value="3.0"
+                      min="1.5"
+                      max="5.0"
+                      step="0.1"
+                      class="w-24 px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800"
+                    >
+                  </div>
+                  <details class="mt-1">
+                    <summary
+                      class="text-xs text-primary-600 cursor-pointer hover:underline"
+                    >
+                      ℹ️ What is this?
+                    </summary>
+                    <p
+                      class="mt-1 text-xs text-gray-500 bg-gray-50 p-2 rounded"
+                    >
+                      <strong>Outlier Threshold</strong> (in standard
+                      deviations) - samples beyond this are downweighted.
+                      <br><br>
+                      • 2.0: Aggressive (~5% outliers)<br>
+                      • 3.0: Standard (~0.3% outliers)<br>
+                      • 4.0: Only extreme (~0.006%)
+                    </p>
+                  </details>
+                </div>
+
+                <!-- Uncertainty Multiplier -->
+                <div>
+                  <div class="flex items-center justify-between">
+                    <label class="text-sm font-medium text-gray-700"
+                    >Uncertainty Multiplier</label>
+                    <input
+                      type="number"
+                      name="uncertaintyMultiplier"
+                      value="1.96"
+                      min="1.0"
+                      max="3.0"
+                      step="0.01"
+                      class="w-24 px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800"
+                    >
+                  </div>
+                  <details class="mt-1">
+                    <summary
+                      class="text-xs text-primary-600 cursor-pointer hover:underline"
+                    >
+                      ℹ️ What is this?
+                    </summary>
+                    <p
+                      class="mt-1 text-xs text-gray-500 bg-gray-50 p-2 rounded"
+                    >
+                      <strong>Confidence Interval Multiplier</strong> for
+                      predictions:
+                      <br><br>
+                      • 1.00 → 68.3% CI<br>
+                      • 1.64 → 90.0% CI<br>
+                      • 1.96 → 95.0% CI (default)<br>
+                      • 2.58 → 99.0% CI
+                    </p>
+                  </details>
+                </div>
+              </div>
+            </details>
+
+            <!-- Advanced -->
+            <details class="group">
+              <summary
+                class="flex items-center justify-between p-3 bg-gray-100 rounded-xl cursor-pointer"
+              >
+                <span class="font-semibold text-gray-700">⚙️ Advanced</span>
+                <svg
+                  class="w-5 h-5 text-gray-500 chevron transition-transform"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </summary>
+              <div class="mt-3 space-y-4 pl-2">
+                <!-- Seed -->
+                <div>
+                  <div class="flex items-center justify-between">
+                    <label class="text-sm font-medium text-gray-700"
+                    >Random Seed</label>
+                    <input
+                      type="number"
+                      name="seed"
+                      value="42"
+                      min="0"
+                      max="999999"
+                      class="w-24 px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800"
+                    >
+                  </div>
+                  <details class="mt-1">
+                    <summary
+                      class="text-xs text-primary-600 cursor-pointer hover:underline"
+                    >
+                      ℹ️ What is this?
+                    </summary>
+                    <p
+                      class="mt-1 text-xs text-gray-500 bg-gray-50 p-2 rounded"
+                    >
+                      <strong>Random Seed</strong> for deterministic
+                      initialization. Same seed = reproducible results.
+                    </p>
+                  </details>
+                </div>
+
+                <!-- Rollforward Mode -->
+                <div>
+                  <div class="flex items-center justify-between">
+                    <label class="text-sm font-medium text-gray-700"
+                    >Rollforward Mode</label>
+                    <select
+                      name="rollforwardMode"
+                      class="w-32 px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800"
+                    >
+                      <option value="holdLastX">Hold Last X</option>
+                      <option value="autoregressive">Autoregressive</option>
+                    </select>
+                  </div>
+                  <details class="mt-1">
+                    <summary
+                      class="text-xs text-primary-600 cursor-pointer hover:underline"
+                    >
+                      ℹ️ What is this?
+                    </summary>
+                    <p
+                      class="mt-1 text-xs text-gray-500 bg-gray-50 p-2 rounded"
+                    >
+                      <strong>Rollforward Mode</strong> for multi-step
+                      predictions:<br><br>
+                      • <strong>holdLastX:</strong> Uses last known input for
+                      all future steps (safer)<br>
+                      • <strong>autoregressive:</strong> Uses predictions as
+                      next inputs (requires nFeatures == nTargets)
+                    </p>
+                  </details>
+                </div>
+
+                <!-- Bias Scale -->
+                <div>
+                  <div class="flex items-center justify-between">
+                    <label class="text-sm font-medium text-gray-700"
+                    >Bias Scale</label>
+                    <input
+                      type="number"
+                      name="biasScale"
+                      value="0.1"
+                      min="0"
+                      max="1.0"
+                      step="0.01"
+                      class="w-24 px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800"
+                    >
+                  </div>
+                </div>
+
+                <!-- Input Sparsity -->
+                <div>
+                  <div class="flex items-center justify-between">
+                    <label class="text-sm font-medium text-gray-700"
+                    >Input Sparsity</label>
+                    <input
+                      type="number"
+                      name="inputSparsity"
+                      value="0"
+                      min="0"
+                      max="0.9"
+                      step="0.1"
+                      class="w-24 px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800"
+                    >
+                  </div>
+                </div>
+              </div>
+            </details>
+          </form>
+        </div>
+
+        <div class="p-6 border-t border-gray-200 bg-gray-50">
+          <button
+            onclick="instantiateModel()"
+            class="w-full py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-xl font-semibold hover:opacity-90 transition-opacity"
+          >
+            Create Model
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Load Modal -->
+    <div id="loadModal" class="fixed inset-0 z-50 hidden">
+      <div
+        class="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onclick="closeModal('loadModal')"
+      >
+      </div>
+      <div
+        class="absolute inset-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-lg glass-light rounded-2xl overflow-hidden flex flex-col animate-slide-up"
+      >
+        <div class="p-6 border-b border-gray-200">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+              <span>📂</span> Load Model State
+            </h3>
+            <button
+              onclick="closeModal('loadModal')"
+              class="p-2 hover:bg-gray-100 rounded-lg"
+            >
+              <svg
+                class="w-5 h-5 text-gray-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-6">
+          <p class="text-sm text-gray-600 mb-4">
+            Upload a previously saved model state (JSON format) or paste the
+            JSON content directly.
+          </p>
+
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2"
+            >Upload File</label>
+            <input
+              type="file"
+              id="loadFileInput"
+              accept=".json"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-800"
+              onchange="handleLoadFile(event)"
+            >
+          </div>
+
+          <div class="text-center text-gray-400 text-sm my-4">— OR —</div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2"
+            >Paste JSON</label>
+            <textarea
+              id="loadJsonInput"
+              class="w-full h-40 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-800 font-mono resize-none"
+              placeholder='{"config": {...}, "state": {...}}'
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="p-6 border-t border-gray-200 bg-gray-50">
+          <button
+            onclick="loadModel()"
+            class="w-full py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-xl font-semibold hover:opacity-90 transition-opacity"
+          >
+            Load Model
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Manual Train Modal -->
+    <div id="manualTrainModal" class="fixed inset-0 z-50 hidden">
+      <div
+        class="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onclick="closeModal('manualTrainModal')"
+      >
+      </div>
+      <div
+        class="absolute inset-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-lg glass-light rounded-2xl overflow-hidden flex flex-col animate-slide-up"
+      >
+        <div class="p-6 border-b border-gray-200">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+              <span>✏️</span> Manual Training Input
+            </h3>
+            <button
+              onclick="closeModal('manualTrainModal')"
+              class="p-2 hover:bg-gray-100 rounded-lg"
+            >
+              <svg
+                class="w-5 h-5 text-gray-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-6">
+          <p class="text-sm text-gray-600 mb-4">
+            Enter comma-separated values for features (X) and targets (Y). Each
+            line is one sample.
+          </p>
+
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Features
+              (X) <span class="text-gray-400"
+              >- one sample per line</span></label>
+            <textarea
+              id="manualXInput"
+              class="w-full h-24 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-800 font-mono resize-none"
+              placeholder="1.0, 2.0, 3.0&#10;1.1, 2.1, 3.1&#10;1.2, 2.2, 3.2"
+            ></textarea>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Targets
+              (Y) <span class="text-gray-400"
+              >- one sample per line</span></label>
+            <textarea
+              id="manualYInput"
+              class="w-full h-24 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-800 font-mono resize-none"
+              placeholder="4.0, 5.0&#10;4.1, 5.1&#10;4.2, 5.2"
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="p-6 border-t border-gray-200 bg-gray-50">
+          <button
+            onclick="trainManual()"
+            class="w-full py-3 bg-gradient-to-r from-accent-500 to-accent-600 text-white rounded-xl font-semibold hover:opacity-90 transition-opacity"
+          >
+            Train Model
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bulk Train Modal -->
+    <div id="bulkTrainModal" class="fixed inset-0 z-50 hidden">
+      <div
+        class="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onclick="closeModal('bulkTrainModal')"
+      >
+      </div>
+      <div
+        class="absolute inset-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-2xl md:max-h-[90vh] glass-light rounded-2xl overflow-hidden flex flex-col animate-slide-up"
+      >
+        <div class="p-6 border-b border-gray-200">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+              <span>📤</span> Bulk Training Upload
+            </h3>
+            <button
+              onclick="closeModal('bulkTrainModal')"
+              class="p-2 hover:bg-gray-100 rounded-lg"
+            >
+              <svg
+                class="w-5 h-5 text-gray-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-6 scrollbar-thin">
+          <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
+            <h4 class="font-semibold text-blue-800 mb-2">
+              📋 JSON Format Required
+            </h4>
+            <p class="text-sm text-blue-700 mb-2">
+              Your JSON file must contain two arrays: <code
+                class="bg-blue-100 px-1 rounded"
+              >xCoordinates</code> (features) and <code
+                class="bg-blue-100 px-1 rounded"
+              >yCoordinates</code> (targets).
+            </p>
+            <details>
+              <summary
+                class="text-sm text-blue-600 cursor-pointer hover:underline"
+              >
+                View Example Format
+              </summary>
+              <pre
+                class="mt-2 bg-gray-800 text-green-300 p-3 rounded-lg text-xs overflow-x-auto"
+              >
+{
+  "xCoordinates": [
+    [1.0, 2.0, 3.0],   // Sample 1: 3 features
+    [1.1, 2.1, 3.1],   // Sample 2: 3 features
+    [1.2, 2.2, 3.2]    // Sample 3: 3 features
+  ],
+  "yCoordinates": [
+    [4.0, 5.0],        // Sample 1: 2 targets
+    [4.1, 5.1],        // Sample 2: 2 targets
+    [4.2, 5.2]         // Sample 3: 2 targets
+  ]
+}</pre>
+            </details>
+          </div>
+
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2"
+            >Upload JSON File</label>
+            <input
+              type="file"
+              id="bulkFileInput"
+              accept=".json"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-800"
+              onchange="handleBulkFile(event)"
+            >
+          </div>
+
+          <div class="text-center text-gray-400 text-sm my-4">— OR —</div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2"
+            >Paste JSON Data</label>
+            <textarea
+              id="bulkJsonInput"
+              class="w-full h-48 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-800 font-mono resize-none"
+              placeholder='{"xCoordinates": [[...], [...]], "yCoordinates": [[...], [...]]}'
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="p-6 border-t border-gray-200 bg-gray-50">
+          <button
+            onclick="trainBulk()"
+            class="w-full py-3 bg-gradient-to-r from-accent-500 to-accent-600 text-white rounded-xl font-semibold hover:opacity-90 transition-opacity"
+          >
+            Upload & Train
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Predict Modal -->
+    <div id="predictModal" class="fixed inset-0 z-50 hidden">
+      <div
+        class="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onclick="closeModal('predictModal')"
+      >
+      </div>
+      <div
+        class="absolute inset-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-md glass-light rounded-2xl overflow-hidden flex flex-col animate-slide-up"
+      >
+        <div class="p-6 border-b border-gray-200">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+              <span>🔮</span> Make Prediction
+            </h3>
+            <button
+              onclick="closeModal('predictModal')"
+              class="p-2 hover:bg-gray-100 rounded-lg"
+            >
+              <svg
+                class="w-5 h-5 text-gray-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="p-6">
+          <p class="text-sm text-gray-600 mb-4">
+            Specify how many steps into the future to predict.
+          </p>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2"
+            >Future Steps</label>
+            <input
+              type="number"
+              id="predictSteps"
+              value="10"
+              min="1"
+              max="100"
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl text-lg text-gray-800 text-center"
+            >
+            <p class="mt-2 text-xs text-gray-500">
+              Must be ≤ maxSequenceLength configured in the model
+            </p>
+          </div>
+        </div>
+
+        <div class="p-6 border-t border-gray-200 bg-gray-50">
+          <button
+            onclick="makePrediction()"
+            class="w-full py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-semibold hover:opacity-90 transition-opacity"
+          >
+            Generate Predictions
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="fixed bottom-4 right-4 z-50 space-y-2">
+    </div>
+
+    <script>
+      // ============== State Management ==============
+      let worker = null;
+      let modelActive = false;
+      let currentPredictions = null;
+      let modelSummaryData = null;
+      let selectedDimensions = new Set();
+      let trainingStats = { samplesProcessed: 0, averageLoss: 0 };
+
+      // ============== Worker Setup ==============
+      const workerCode = `
+            let ESNRegression = null;
+            let model = null;
+
+            self.onmessage = async (e) => {
+                const { type, payload, id } = e.data;
+                
+                try {
+                    if (type === 'init') {
+                        if (!ESNRegression) {
+                            const module = await import('https://cdn.esm.sh/jsr/@hviana/multivariate-regression');
+                            ESNRegression = module.ESNRegression;
+                        }
+                        model = new ESNRegression(payload.config);
+                        const summary = model.getModelSummary();
+                        self.postMessage({ type: 'init', success: true, id, data: summary });
+                    }
+                    else if (type === 'train') {
+                        if (!model) throw new Error('Model not initialized');
+                        const result = model.fitOnline(payload);
+                        const summary = model.getModelSummary();
+                        self.postMessage({ type: 'train', success: true, id, data: { result, summary } });
+                    }
+                    else if (type === 'predict') {
+                        if (!model) throw new Error('Model not initialized');
+                        const predictions = model.predict(payload.steps);
+                        self.postMessage({ type: 'predict', success: true, id, data: predictions });
+                    }
+                    else if (type === 'save') {
+                        if (!model) throw new Error('Model not initialized');
+                        const state = model.save();
+                        self.postMessage({ type: 'save', success: true, id, data: state });
+                    }
+                    else if (type === 'load') {
+                        if (!ESNRegression) {
+                            const module = await import('https://cdn.esm.sh/jsr/@hviana/multivariate-regression@1.0.7');
+                            ESNRegression = module.ESNRegression;
+                        }
+                        model = new ESNRegression();
+                        model.load(payload.state);
+                        const summary = model.getModelSummary();
+                        self.postMessage({ type: 'load', success: true, id, data: summary });
+                    }
+                    else if (type === 'reset') {
+                        if (!model) throw new Error('Model not initialized');
+                        model.reset();
+                        const summary = model.getModelSummary();
+                        self.postMessage({ type: 'reset', success: true, id, data: summary });
+                    }
+                    else if (type === 'getSummary') {
+                        if (!model) throw new Error('Model not initialized');
+                        const summary = model.getModelSummary();
+                        self.postMessage({ type: 'getSummary', success: true, id, data: summary });
+                    }
+                } catch (error) {
+                    self.postMessage({ type, success: false, id, error: error.message });
+                }
+            };
+        `;
+
+      function initWorker() {
+        const blob = new Blob([workerCode], {
+          type: "application/javascript",
+        });
+        worker = new Worker(URL.createObjectURL(blob), {
+          type: "module",
+        });
+
+        worker.onmessage = (e) => {
+          const { type, success, id, data, error } = e.data;
+          const resolver = pendingPromises.get(id);
+          if (resolver) {
+            pendingPromises.delete(id);
+            if (success) {
+              resolver.resolve(data);
+            } else {
+              resolver.reject(new Error(error));
+            }
+          }
+        };
+      }
+
+      const pendingPromises = new Map();
+      let messageId = 0;
+
+      function sendWorkerMessage(type, payload = {}) {
+        return new Promise((resolve, reject) => {
+          const id = ++messageId;
+          pendingPromises.set(id, { resolve, reject });
+          worker.postMessage({ type, payload, id });
+        });
+      }
+
+      // ============== UI Functions ==============
+      function showLoading(text = "Processing...") {
+        document.getElementById("loadingText").textContent = text;
+        document.getElementById("loadingOverlay").classList.remove(
+          "hidden",
+        );
+      }
+
+      function hideLoading() {
+        document.getElementById("loadingOverlay").classList.add(
+          "hidden",
+        );
+      }
+
+      function showToast(message, type = "info") {
+        const container = document.getElementById("toastContainer");
+        const toast = document.createElement("div");
+        const colors = {
+          success: "bg-green-500",
+          error: "bg-red-500",
+          info: "bg-primary-500",
+          warning: "bg-yellow-500",
+        };
+        toast.className = `${
+          colors[type]
+        } text-white px-4 py-3 rounded-xl shadow-lg animate-slide-up max-w-sm`;
+        toast.textContent = message;
+        container.appendChild(toast);
+        setTimeout(() => {
+          toast.style.opacity = "0";
+          toast.style.transition = "opacity 0.3s";
+          setTimeout(() => toast.remove(), 300);
+        }, 3000);
+      }
+
+      function openModal(id) {
+        document.getElementById(id).classList.remove("hidden");
+        closeMobileMenu();
+      }
+
+      function closeModal(id) {
+        document.getElementById(id).classList.add("hidden");
+      }
+
+      function closeMobileMenu() {
+        document.getElementById("sidebar").classList.add(
+          "-translate-x-full",
+        );
+        document.getElementById("mobileMenuOverlay").classList.add(
+          "hidden",
+        );
+      }
+
+      document.getElementById("menuBtn").addEventListener(
+        "click",
+        () => {
+          document.getElementById("sidebar").classList.remove(
+            "-translate-x-full",
+          );
+          document.getElementById("mobileMenuOverlay").classList.remove(
+            "hidden",
+          );
+        },
+      );
+
+      function updateStatusIndicator(active) {
+        const dot = document.getElementById("statusDot");
+        const text = document.getElementById("statusText");
+        if (active) {
+          dot.className =
+            "w-2 h-2 rounded-full bg-green-400 animate-pulse";
+          text.textContent = "Model Active";
+        } else {
+          dot.className = "w-2 h-2 rounded-full bg-gray-400";
+          text.textContent = "No Model";
+        }
+      }
+
+      function updateModelSummaryUI(summary) {
+        modelSummaryData = summary;
+        const container = document.getElementById("modelSummary");
+        container.innerHTML = `
+                <div class="bg-white/5 rounded-xl p-4">
+                    <div class="text-2xl font-bold text-primary-300">${summary.reservoirSize}</div>
+                    <div class="text-xs text-gray-400">Reservoir Size</div>
+                </div>
+                <div class="bg-white/5 rounded-xl p-4">
+                    <div class="text-2xl font-bold text-accent-300">${
+          summary.nFeatures || "?"
+        }</div>
+                    <div class="text-xs text-gray-400">Features</div>
+                </div>
+                <div class="bg-white/5 rounded-xl p-4">
+                    <div class="text-2xl font-bold text-green-300">${
+          summary.nTargets || "?"
+        }</div>
+                    <div class="text-xs text-gray-400">Targets</div>
+                </div>
+                <div class="bg-white/5 rounded-xl p-4">
+                    <div class="text-2xl font-bold text-yellow-300">${
+          summary.sampleCount || 0
+        }</div>
+                    <div class="text-xs text-gray-400">Samples Trained</div>
+                </div>
+            `;
+
+        document.getElementById("welcomeCard").classList.add("hidden");
+        document.getElementById("modelCard").classList.remove("hidden");
+      }
+
+      function updateTrainingStatsUI(result) {
+        trainingStats.samplesProcessed += result.samplesProcessed || 0;
+        trainingStats.averageLoss = result.averageLoss || 0;
+
+        const container = document.getElementById("trainingStats");
+        container.innerHTML = `
+                <div class="bg-white/5 rounded-xl p-4">
+                    <div class="text-2xl font-bold text-primary-300">${trainingStats.samplesProcessed}</div>
+                    <div class="text-xs text-gray-400">Total Samples</div>
+                </div>
+                <div class="bg-white/5 rounded-xl p-4">
+                    <div class="text-2xl font-bold text-accent-300">${
+          trainingStats.averageLoss.toFixed(6)
+        }</div>
+                    <div class="text-xs text-gray-400">Avg Loss</div>
+                </div>
+                <div class="bg-white/5 rounded-xl p-4">
+                    <div class="text-2xl font-bold text-green-300">${
+          (result.gradientNorm || 0).toFixed(4)
+        }</div>
+                    <div class="text-xs text-gray-400">Gradient Norm</div>
+                </div>
+                <div class="bg-white/5 rounded-xl p-4">
+                    <div class="text-2xl font-bold text-yellow-300">${
+          (result.sampleWeight || 1).toFixed(2)
+        }</div>
+                    <div class="text-xs text-gray-400">Last Sample Weight</div>
+                </div>
+            `;
+
+        document.getElementById("trainingCard").classList.remove(
+          "hidden",
+        );
+      }
+
+      // ============== Visualization ==============
+      function renderPredictions(predictions) {
+        currentPredictions = predictions;
+        const nTargets = predictions.predictions[0]?.length || 0;
+
+        // Initialize dimension selection
+        if (selectedDimensions.size === 0) {
+          for (let i = 0; i < Math.min(nTargets, 5); i++) {
+            selectedDimensions.add(i);
+          }
+        }
+
+        // Update dimension selector
+        const dimContainer = document.getElementById(
+          "dimensionButtons",
+        );
+        if (nTargets > 1) {
+          document.getElementById("dimensionSelector").classList.remove(
+            "hidden",
+          );
+          dimContainer.innerHTML = "";
+          for (let i = 0; i < nTargets; i++) {
+            const btn = document.createElement("button");
+            btn.className =
+              `px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                selectedDimensions.has(i)
+                  ? "bg-primary-500 text-white"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              }`;
+            btn.textContent = `Dim ${i + 1}`;
+            btn.onclick = () => toggleDimension(i);
+            dimContainer.appendChild(btn);
+          }
+        } else {
+          document.getElementById("dimensionSelector").classList.add(
+            "hidden",
+          );
+        }
+
+        // Update confidence display
+        document.getElementById("predictionConfidence").innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-400">Overall Confidence</span>
+                    <div class="flex items-center gap-2">
+                        <div class="w-32 h-2 bg-gray-700 rounded-full overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-green-500 to-green-300 rounded-full" style="width: ${
+          (predictions.confidence * 100).toFixed(1)
+        }%"></div>
+                        </div>
+                        <span class="font-bold text-green-300">${
+          (predictions.confidence * 100).toFixed(1)
+        }%</span>
+                    </div>
+                </div>
+            `;
+
+        document.getElementById("predictionsCard").classList.remove(
+          "hidden",
+        );
+        updatePredictionView();
+      }
+
+      function toggleDimension(dim) {
+        if (selectedDimensions.has(dim)) {
+          if (selectedDimensions.size > 1) {
+            selectedDimensions.delete(dim);
+          }
+        } else {
+          selectedDimensions.add(dim);
+        }
+        renderPredictions(currentPredictions);
+      }
+
+      function updatePredictionView() {
+        const view = document.getElementById("viewSelector").value;
+        const vizContainer = document.getElementById("predictionViz");
+        const tableContainer = document.getElementById(
+          "predictionTable",
+        );
+
+        if (!currentPredictions) return;
+
+        if (view === "chart") {
+          vizContainer.innerHTML = renderLineChart(currentPredictions);
+          tableContainer.classList.add("hidden");
+        } else if (view === "parallel") {
+          vizContainer.innerHTML = renderParallelCoords(
+            currentPredictions,
+          );
+          tableContainer.classList.add("hidden");
+        } else if (view === "table") {
+          vizContainer.innerHTML = "";
+          tableContainer.innerHTML = renderTable(currentPredictions);
+          tableContainer.classList.remove("hidden");
+        }
+      }
+
+      function renderLineChart(predictions) {
+        const { predictions: preds, lowerBounds, upperBounds } =
+          predictions;
+        const steps = preds.length;
+        const dims = Array.from(selectedDimensions);
+
+        const width = 600;
+        const height = 300;
+        const padding = { top: 20, right: 20, bottom: 40, left: 60 };
+        const chartW = width - padding.left - padding.right;
+        const chartH = height - padding.top - padding.bottom;
+
+        // Find min/max across all selected dimensions
+        let minVal = Infinity, maxVal = -Infinity;
+        dims.forEach((d) => {
+          preds.forEach((p, i) => {
+            minVal = Math.min(minVal, lowerBounds[i][d]);
+            maxVal = Math.max(maxVal, upperBounds[i][d]);
+          });
+        });
+        const range = maxVal - minVal || 1;
+        minVal -= range * 0.1;
+        maxVal += range * 0.1;
+
+        const scaleX = (i) =>
+          padding.left + (i / (steps - 1 || 1)) * chartW;
+        const scaleY = (v) =>
+          padding.top + chartH -
+          ((v - minVal) / (maxVal - minVal)) * chartH;
+
+        const colors = [
+          "#38bdf8",
+          "#f0abfc",
+          "#4ade80",
+          "#fbbf24",
+          "#f87171",
+          "#a78bfa",
+        ];
+
+        let paths = "";
+        let areas = "";
+        let points = "";
+
+        dims.forEach((d, idx) => {
+          const color = colors[idx % colors.length];
+
+          // Confidence area
+          let areaPath = `M ${scaleX(0)} ${scaleY(lowerBounds[0][d])}`;
+          for (let i = 1; i < steps; i++) {
+            areaPath += ` L ${scaleX(i)} ${scaleY(lowerBounds[i][d])}`;
+          }
+          for (let i = steps - 1; i >= 0; i--) {
+            areaPath += ` L ${scaleX(i)} ${scaleY(upperBounds[i][d])}`;
+          }
+          areaPath += " Z";
+          areas +=
+            `<path d="${areaPath}" fill="${color}" fill-opacity="0.15"/>`;
+
+          // Main line
+          let linePath = `M ${scaleX(0)} ${scaleY(preds[0][d])}`;
+          for (let i = 1; i < steps; i++) {
+            linePath += ` L ${scaleX(i)} ${scaleY(preds[i][d])}`;
+          }
+          paths +=
+            `<path d="${linePath}" fill="none" stroke="${color}" stroke-width="2"/>`;
+
+          // Points
+          for (let i = 0; i < steps; i++) {
+            points += `<circle cx="${scaleX(i)}" cy="${
+              scaleY(preds[i][d])
+            }" r="4" fill="${color}" stroke="white" stroke-width="1"/>`;
+          }
+        });
+
+        // Grid lines
+        let grid = "";
+        for (let i = 0; i <= 5; i++) {
+          const y = padding.top + (i / 5) * chartH;
+          const val = maxVal - (i / 5) * (maxVal - minVal);
+          grid += `<line x1="${padding.left}" y1="${y}" x2="${
+            width - padding.right
+          }" y2="${y}" stroke="rgba(255,255,255,0.1)" stroke-dasharray="4"/>`;
+          grid += `<text x="${padding.left - 10}" y="${
+            y + 4
+          }" fill="rgba(255,255,255,0.5)" font-size="10" text-anchor="end">${
+            val.toFixed(2)
+          }</text>`;
+        }
+
+        // X axis labels
+        let xLabels = "";
+        for (
+          let i = 0;
+          i < steps;
+          i += Math.max(1, Math.floor(steps / 10))
+        ) {
+          xLabels += `<text x="${scaleX(i)}" y="${
+            height - 10
+          }" fill="rgba(255,255,255,0.5)" font-size="10" text-anchor="middle">t+${
+            i + 1
+          }</text>`;
+        }
+
+        // Legend
+        let legend = "";
+        dims.forEach((d, idx) => {
+          const color = colors[idx % colors.length];
+          legend += `
+                    <g transform="translate(${
+            padding.left + idx * 80
+          }, ${height - 5})">
+                        <rect x="0" y="-8" width="12" height="12" fill="${color}" rx="2"/>
+                        <text x="16" y="0" fill="rgba(255,255,255,0.7)" font-size="10">Dim ${
+            d + 1
+          }</text>
+                    </g>
+                `;
+        });
+
+        return `
+                <svg viewBox="0 0 ${width} ${height}" class="w-full h-auto">
+                    ${grid}
+                    ${areas}
+                    ${paths}
+                    ${points}
+                    ${xLabels}
+                    ${legend}
+                </svg>
+            `;
+      }
+
+      function renderParallelCoords(predictions) {
+        const { predictions: preds, lowerBounds, upperBounds } =
+          predictions;
+        const steps = preds.length;
+        const nTargets = preds[0]?.length || 0;
+
+        const width = 600;
+        const height = 300;
+        const padding = { top: 30, right: 30, bottom: 30, left: 30 };
+        const chartW = width - padding.left - padding.right;
+        const chartH = height - padding.top - padding.bottom;
+
+        const axisSpacing = chartW / (nTargets - 1 || 1);
+
+        // Find min/max per dimension
+        const ranges = [];
+        for (let d = 0; d < nTargets; d++) {
+          let min = Infinity, max = -Infinity;
+          preds.forEach((p, i) => {
+            min = Math.min(min, lowerBounds[i][d]);
+            max = Math.max(max, upperBounds[i][d]);
+          });
+          const r = max - min || 1;
+          ranges.push({ min: min - r * 0.1, max: max + r * 0.1 });
+        }
+
+        const scaleY = (val, d) => {
+          const { min, max } = ranges[d];
+          return padding.top + chartH -
+            ((val - min) / (max - min)) * chartH;
+        };
+
+        const colors = [
+          "#38bdf8",
+          "#f0abfc",
+          "#4ade80",
+          "#fbbf24",
+          "#f87171",
+          "#a78bfa",
+          "#fb7185",
+          "#34d399",
+        ];
+
+        // Draw axes
+        let axes = "";
+        for (let d = 0; d < nTargets; d++) {
+          const x = padding.left + d * axisSpacing;
+          axes += `
+                    <line x1="${x}" y1="${padding.top}" x2="${x}" y2="${
+            padding.top + chartH
+          }" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+                    <text x="${x}" y="${
+            padding.top - 10
+          }" fill="rgba(255,255,255,0.7)" font-size="11" text-anchor="middle">D${
+            d + 1
+          }</text>
+                    <text x="${x}" y="${
+            padding.top + chartH + 15
+          }" fill="rgba(255,255,255,0.5)" font-size="9" text-anchor="middle">${
+            ranges[d].min.toFixed(1)
+          }</text>
+                    <text x="${x}" y="${
+            padding.top - 2
+          }" fill="rgba(255,255,255,0.5)" font-size="9" text-anchor="middle">${
+            ranges[d].max.toFixed(1)
+          }</text>
+                `;
+        }
+
+        // Draw lines for each step
+        let lines = "";
+        for (let i = 0; i < steps; i++) {
+          const color = colors[i % colors.length];
+          const opacity = 0.3 + (i / steps) * 0.7;
+
+          let path = "";
+          for (let d = 0; d < nTargets; d++) {
+            const x = padding.left + d * axisSpacing;
+            const y = scaleY(preds[i][d], d);
+            path += (d === 0 ? "M" : "L") + ` ${x} ${y}`;
+          }
+          lines +=
+            `<path d="${path}" fill="none" stroke="${color}" stroke-width="1.5" stroke-opacity="${opacity}"/>`;
+        }
+
+        return `
+                <svg viewBox="0 0 ${width} ${height}" class="w-full h-auto">
+                    ${axes}
+                    ${lines}
+                    <text x="${width / 2}" y="${
+          height - 5
+        }" fill="rgba(255,255,255,0.5)" font-size="10" text-anchor="middle">
+                        Lines: t+1 (dark) → t+${steps} (bright)
+                    </text>
+                </svg>
+            `;
+      }
+
+      function renderTable(predictions) {
+        const { predictions: preds, lowerBounds, upperBounds } =
+          predictions;
+        const nTargets = preds[0]?.length || 0;
+
+        let headers =
+          '<th class="px-4 py-2 text-left text-gray-400 font-medium">Step</th>';
+        for (let d = 0; d < nTargets; d++) {
+          headers +=
+            `<th class="px-4 py-2 text-center text-gray-400 font-medium" colspan="3">Dimension ${
+              d + 1
+            }</th>`;
+        }
+
+        let subHeaders = "<th></th>";
+        for (let d = 0; d < nTargets; d++) {
+          subHeaders += `
+                    <th class="px-2 py-1 text-xs text-gray-500">Lower</th>
+                    <th class="px-2 py-1 text-xs text-primary-400 font-bold">Value</th>
+                    <th class="px-2 py-1 text-xs text-gray-500">Upper</th>
+                `;
+        }
+
+        let rows = "";
+        preds.forEach((pred, i) => {
+          rows += `<tr class="border-t border-gray-700">`;
+          rows += `<td class="px-4 py-2 text-gray-300 font-medium">t+${
+            i + 1
+          }</td>`;
+          for (let d = 0; d < nTargets; d++) {
+            rows += `
+                        <td class="px-2 py-2 text-gray-500 text-sm">${
+              lowerBounds[i][d].toFixed(4)
+            }</td>
+                        <td class="px-2 py-2 text-white font-mono">${
+              pred[d].toFixed(4)
+            }</td>
+                        <td class="px-2 py-2 text-gray-500 text-sm">${
+              upperBounds[i][d].toFixed(4)
+            }</td>
+                    `;
+          }
+          rows += "</tr>";
+        });
+
+        return `
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-gray-600">${headers}</tr>
+                        <tr class="bg-gray-800/50">${subHeaders}</tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            `;
+      }
+
+      // ============== Model Actions ==============
+      function getFormConfig() {
+        const form = document.getElementById("instantiateForm");
+        const formData = new FormData(form);
+        const config = {};
+
+        for (const [key, value] of formData.entries()) {
+          if (
+            value === "tanh" || value === "relu" ||
+            value === "holdLastX" || value === "autoregressive"
+          ) {
+            config[key] = value;
+          } else {
+            config[key] = parseFloat(value);
+          }
+        }
+
+        return config;
+      }
+
+      function applyPreset(preset) {
+        const presets = {
+          fast: {
+            reservoirSize: 64,
+            maxSequenceLength: 32,
+            spectralRadius: 0.8,
+            leakRate: 0.5,
+            reservoirSparsity: 0.9,
+          },
+          balanced: {
+            reservoirSize: 256,
+            maxSequenceLength: 64,
+            spectralRadius: 0.9,
+            leakRate: 0.3,
+            rlsLambda: 0.999,
+          },
+          accurate: {
+            reservoirSize: 512,
+            maxSequenceLength: 128,
+            spectralRadius: 0.95,
+            leakRate: 0.2,
+            rlsLambda: 0.9995,
+            l2Lambda: 0.0001,
+          },
+          adaptive: {
+            reservoirSize: 256,
+            maxSequenceLength: 64,
+            spectralRadius: 0.85,
+            leakRate: 0.5,
+            rlsLambda: 0.97,
+            outlierThreshold: 2.5,
+          },
+        };
+
+        const p = presets[preset];
+        if (!p) return;
+
+        const form = document.getElementById("instantiateForm");
+        Object.entries(p).forEach(([key, value]) => {
+          const input = form.querySelector(`[name="${key}"]`);
+          if (input) input.value = value;
+        });
+
+        showToast(`Applied ${preset} preset`, "success");
+      }
+
+      async function instantiateModel() {
+        const config = getFormConfig();
+
+        showLoading("Initializing model...");
+        try {
+          const summary = await sendWorkerMessage("init", { config });
+          modelActive = true;
+          trainingStats = { samplesProcessed: 0, averageLoss: 0 };
+          updateStatusIndicator(true);
+          updateModelSummaryUI(summary);
+          closeModal("instantiateModal");
+          showToast("Model created successfully!", "success");
+        } catch (error) {
+          showToast(`Error: ${error.message}`, "error");
+        } finally {
+          hideLoading();
+        }
+      }
+
+      async function loadModel() {
+        let stateStr = document.getElementById("loadJsonInput").value
+          .trim();
+
+        if (!stateStr) {
+          showToast("Please provide model state JSON", "warning");
+          return;
+        }
+
+        showLoading("Loading model...");
+        try {
+          const summary = await sendWorkerMessage("load", {
+            state: stateStr,
+          });
+          modelActive = true;
+          trainingStats = {
+            samplesProcessed: summary.sampleCount || 0,
+            averageLoss: 0,
+          };
+          updateStatusIndicator(true);
+          updateModelSummaryUI(summary);
+          closeModal("loadModal");
+          document.getElementById("loadJsonInput").value = "";
+          document.getElementById("loadFileInput").value = "";
+          showToast("Model loaded successfully!", "success");
+        } catch (error) {
+          showToast(`Error: ${error.message}`, "error");
+        } finally {
+          hideLoading();
+        }
+      }
+
+      async function saveModel() {
+        if (!modelActive) {
+          showToast("No active model to save", "warning");
+          return;
+        }
+
+        showLoading("Saving model...");
+        try {
+          const state = await sendWorkerMessage("save");
+          const blob = new Blob([state], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `esn_model_${Date.now()}.json`;
+          a.click();
+          URL.revokeObjectURL(url);
+          showToast("Model saved!", "success");
+        } catch (error) {
+          showToast(`Error: ${error.message}`, "error");
+        } finally {
+          hideLoading();
+        }
+      }
+
+      async function resetModel() {
+        if (!modelActive) {
+          showToast("No active model to reset", "warning");
+          return;
+        }
+
+        if (
+          !confirm(
+            "Are you sure you want to reset the model? This will clear all training.",
+          )
+        ) {
+          return;
+        }
+
+        showLoading("Resetting model...");
+        try {
+          const summary = await sendWorkerMessage("reset");
+          trainingStats = { samplesProcessed: 0, averageLoss: 0 };
+          currentPredictions = null;
+          selectedDimensions.clear();
+          updateModelSummaryUI(summary);
+          document.getElementById("trainingCard").classList.add(
+            "hidden",
+          );
+          document.getElementById("predictionsCard").classList.add(
+            "hidden",
+          );
+          showToast("Model reset!", "success");
+        } catch (error) {
+          showToast(`Error: ${error.message}`, "error");
+        } finally {
+          hideLoading();
+        }
+      }
+
+      function parseCSVLines(text) {
+        return text.trim().split("\n").map((line) =>
+          line.split(",").map((v) => parseFloat(v.trim())).filter((v) =>
+            !isNaN(v)
+          )
+        ).filter((arr) => arr.length > 0);
+      }
+
+      async function trainManual() {
+        if (!modelActive) {
+          showToast("Please create a model first", "warning");
+          return;
+        }
+
+        const xText = document.getElementById("manualXInput").value;
+        const yText = document.getElementById("manualYInput").value;
+
+        const xCoordinates = parseCSVLines(xText);
+        const yCoordinates = parseCSVLines(yText);
+
+        if (xCoordinates.length === 0 || yCoordinates.length === 0) {
+          showToast("Please enter valid data", "warning");
+          return;
+        }
+
+        if (xCoordinates.length !== yCoordinates.length) {
+          showToast(
+            "X and Y must have the same number of samples",
+            "warning",
+          );
+          return;
+        }
+
+        showLoading("Training model...");
+        try {
+          const { result, summary } = await sendWorkerMessage("train", {
+            xCoordinates,
+            yCoordinates,
+          });
+          updateModelSummaryUI(summary);
+          updateTrainingStatsUI(result);
+          closeModal("manualTrainModal");
+          document.getElementById("manualXInput").value = "";
+          document.getElementById("manualYInput").value = "";
+          showToast(
+            `Trained with ${result.samplesProcessed} samples!`,
+            "success",
+          );
+        } catch (error) {
+          showToast(`Error: ${error.message}`, "error");
+        } finally {
+          hideLoading();
+        }
+      }
+
+      async function trainBulk() {
+        if (!modelActive) {
+          showToast("Please create a model first", "warning");
+          return;
+        }
+
+        let jsonText = document.getElementById("bulkJsonInput").value
+          .trim();
+
+        if (!jsonText) {
+          showToast("Please provide training data JSON", "warning");
+          return;
+        }
+
+        let data;
+        try {
+          data = JSON.parse(jsonText);
+        } catch {
+          showToast("Invalid JSON format", "error");
+          return;
+        }
+
+        if (!data.xCoordinates || !data.yCoordinates) {
+          showToast(
+            "JSON must contain xCoordinates and yCoordinates arrays",
+            "error",
+          );
+          return;
+        }
+
+        showLoading("Training model...");
+        try {
+          const { result, summary } = await sendWorkerMessage(
+            "train",
+            data,
+          );
+          updateModelSummaryUI(summary);
+          updateTrainingStatsUI(result);
+          closeModal("bulkTrainModal");
+          document.getElementById("bulkJsonInput").value = "";
+          document.getElementById("bulkFileInput").value = "";
+          showToast(
+            `Trained with ${result.samplesProcessed} samples!`,
+            "success",
+          );
+        } catch (error) {
+          showToast(`Error: ${error.message}`, "error");
+        } finally {
+          hideLoading();
+        }
+      }
+
+      async function makePrediction() {
+        if (!modelActive) {
+          showToast("Please create a model first", "warning");
+          return;
+        }
+
+        const steps = parseInt(
+          document.getElementById("predictSteps").value,
+        );
+        if (isNaN(steps) || steps < 1) {
+          showToast("Please enter a valid number of steps", "warning");
+          return;
+        }
+
+        showLoading("Generating predictions...");
+        try {
+          const predictions = await sendWorkerMessage("predict", {
+            steps,
+          });
+          selectedDimensions.clear();
+          renderPredictions(predictions);
+          closeModal("predictModal");
+          showToast(`Generated ${steps}-step prediction!`, "success");
+        } catch (error) {
+          showToast(`Error: ${error.message}`, "error");
+        } finally {
+          hideLoading();
+        }
+      }
+
+      async function generateRandomTest() {
+        // Generate synthetic data
+        const nSamples = 100;
+        const nFeatures = 3;
+        const nTargets = 2;
+
+        const xCoordinates = [];
+        const yCoordinates = [];
+
+        for (let i = 0; i < nSamples; i++) {
+          const t = i / 10;
+          const x = [
+            Math.sin(t) + Math.random() * 0.1,
+            Math.cos(t) + Math.random() * 0.1,
+            Math.sin(t * 2) + Math.random() * 0.1,
+          ];
+          const y = [
+            x[0] + x[1] + Math.random() * 0.05,
+            x[1] - x[2] + Math.random() * 0.05,
+          ];
+          xCoordinates.push(x);
+          yCoordinates.push(y);
+        }
+
+        // Create model if not exists
+        if (!modelActive) {
+          showLoading("Creating model...");
+          try {
+            const summary = await sendWorkerMessage("init", {
+              config: {
+                reservoirSize: 128,
+                maxSequenceLength: 32,
+                spectralRadius: 0.9,
+                leakRate: 0.3,
+              },
+            });
+            modelActive = true;
+            trainingStats = { samplesProcessed: 0, averageLoss: 0 };
+            updateStatusIndicator(true);
+            updateModelSummaryUI(summary);
+          } catch (error) {
+            hideLoading();
+            showToast(`Error: ${error.message}`, "error");
+            return;
+          }
+        }
+
+        // Train
+        showLoading("Training with random data...");
+        try {
+          const { result, summary } = await sendWorkerMessage("train", {
+            xCoordinates,
+            yCoordinates,
+          });
+          updateModelSummaryUI(summary);
+          updateTrainingStatsUI(result);
+
+          // Make prediction
+          showLoading("Generating predictions...");
+          const predictions = await sendWorkerMessage("predict", {
+            steps: 10,
+          });
+          selectedDimensions.clear();
+          renderPredictions(predictions);
+
+          showToast("Random test completed!", "success");
+        } catch (error) {
+          showToast(`Error: ${error.message}`, "error");
+        } finally {
+          hideLoading();
+        }
+      }
+
+      // File handlers
+      function handleLoadFile(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          document.getElementById("loadJsonInput").value =
+            e.target.result;
+        };
+        reader.readAsText(file);
+      }
+
+      function handleBulkFile(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          document.getElementById("bulkJsonInput").value =
+            e.target.result;
+        };
+        reader.readAsText(file);
+      }
+
+      // Initialize
+      initWorker();
+    </script>
+  </body>
+</html>
