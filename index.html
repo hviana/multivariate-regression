@@ -2267,7 +2267,12 @@
           gradientNorm: null,
           sampleWeight: null,
         },
-        zoom: { level: 1, offsetX: 0 },
+        zoom: {
+          level: 1,
+          offsetX: 0,
+          visibleStart: 0,
+          visibleCount: 0,
+        },
         hover: { active: false, x: 0, y: 0, dataIndex: -1 },
         animation: { active: false, startTime: 0, duration: 0 },
       };
@@ -3157,9 +3162,41 @@ self.onmessage = async function(e) {
         const plotH = h - margin.top - margin.bottom;
 
         const dim = state.selectedDim;
-        const preds = state.predictions.predictions.map((p) => p[dim]);
-        const lowers = state.predictions.lowerBounds.map((p) => p[dim]);
-        const uppers = state.predictions.upperBounds.map((p) => p[dim]);
+        const allPreds = state.predictions.predictions.map((p) =>
+          p[dim]
+        );
+        const allLowers = state.predictions.lowerBounds.map((p) =>
+          p[dim]
+        );
+        const allUppers = state.predictions.upperBounds.map((p) =>
+          p[dim]
+        );
+
+        const totalPoints = allPreds.length;
+
+        // === ZOOM LOGIC: Calculate visible range ===
+        const visibleCount = Math.max(
+          2,
+          Math.ceil(totalPoints / state.zoom.level),
+        );
+        const maxStartIndex = Math.max(0, totalPoints - visibleCount);
+        const startIndex = Math.min(
+          Math.max(0, Math.floor(state.zoom.offsetX)),
+          maxStartIndex,
+        );
+        const endIndex = Math.min(
+          startIndex + visibleCount,
+          totalPoints,
+        );
+
+        // Store for hover calculations
+        state.zoom.visibleStart = startIndex;
+        state.zoom.visibleCount = endIndex - startIndex;
+
+        const preds = allPreds.slice(startIndex, endIndex);
+        const lowers = allLowers.slice(startIndex, endIndex);
+        const uppers = allUppers.slice(startIndex, endIndex);
+        // === END ZOOM LOGIC ===
 
         const allVals = [...preds, ...lowers, ...uppers];
         let minY = Math.min(...allVals);
@@ -3213,11 +3250,15 @@ self.onmessage = async function(e) {
           );
         });
 
-        // X-axis labels
+        // X-axis labels (adjusted for zoom offset)
         ctx.textAlign = "center";
         const xStep = Math.max(1, Math.ceil(preds.length / 8));
         for (let i = 0; i < preds.length; i += xStep) {
-          ctx.fillText(i + 1, xScale(i), h - margin.bottom + 20);
+          ctx.fillText(
+            startIndex + i + 1,
+            xScale(i),
+            h - margin.bottom + 20,
+          );
         }
 
         const color = getColor(dim);
@@ -3290,53 +3331,56 @@ self.onmessage = async function(e) {
 
         // Hover
         if (state.hover.active && state.hover.dataIndex >= 0) {
-          const idx = state.hover.dataIndex;
-          const hx = xScale(idx);
-          const hy = yScale(preds[idx]);
+          const localIdx = state.hover.dataIndex;
+          if (localIdx >= 0 && localIdx < preds.length) {
+            const hx = xScale(localIdx);
+            const hy = yScale(preds[localIdx]);
+            const actualIdx = startIndex + localIdx;
 
-          // Crosshair
-          ctx.strokeStyle = isDark
-            ? "rgba(255,255,255,0.3)"
-            : "rgba(0,0,0,0.2)";
-          ctx.setLineDash([4, 4]);
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.moveTo(hx, margin.top);
-          ctx.lineTo(hx, h - margin.bottom);
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.moveTo(margin.left, hy);
-          ctx.lineTo(hx, hy);
-          ctx.stroke();
-          ctx.setLineDash([]);
+            // Crosshair
+            ctx.strokeStyle = isDark
+              ? "rgba(255,255,255,0.3)"
+              : "rgba(0,0,0,0.2)";
+            ctx.setLineDash([4, 4]);
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(hx, margin.top);
+            ctx.lineTo(hx, h - margin.bottom);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(margin.left, hy);
+            ctx.lineTo(hx, hy);
+            ctx.stroke();
+            ctx.setLineDash([]);
 
-          // Point highlight
-          ctx.strokeStyle = color + "33";
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.arc(hx, hy, 6, 0, Math.PI * 2);
-          ctx.stroke();
+            // Point highlight
+            ctx.strokeStyle = color + "33";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(hx, hy, 6, 0, Math.PI * 2);
+            ctx.stroke();
 
-          ctx.fillStyle = color;
-          ctx.beginPath();
-          ctx.arc(hx, hy, 4, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.strokeStyle = "#fff";
-          ctx.lineWidth = 2;
-          ctx.stroke();
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(hx, hy, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "#fff";
+            ctx.lineWidth = 2;
+            ctx.stroke();
 
-          // Tooltip
-          updateTooltip(
-            hx,
-            hy,
-            idx,
-            dim,
-            preds[idx],
-            lowers[idx],
-            uppers[idx],
-            w,
-            h,
-          );
+            // Tooltip (use actualIdx for display)
+            updateTooltip(
+              hx,
+              hy,
+              actualIdx,
+              dim,
+              preds[localIdx],
+              lowers[localIdx],
+              uppers[localIdx],
+              w,
+              h,
+            );
+          }
         }
       }
 
@@ -3772,14 +3816,18 @@ self.onmessage = async function(e) {
           return;
         }
 
-        const steps = state.predictions.predictions.length;
-        const idx = Math.round((x - margin.left) / plotW * (steps - 1));
+        // Use visible count from zoom state
+        const visibleCount = state.zoom.visibleCount ||
+          state.predictions.predictions.length;
+        const localIdx = Math.round(
+          (x - margin.left) / plotW * (visibleCount - 1),
+        );
 
         state.hover = {
           active: true,
           x,
           y,
-          dataIndex: Math.max(0, Math.min(steps - 1, idx)),
+          dataIndex: Math.max(0, Math.min(visibleCount - 1, localIdx)),
         };
         canvas.style.cursor = "crosshair";
         renderChart();
