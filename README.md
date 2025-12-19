@@ -9,6 +9,10 @@ _Created by **Henrique Emanoel Viana**_
 
 ---
 
+## Live demo
+
+🔗 [Link](https://hviana.github.io/multivariate-regression)
+
 ## 📋 Table of Contents
 
 - [✨ Features](#-features)
