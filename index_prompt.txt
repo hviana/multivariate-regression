@@ -1,11 +1,11 @@
-Generate a single, self-contained, premium-quality HTML web application in ONE HTML file that looks and feels like a polished product, not a demo. The app must be beautiful, fast, responsive, accessible, and fully functional.
+Model: Generate a single, self-contained, premium-quality HTML web application in ONE HTML file that looks and feels like a polished product, not a demo. The app must be beautiful, fast, responsive, accessible, and fully functional.
 
 HARD CONSTRAINTS
 Use Tailwind CSS ONLY (no other dependencies, no chart libraries, no UI libraries, no icon libraries, no frameworks).
 All JavaScript must be inline inside the HTML (except the model module loaded inside the Worker).
-Import the ESNRegression library from [https://cdn.esm.sh/jsr/@hviana/multivariate-regression](https://cdn.esm.sh/jsr/@hviana/multivariate-regression)
+Import the ESNRegression library from https://cdn.esm.sh/jsr/@hviana/multivariate-regression
 The model MUST run inside a Web Worker. The main thread must never call ESNRegression directly.
-Avoid the “Refused to cross-origin redirects of the top-level worker script” issue by creating the Worker from a Blob URL (inline worker source string -> Blob -> URL.createObjectURL).
+Avoid the "Refused to cross-origin redirects of the top-level worker script" issue by creating the Worker from a Blob URL (inline worker source string -> Blob -> URL.createObjectURL).
 Do NOT load a remote worker script URL.
 Every worker action must show a clear loading indicator and disable relevant controls while running.
 For long operations (bulk training), show progress with processed count and percentage, and allow cancel.
@@ -20,7 +20,7 @@ Must look excellent on mobile: touch-friendly targets, stacked layout, slide-ove
 Include a dark mode toggle with persistent preference.
 
 APP PURPOSE
-This is an “ESN Regression Studio” for online multivariate regression and multi-horizon forecasting with n-dimensional features and targets.
+This is an "ESN Regression Studio" for online multivariate regression and multi-horizon forecasting with n-dimensional features and targets.
 Data can have many dimensions (e.g., 20+ features, 10+ targets). The UI must scale gracefully.
 
 NAVIGATION AND LAYOUT (NO CLUTTER)
@@ -45,9 +45,9 @@ Main thread must only send commands and receive summaries and decimated data for
 
 CRITICAL WORKER MODULE LOADING STRATEGY (MUST DO ALL)
 Inside the worker, load ESNRegression robustly:
-First attempt dynamic import using a configurable module URL (default: [https://cdn.esm.sh/jsr/@hviana/multivariate-regression](https://cdn.esm.sh/jsr/@hviana/multivariate-regression)).
-If dynamic import fails, fallback to fetching the module as text and evaluating it in the worker to obtain ESNRegression (handle ESM wrapper carefully; implement a robust “extract exported ESNRegression” strategy).
-Expose an “Advanced” UI section to change module URL at runtime and reinitialize the worker.
+First attempt dynamic import using a configurable module URL (default: https://cdn.esm.sh/jsr/@hviana/multivariate-regression).
+If dynamic import fails, fallback to fetching the module as text and evaluating it in the worker to obtain ESNRegression (handle ESM wrapper carefully; implement a robust "extract exported ESNRegression" strategy).
+Expose an "Advanced" UI section to change module URL at runtime and reinitialize the worker.
 Never crash silently: return actionable error messages to the UI.
 
 DATA FORMATS (MUST SUPPORT EXACTLY; EXPLAIN IN-APP)
@@ -66,7 +66,7 @@ Also accept raw string produced by model.save() (detect and wrap on load).
 VALIDATION AND ERROR UX (MUST BE EXCELLENT)
 Validate every JSON input with clear, human-friendly errors that pinpoint the problem (missing keys, wrong types, NaN, mismatched lengths, inconsistent dimensions).
 Never allow the app to enter a broken state. If something fails, keep previous state intact and show a toast + detailed log entry.
-Include a “Validation Preview” step for uploads: show inferred nFeatures, nTargets, sample count, and a small preview table before applying.
+Include a "Validation Preview" step for uploads: show inferred nFeatures, nTargets, sample count, and a small preview table before applying.
 
 REQUIRED MODALS / PANELS
 Model Configuration modal (or mobile slide-over)
@@ -74,7 +74,7 @@ Must allow full configuration and re-instantiation.
 Must include expandable explanation for EVERY parameter with: what it does, recommended ranges, tuning advice, and common failure modes (underfit/overfit/instability/unresponsive).
 Must include at least 5 presets: Start Here (recommended), Fast/Light, Balanced, Accurate/Stable, Adaptive/Drift, Noisy/Robust.
 Must include inline validation and smart defaults.
-Must include “Reset to Defaults” and “Reset Everything” (clears model, data, logs, localStorage).
+Must include "Reset to Defaults" and "Reset Everything" (clears model, data, logs, localStorage).
 
 Data Upload modal
 Upload JSON file and paste JSON text.
@@ -90,12 +90,12 @@ Save/Load modal
 Save to file and to localStorage.
 Load from file and from localStorage.
 Show metadata and warn about dimension mismatches with a safe confirmation flow.
-Include “Clear localStorage”.
+Include "Clear localStorage".
 
 Random Standard Test modal
 Generate synthetic multivariate data with nonlinear relationships, noise, optional outliers, multi-target coupling.
 Controls: seed, feature count, target count, sample count, difficulty, noise, outlier rate.
-One-click “Generate + Train + Predict” that produces an impressive visualization immediately.
+One-click "Generate + Train + Predict" that produces an impressive visualization immediately.
 Must be deterministic by seed.
 Must show a short summary of the generated ground-truth function characteristics.
 
@@ -114,75 +114,185 @@ Include toast notifications (success, warning, error) with subtle animations.
 Include a persistent event log panel with filter (All, Info, Success, Warning, Error) and search.
 Log entries must include timestamp, action, and details.
 
-VISUALIZATION (THIS IS THE MOST IMPORTANT PART; MUST LOOK PRO-GRADE)
-Implement custom charts WITHOUT external libraries using Canvas (preferred) with optional SVG for legends/labels if needed.
-Charts must be beautiful, crisp, responsive, and information-rich without clutter.
+VISUALIZATION SYSTEM (CRITICAL - THIS IS THE MOST IMPORTANT PART)
 
-You MUST implement a mini charting engine with:
-Responsive resizing with devicePixelRatio handling for sharp rendering.
-Nice axis tick generation (human-friendly ticks, not random decimals).
-Gridlines that are subtle and non-distracting.
-Legends and labels that never overlap important data.
-Hover interactivity: crosshair, nearest-point detection, tooltip with step index and values.
-Smooth animated transitions when switching views or re-running prediction (short, subtle, not distracting).
-Robust scaling:
-Auto y-domain with padding.
-Optional percentile-based domain to reduce outlier dominance.
-“Normalize for display” toggle (visual only).
-Downsampling for performance (e.g., LTTB or min/max bucket) for large series.
+You must implement a professional-grade custom charting engine using HTML5 Canvas. The charts must look as polished as commercial charting libraries. Every visual detail matters.
 
-Must provide multiple visualization modes that work with many target dimensions:
-Mode 1: Small-multiples time series grid
-One mini chart per target dimension (virtualized if many).
-Each mini chart shows forecast line and confidence band.
-Tapping a mini chart opens Focus view for that dimension.
+CANVAS RENDERING FUNDAMENTALS (MANDATORY)
+Always render at devicePixelRatio scale for razor-sharp lines on all displays.
+Set canvas.width and canvas.height to element dimensions multiplied by devicePixelRatio.
+Apply ctx.scale(devicePixelRatio, devicePixelRatio) before drawing.
+Use ctx.translate(0.5, 0.5) for crisp 1px lines (align to pixel grid).
+Clear canvas with background color, not transparent, to avoid ghosting.
+Implement proper resize observer that debounces and re-renders.
 
-Mode 2: Focus view (large chart)
-Selectable target dimension.
-Shows prediction line, lower/upper band, optional markers.
-Hover crosshair and tooltip.
-Zoom and pan using simple controls (buttons or wheel), with reset zoom.
+COLOR SYSTEM (DEFINE PRECISELY)
+Light mode chart background: #FFFFFF
+Light mode grid lines: rgba(0, 0, 0, 0.06)
+Light mode axis lines: rgba(0, 0, 0, 0.15)
+Light mode axis text: #64748B (slate-500)
+Dark mode chart background: #1E293B (slate-800)
+Dark mode grid lines: rgba(255, 255, 255, 0.06)
+Dark mode axis lines: rgba(255, 255, 255, 0.15)
+Dark mode axis text: #94A3B8 (slate-400)
 
-Mode 3: Heatmap view (matrix)
-Rows = target dimension, columns = future step.
-Cells colored by predicted value with a clear legend scale.
-Hover tooltip shows predicted, lower, upper.
-Must be readable on mobile with horizontal scrolling and sticky row labels.
+Primary data line colors (use for different target dimensions):
+#3B82F6 (blue-500), #10B981 (emerald-500), #F59E0B (amber-500), #EF4444 (red-500), #8B5CF6 (violet-500), #EC4899 (pink-500), #06B6D4 (cyan-500), #84CC16 (lime-500)
 
-Mode 4: Uncertainty view
-Show band width (upper-lower) per step for selected dimension and optionally aggregated across dims.
-Show confidence score prominently with context.
+Confidence band fill: Use the line color with alpha 0.12 in light mode, 0.15 in dark mode.
+Confidence band stroke: Use the line color with alpha 0.3.
 
-Mode 5: Snapshot comparison view
-For a selected future step, show a bar chart across all targets.
-Optional lightweight scatter between two selected target dims.
+CHART LAYOUT AND MARGINS
+Left margin: 60px (for y-axis labels)
+Right margin: 20px
+Top margin: 20px
+Bottom margin: 40px (for x-axis labels)
+Apply padding of 10% to y-axis domain for breathing room above/below data.
 
-DIMENSION SELECTOR (MUST SCALE)
-Provide a dimension selector panel that supports:
-Search by index/name.
-Pin favorites.
-Select single or multiple.
-Quick actions: Select All, Clear, Top K by variance, Top K by absolute forecast magnitude.
-If there are many dimensions, virtualize the list.
+AXIS AND GRID RENDERING
+Generate human-friendly tick values using a nice numbers algorithm (1, 2, 5 multiples).
+Y-axis: 5-7 horizontal grid lines maximum, labels formatted with appropriate precision (auto-detect decimals needed).
+X-axis: Label every Nth step where N is chosen so labels don't overlap (minimum 60px between labels).
+Grid lines: 1px, use dashed pattern [4, 4] for subtle appearance.
+Axis lines: 1px solid on left and bottom edges only.
+Axis labels: 11px font, font-family system-ui, -apple-system, sans-serif.
 
-VISUAL POLISH REQUIREMENTS FOR CHARTS
-Use a consistent, modern color system that looks great in both light and dark mode.
-Confidence bands must be visually pleasing, translucent, and clearly readable.
-Lines must be smooth and crisp with subtle glow or shadow only if tasteful.
-Tooltips must be elegant, readable, and not jittery.
-Empty states must be beautiful and helpful (e.g., “No model yet” with a clear button).
-Provide an “Export chart as PNG” feature (Canvas toDataURL) for Focus view and Heatmap.
+LINE RENDERING (CRITICAL FOR QUALITY)
+Prediction lines: 2.5px lineWidth, round lineCap and lineJoin.
+Apply subtle glow effect: Draw line twice - first with 6px width at 0.15 alpha, then with 2.5px at full alpha.
+Use ctx.setLineDash([]) for solid prediction lines.
+For actual/historical data if shown: Use 1.5px lines with 0.7 alpha.
+
+CONFIDENCE BAND RENDERING
+Draw as a filled polygon: path from first point along upper bounds, then reverse along lower bounds, close path.
+Fill with gradient: vertical linear gradient from band color at 0.15 alpha to band color at 0.05 alpha.
+Stroke upper and lower bounds with 1px dashed line [3, 3] at 0.4 alpha.
+Bands must have smooth curves - use quadratic bezier curves between points for organic feel.
+
+ANIMATION SYSTEM
+When new predictions arrive, animate lines drawing from left to right over 600ms using ease-out-cubic.
+When switching dimensions, crossfade with 200ms opacity transition.
+Animate y-axis rescaling smoothly over 300ms.
+Use requestAnimationFrame for all animations.
+Store animation state and allow interruption for new data.
+
+HOVER INTERACTIVITY (MUST BE SMOOTH AND INFORMATIVE)
+Track mouse position with mousemove listener.
+Draw vertical crosshair line: 1px dashed line, full chart height, using theme-appropriate color at 0.5 alpha.
+Draw horizontal crosshair line from y-axis to data point.
+Snap to nearest data point within 30px horizontal threshold.
+Highlight snapped point with a circle: 8px outer ring at 0.3 alpha, 5px filled circle.
+Display tooltip positioned to avoid chart edges.
+
+TOOLTIP DESIGN (MUST BE ELEGANT)
+Background: Light mode white with shadow, dark mode slate-700.
+Border radius: 8px
+Padding: 12px 16px
+Shadow: 0 4px 20px rgba(0,0,0,0.15)
+Show: Step index, predicted value (formatted to 4 significant digits), lower bound, upper bound, band width.
+Position: 15px offset from cursor, flip sides when near edges.
+Animate opacity on show/hide with 150ms transition.
+Include small arrow pointing to data point.
+
+ZOOM AND PAN CONTROLS
+Provide zoom buttons: zoom in, zoom out, reset zoom (fit all).
+Zoom centers on current view center or on cursor position if hovering.
+Implement wheel zoom: ctrl+wheel or pinch on touch devices.
+Show current zoom level indicator.
+When zoomed, show a mini-map overview in corner (small rectangle showing viewport position).
+Animate zoom transitions over 250ms.
+
+DOWNSAMPLING FOR PERFORMANCE
+If futureSteps > 200, apply LTTB (Largest-Triangle-Three-Buckets) algorithm to reduce to ~150 points.
+Preserve first and last points always.
+Preserve local minima and maxima.
+Store full data for tooltip access, render downsampled for speed.
+
+VISUALIZATION MODES (ALL MUST BE BEAUTIFUL)
+
+MODE 1: SMALL MULTIPLES GRID
+Render one mini chart per target dimension in a responsive grid.
+Grid: 2 columns on mobile, 3 on tablet, 4-5 on desktop.
+Each mini chart: minimum 200px width, 120px height.
+Mini charts show: prediction line, confidence band, dimension label, final value badge.
+No axis labels on mini charts (too cluttered), but show faint grid.
+Hover on mini chart shows quick tooltip with dimension stats.
+Click mini chart opens Focus view for that dimension.
+If more than 20 dimensions, virtualize the grid (only render visible).
+
+MODE 2: FOCUS VIEW (LARGE SINGLE CHART)
+Full-width chart taking available height (minimum 400px).
+Complete axis labels and grid.
+Dimension selector dropdown above chart.
+Show prediction line, confidence band, optional markers at key points.
+Full hover interactivity with detailed tooltip.
+Display summary stats below chart: min, max, mean, final value, trend direction, confidence.
+Zoom and pan controls visible.
+Export PNG button.
+
+MODE 3: HEATMAP VIEW
+Rows: target dimensions (y-axis)
+Columns: future steps (x-axis)
+Cell coloring: Use a perceptually uniform color scale.
+Light mode: White (low) -> Blue (mid) -> Purple (high) or diverging scale if data has negative values.
+Dark mode: Dark blue (low) -> Cyan (mid) -> Yellow (high).
+Show color scale legend on right side.
+Cell size: minimum 20px, scale up to fill space.
+Hover shows tooltip with exact values.
+Row labels (dimension names/indices) sticky on left when scrolling horizontally.
+Column headers (step indices) sticky on top when scrolling vertically.
+Optional: Normalize per row for relative comparison.
+
+MODE 4: UNCERTAINTY VIEW
+Primary visualization: Band width (upper - lower) per step.
+Render as area chart showing uncertainty magnitude.
+Color code by relative uncertainty: green (low/confident) -> yellow (medium) -> red (high/uncertain).
+Show confidence score prominently as large number with gauge visualization.
+Option to overlay multiple dimensions for comparison.
+Show statistics: average uncertainty, max uncertainty step, uncertainty trend.
+
+MODE 5: SNAPSHOT BAR CHART
+For a selected future step, show horizontal bar chart of all target values.
+Bars show predicted value with error bars for bounds.
+Sort options: by index, by value ascending, by value descending, by uncertainty.
+Color bars by value magnitude or by uncertainty.
+Hover shows detailed values.
+Animate bars on step change.
+
+DIMENSION SELECTOR PANEL
+Search box with real-time filtering.
+List of dimensions with: index, name (if available), checkbox for multi-select.
+Show mini sparkline preview next to each dimension (tiny 50x20 canvas).
+Pin favorite dimensions (persist in localStorage).
+Batch actions: Select All, Clear All, Select Top K by variance, Select Top K by magnitude.
+If more than 30 dimensions, virtualize the list.
+Selected dimensions shown as chips above the list.
+
+EMPTY AND LOADING STATES
+Empty state (no model): Beautiful illustration (CSS-only geometric shapes), message "Create a model to begin", prominent CTA button.
+Empty state (no predictions): Message "Run a prediction to see results", show last configuration summary if available.
+Loading state: Skeleton placeholders that pulse, maintain layout dimensions.
+Error state: Clear error message with suggested actions, retry button.
+
+CHART EXPORT
+Export Focus view and Heatmap as PNG.
+Add padding around exported image.
+Include title, timestamp, and key stats in export.
+Offer 1x, 2x, 3x resolution options.
 
 PERFORMANCE REQUIREMENTS
 Keep UI responsive at all times.
 Do not re-render charts unnecessarily; use requestAnimationFrame and only redraw when needed.
 Use decimation/downsampling when futureSteps or dims are large.
-Provide a “Performance Mode” toggle that reduces detail (fewer gridlines, simpler effects, more downsampling).
+Provide a "Performance Mode" toggle that reduces detail (fewer gridlines, simpler effects, more downsampling).
+Cache rendered canvases when data hasn't changed.
+Debounce resize handlers (150ms).
 
 ACCESSIBILITY REQUIREMENTS
 All modals must trap focus and close on Escape.
 All controls must have ARIA labels and visible focus styles.
 Color contrast must be sufficient; do not rely on color alone for meaning.
+Provide pattern fills as alternative to colors for confidence bands in accessibility mode.
 Keyboard shortcuts:
 M opens menu
 C opens config
