@@ -5,6 +5,7 @@ Use Tailwind CSS ONLY (no other dependencies, no chart libraries, no UI librarie
 All JavaScript must be inline inside the HTML (except the model module loaded inside the Worker).
 Import the ESNRegression library from https://cdn.esm.sh/jsr/@hviana/multivariate-regression
 The model MUST run inside a Web Worker. The main thread must never call ESNRegression directly.
+The interface must contain all the parameters of the model when creating/configuring a model.
 Avoid the "Refused to cross-origin redirects of the top-level worker script" issue by creating the Worker from a Blob URL (inline worker source string -> Blob -> URL.createObjectURL).
 Do NOT load a remote worker script URL.
 Every worker action must show a clear loading indicator and disable relevant controls while running.
