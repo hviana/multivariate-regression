@@ -97,11 +97,7 @@ Never crash silently: return actionable error messages to the UI.
 
 DATA FORMATS (MUST SUPPORT EXACTLY; EXPLAIN IN-APP)
 Training dataset JSON accepted as either:
-Format A: { "xCoordinates": number[][], "yCoordinates": number[][] }
-Format B: { "samples": [ { "x": number[], "y": number[] }, ... ] }
-Manual/stream insert accepts:
-Format C: { "x": number[], "y": number[] }
-Format D: { "samples": [ ... ] }
+{ "xCoordinates": number[][], "yCoordinates": number[][] }
 Prediction request format:
 { "futureSteps": number }
 Model save/load format:
