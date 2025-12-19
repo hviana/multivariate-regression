@@ -1,3 +1,185 @@
-Create a really nice web page using Tailwind CSS that uses the library "jsr:@hviana/multivariate-regression" (Do not use any dependencies other than Tailwind CSS). You can import the library directly into the page using ESM, with `import { ESNRegression } from "https://cdn.esm.sh/jsr/@hviana/multivariate-regression"`. Create modals to change parameters and instantiate the algorithm, save the algorithm state, load the algorithm state, and upload bulk training data (explain the upload format clearly) and predict. There should also be an modal to manually insert training data. The visualizations of the predictions should also be very attractive. Also explain in detail each parameter of the algorithm and how to optimize it for each case in the instantiation modal, with expandable explanations. There needs to be a reset option as well. Aways use JSON format to save/load/upload. Remember that the data can be n-dimensional, with many more than 3 dimensions for example, so create an appropriate visualization. It should also have the option to generate a random standard test. Besides being very beautiful, the page needs to be well-adapted for mobile devices. Furthermore, the model must be encapsulated in a worker, and its actions must have a loading indicator in the interface. Beware of visual clutter; integrate elements into well-organized menus with an expandable main menu. Here is the library's README:
+Create a single-file, production-quality web app (HTML + Tailwind CSS + vanilla JS only) that showcases and operates the Echo State Network regression library “jsr:@hviana/multivariate-regression” using ESM import:
+import { ESNRegression } from "[https://cdn.esm.sh/jsr/@hviana/multivariate-regression](https://cdn.esm.sh/jsr/@hviana/multivariate-regression)"
+Do not use any other dependencies besides Tailwind CSS (no chart libs, no UI libs, no build tools).
 
+GOALS
+
+* The page must be extremely beautiful, modern, and professional (premium SaaS dashboard vibe), while staying highly functional and fast.
+* Mobile-first responsive design with excellent touch targets and readable typography.
+* Avoid visual clutter: use a clean layout, clear hierarchy, whitespace, and an expandable main menu for secondary actions.
+* Provide attractive, information-dense prediction visualizations that work for n-dimensional data (nTargets and nFeatures may be > 3).
+* All model operations must run inside a Web Worker, with cancellable tasks where reasonable and a clear loading indicator overlay + per-button spinners.
+
+APP STRUCTURE
+
+* Single HTML file that injects a Worker via Blob URL (worker code in a string).
+* Main layout:
+
+  * Top bar: app title, model status badge (Not initialized / Ready / Training / Predicting), small “?” help button, and hamburger for main menu.
+  * Left (or slide-over on mobile): expandable main menu (accordion sections) containing actions: Instantiate, Add data (Manual), Upload data (Bulk), Predict, Save state, Load state, Random standard test, Reset, Export session.
+  * Main content area:
+
+    * “Session Overview” cards: Samples seen, nFeatures, nTargets, average loss, confidence, last update time.
+    * “Data Inspector” panel: shows last N samples, supports filtering by feature/target index, and displays min/max/mean/std (computed client-side from stored data).
+    * “Predictions” panel: primary visualization area with tabs:
+
+      * “Targets” (default): select target index to view as a time series.
+      * “Matrix” (heatmap): futureSteps × targets heatmap of predictions and optionally uncertainty width.
+      * “Embedding” (2D): PCA-like projection implemented manually (no libs) for high-dimensional trajectories (use simple SVD-free approach: center data then power-iteration for first 2 components, or fallback to selecting 2 axes). Must clearly state it’s an approximation.
+      * “Table”: sortable table of predictions, lower/upper bounds, per-step confidence band width.
+    * “Insights” panel: interpretability widgets (residual trend, uncertainty width trend, outlier weights history) using lightweight SVG.
+
+DESIGN REQUIREMENTS (IMPORTANT)
+
+* Use Tailwind to create:
+
+  * Glassy cards with subtle borders, soft shadows, and tasteful gradients (but not gaudy).
+  * A coherent color system with accessible contrast and dark-mode support (prefers-color-scheme).
+  * Polished micro-interactions: hover, focus rings, pressed states, smooth transitions.
+  * Clear empty states and inline validation messages.
+  * A consistent icon set using inline SVG (no icon libraries).
+* Charts must not look “poor”: implement crisp SVG charts with:
+
+  * Proper axes, ticks, gridlines, labels, legends, tooltips on hover/touch (tap to pin tooltip on mobile).
+  * Smooth line paths, optional confidence band shading, and a vertical cursor line.
+  * Multiple series support (e.g., show prediction vs. actual when available).
+  * Responsive resizing via ResizeObserver.
+  * Nice defaults (padding, typography, colors) and must handle large target counts gracefully (dropdown + search).
+* Minimize layout shifts: reserve space for charts and panels.
+
+WORKER + MESSAGE PROTOCOL
+
+* Encapsulate ESNRegression inside a Worker.
+* Define a robust message protocol with requestId, type, payload, and error handling.
+* Worker must support:
+
+  * init(config)
+  * fitOnline(batch)
+  * predict(futureSteps)
+  * save()
+  * load(stateString)
+  * reset()
+  * getModelSummary()
+  * getNormalizationStats()
+  * getWeights() (optional but include if feasible)
+* UI must show:
+
+  * Global loading overlay when a task is running, plus per-action loading indicators.
+  * Toast notifications for success/error.
+  * A small console drawer showing last 50 log events (timestamped).
+
+DATA HANDLING REQUIREMENTS
+
+* Always use JSON for save/load/upload.
+* Maintain a session store in the main thread containing:
+
+  * training samples (optionally capped with a setting, default keep last 5000)
+  * last predictions and bounds
+  * derived stats for inspector
+* Bulk upload modal must clearly explain formats and validate:
+
+  * JSON object format:
+    {
+    "xCoordinates": number[][],
+    "yCoordinates": number[][]
+    }
+    Constraints: xCoordinates.length === yCoordinates.length, each x row has same length, each y row has same length.
+  * Also accept a “samples” format:
+    {
+    "samples": [
+    { "x": number[], "y": number[] },
+    ...
+    ]
+    }
+    Convert internally to xCoordinates/yCoordinates.
+* Manual insert modal:
+
+  * Let user define nFeatures and nTargets if model not yet initialized, or infer from model summary if initialized.
+  * Provide an editable grid UI for a single sample and an “Add another” list.
+  * Validate numeric inputs, show inline errors.
+* Predict modal:
+
+  * futureSteps input (must be ≤ maxSequenceLength).
+  * Option to “overlay last K actual targets” if available in session.
+  * Option to display uncertainty bands and set confidence multiplier view label (e.g., 95% for 1.96).
+* Save/Load state:
+
+  * Save: produce a downloadable JSON file containing:
+    { "modelState": string, "meta": { config, createdAt, nFeatures, nTargets, sampleCount } }
+  * Load: accept that JSON, restore modelState in worker, restore meta to UI, and optionally restore session samples if present.
+* Reset:
+
+  * Confirm dialog; resets worker model and clears session data; keep UI preferences.
+
+INSTANTIATION MODAL (VERY IMPORTANT)
+
+* Provide a structured, beautiful form with sensible defaults and a “Preset” picker:
+
+  * Fast & Simple, Balanced, High Accuracy, Adaptive (Non-stationary), Robust (Noisy)
+* Each parameter must include:
+
+  * A short one-line explanation always visible.
+  * An expandable “Learn more / Optimize” section with detailed guidance and recommended ranges for different scenarios.
+* Parameters to include (full set):
+  maxSequenceLength, reservoirSize, spectralRadius, leakRate, inputScale, biasScale, reservoirSparsity, inputSparsity, activation,
+  useInputInReadout, useBiasInReadout,
+  rlsLambda, rlsDelta, epsilon, l2Lambda, gradientClipNorm,
+  normalizationEpsilon, normalizationWarmup,
+  outlierThreshold, outlierMinWeight,
+  residualWindowSize, uncertaintyMultiplier,
+  weightInitScale, seed, verbose, rollforwardMode
+* Add an “Auto-sanity” indicator that warns about risky combos (e.g., spectralRadius >= 1, very low rlsLambda with tiny rlsDelta, extreme inputScale causing saturation). Warnings must be non-blocking but visible.
+* Include a “Quick tuning helper” section:
+
+  * Ask user: data volume (small/medium/large), stationarity (yes/no), pattern length (short/medium/long), noise level (low/med/high), and target horizon.
+  * Auto-suggest parameter adjustments (preview diff) without applying until user clicks “Apply suggestions”.
+
+RANDOM STANDARD TEST
+
+* Add a generator that creates a reproducible synthetic dataset with a seed:
+
+  * Supports selecting nFeatures, nTargets, length, noise level, and pattern type (trend + seasonality + cross-feature coupling).
+  * Generates training set and then runs training + prediction automatically.
+  * Visualize ground truth vs predictions with confidence bands for at least one target.
+  * Provide a summary card with RMSE (computed client-side), average loss, and confidence.
+
+VISUALIZATION REQUIREMENTS FOR N-DIMENSIONAL OUTPUT
+
+* Must provide:
+
+  1. Per-target time series chart (select target index).
+  2. Heatmap matrix view for all targets across future steps.
+  3. Table view with sorting/filtering.
+  4. Optional embedding/projection view to show trajectory in 2D for high-dimensional outputs.
+* Handle large nTargets (e.g., 50+) with:
+
+  * Searchable dropdown for target selection.
+  * Virtualized table rendering (implement a simple windowed renderer in vanilla JS).
+  * Heatmap with canvas or SVG (choose best performance without external libs; canvas is allowed). If canvas, provide accessible fallback labels and a legend.
+
+ACCESSIBILITY + UX
+
+* Keyboard navigable modals with focus trap, ESC to close, and ARIA labels.
+* Buttons have descriptive labels and disabled states with explanation.
+* Toasts are announced (aria-live).
+* Input validation: show clear messages, prevent crashes.
+* Provide a “Help” modal summarizing how to use the app in 6–10 steps.
+
+IMPLEMENTATION DETAILS (DO NOT SKIP)
+
+* Use Tailwind via CDN.
+* Use only ESM modules; keep code clean, commented, and organized.
+* Use robust state management (plain JS object + render functions).
+* Debounce expensive renders.
+* Use ResizeObserver for charts.
+* Ensure worker errors are caught and surfaced to UI.
+* Provide sample JSON in the bulk upload modal with a “Copy example” button.
+* Persist UI preferences (theme, last used preset, cap size) in localStorage.
+
+OUTPUT
+
+* Return the complete HTML file content only (no explanations), ready to paste into a single file and run locally.
+* The resulting page must look genuinely polished and the prediction graphs must look excellent.
+
+README OF LIBRARY:
 (lib README.md)
