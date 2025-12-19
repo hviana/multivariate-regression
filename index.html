@@ -2435,7 +2435,7 @@ self.onmessage = async function(e) {
         return;
       }
       const prediction = model.predict(payload.futureSteps);
-      result = { predictions: prediction.predictions, lowerBounds: prediction.lowerBounds, upperBounds: prediction.upperBounds, confidence: prediction.confidence };
+      result = { predictions: prediction.predictions.slice(0, payload.futureSteps), lowerBounds: prediction.lowerBounds.slice(0, payload.futureSteps), upperBounds: prediction.upperBounds.slice(0, payload.futureSteps), confidence: prediction.confidence };
     }
     
     else if (type === 'save') {
@@ -4184,7 +4184,7 @@ self.onmessage = async function(e) {
           const result = await workerRequest("predict", {
             futureSteps: steps,
           });
-          state.predictions = result.slice(0, steps);
+          state.predictions = result;
 
           const summary = await workerRequest("getSummary");
           if (summary.exists) {
