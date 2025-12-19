@@ -4184,7 +4184,7 @@ self.onmessage = async function(e) {
           const result = await workerRequest("predict", {
             futureSteps: steps,
           });
-          state.predictions = result;
+          state.predictions = result.slice(0, futureSteps);
 
           const summary = await workerRequest("getSummary");
           if (summary.exists) {
