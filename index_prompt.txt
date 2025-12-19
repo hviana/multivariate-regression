@@ -5,7 +5,48 @@ Use Tailwind CSS ONLY (no other dependencies, no chart libraries, no UI librarie
 All JavaScript must be inline inside the HTML (except the model module loaded inside the Worker).
 Import the ESNRegression library from https://cdn.esm.sh/jsr/@hviana/multivariate-regression
 The model MUST run inside a Web Worker. The main thread must never call ESNRegression directly.
-The interface must contain all the parameters of the model when creating/configuring a model.
+The interface must contain all the parameters of the model when creating/configuring a model (organize in sections):
+// 🔄 Reservoir Architecture (section)
+maxSequenceLength: number; // Default: 64
+reservoirSize: number; // Default: 256
+spectralRadius: number; // Default: 0.9
+leakRate: number; // Default: 0.3
+inputScale: number; // Default: 1.0
+biasScale: number; // Default: 0.1
+reservoirSparsity: number; // Default: 0.9
+inputSparsity: number; // Default: 0.0
+activation: "tanh" | "relu"; // Default: "tanh"
+
+// 📤 Readout Configuration (section)
+useInputInReadout: boolean; // Default: true
+useBiasInReadout: boolean; // Default: true
+
+// 🎯 Training (RLS) (section)
+readoutTraining: "rls"; // Default: "rls"
+rlsLambda: number; // Default: 0.999
+rlsDelta: number; // Default: 1.0
+epsilon: number; // Default: 1e-8
+l2Lambda: number; // Default: 0.0001
+gradientClipNorm: number; // Default: 1.0
+
+// 📊 Normalization (section)
+normalizationEpsilon: number; // Default: 1e-8
+normalizationWarmup: number; // Default: 10
+
+// 🛡️ Outlier Handling (section)
+outlierThreshold: number; // Default: 3.0
+outlierMinWeight: number; // Default: 0.1
+
+// 📈 Uncertainty (section)
+residualWindowSize: number; // Default: 100
+uncertaintyMultiplier: number; // Default: 1.96
+
+// ⚙️ Initialization (section)
+weightInitScale: number; // Default: 0.1
+seed: number; // Default: 42
+verbose: boolean; // Default: false
+rollforwardMode: "holdLastX" | "autoregressive"; // Default: "holdLastX"
+
 Avoid the "Refused to cross-origin redirects of the top-level worker script" issue by creating the Worker from a Blob URL (inline worker source string -> Blob -> URL.createObjectURL).
 Do NOT load a remote worker script URL.
 Every worker action must show a clear loading indicator and disable relevant controls while running.
@@ -29,13 +70,18 @@ Use a premium dashboard structure:
 Header with app title, model status, compact config chips, and 2–3 quick actions.
 Main content with a large visualization card area.
 Right/secondary panel area for metrics, logs, and controls (collapsible on mobile).
-Expandable main menu (sidebar on desktop, drawer on mobile) with grouped sections:
-Model (Create/Config, Summary, Reset, Save/Load)
-Data (Upload, Manual Insert, Validate, Export Dataset)
-Train (Online Train, Batch Train, Progress, Cancel)
-Predict (Forecast controls, Export Predictions)
-Visualize (View modes, Dimension selector, Display settings, Export chart image)
-Advanced (Worker/module URL strategy, performance mode, debugging)
+Expandable main menu:
+Model:
+    Create/Config
+    Save/Load
+Data:
+    Upload Dataset
+    Manual Insert
+Test:
+    Random Test
+Advanced:
+    Settings
+
 
 WORKER ARCHITECTURE (ROBUST AND SAFE)
 Implement a strict message protocol with requestId, type, payload.
@@ -203,11 +249,6 @@ Show current zoom level indicator.
 When zoomed, show a mini-map overview in corner (small rectangle showing viewport position).
 Animate zoom transitions over 250ms.
 
-DOWNSAMPLING FOR PERFORMANCE
-If futureSteps > 200, apply LTTB (Largest-Triangle-Three-Buckets) algorithm to reduce to ~150 points.
-Preserve first and last points always.
-Preserve local minima and maxima.
-Store full data for tooltip access, render downsampled for speed.
 
 VISUALIZATION MODES (ALL MUST BE BEAUTIFUL)
 
@@ -285,7 +326,6 @@ PERFORMANCE REQUIREMENTS
 Keep UI responsive at all times.
 Do not re-render charts unnecessarily; use requestAnimationFrame and only redraw when needed.
 Use decimation/downsampling when futureSteps or dims are large.
-Provide a "Performance Mode" toggle that reduces detail (fewer gridlines, simpler effects, more downsampling).
 Cache rendered canvases when data hasn't changed.
 Debounce resize handlers (150ms).
 
