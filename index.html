@@ -132,25 +132,11 @@
         margin-top: -6px;
         cursor: pointer;
       }
-      .btn-primary {
-        @apply bg-brand-500 hover:bg-brand-600 text-white font-medium px-4
-          py-2 rounded-lg transition-all duration-200 shadow-sm
-          hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed;
+      input[type="range"]:focus {
+        outline: none;
       }
-      .btn-secondary {
-        @apply bg-slate-100 dark:bg-slate-700 hover:bg-slate-200
-          dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200
-          font-medium px-4 py-2 rounded-lg transition-all duration-200;
-      }
-      .input-field {
-        @apply w-full px-3 py-2 border border-slate-300 dark:border-slate-600
-          rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white
-          focus:ring-2 focus:ring-brand-500 focus:border-transparent
-          outline-none transition-all;
-      }
-      .card {
-        @apply bg-white dark:bg-slate-800 rounded-xl shadow-sm border
-          border-slate-200 dark:border-slate-700;
+      input[type="range"]:focus::-webkit-slider-thumb {
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.3);
       }
     </style>
   </head>
@@ -165,7 +151,7 @@
         <div class="flex items-center gap-3">
           <button
             id="menuBtn"
-            class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 lg:hidden"
+            class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 lg:hidden focus:outline-none focus:ring-2 focus:ring-brand-500"
             aria-label="Open menu"
           >
             <svg
@@ -212,12 +198,17 @@
               class="px-2 py-1 text-xs rounded-full bg-slate-100 dark:bg-slate-700 hidden"
             >0 samples</span>
           </div>
-          <button id="predictBtn" class="btn-primary text-sm hidden" disabled>
+          <button
+            id="predictBtn"
+            class="hidden bg-brand-500 hover:bg-brand-600 text-white font-medium px-4 py-2 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
+            disabled
+            aria-label="Run prediction"
+          >
             Predict
           </button>
           <button
             id="darkToggle"
-            class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+            class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
             aria-label="Toggle dark mode"
           >
             <svg
@@ -255,6 +246,8 @@
         <aside
           id="sidebar"
           class="fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 transform -translate-x-full lg:translate-x-0 lg:static lg:z-0 transition-transform duration-300"
+          role="navigation"
+          aria-label="Main menu"
         >
           <div class="flex flex-col h-full pt-14 lg:pt-0">
             <div
@@ -264,7 +257,8 @@
                 <span class="font-semibold">Menu</span>
                 <button
                   id="closeSidebar"
-                  class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+                  class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  aria-label="Close menu"
                 >
                   <svg
                     class="w-5 h-5"
@@ -285,8 +279,9 @@
             <nav class="flex-1 overflow-y-auto p-3 space-y-1">
               <div class="menu-section">
                 <button
-                  class="menu-header w-full flex items-center justify-between p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-left"
+                  class="menu-header w-full flex items-center justify-between p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-left focus:outline-none focus:ring-2 focus:ring-brand-500"
                   data-section="model"
+                  aria-expanded="false"
                 >
                   <span class="flex items-center gap-2"><svg
                       class="w-4 h-4"
@@ -320,25 +315,25 @@
                   data-section="model"
                 >
                   <button
-                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm"
+                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                     data-action="openConfig"
                   >
                     Create / Configure
                   </button>
                   <button
-                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm"
+                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                     data-action="showSummary"
                   >
                     Summary
                   </button>
                   <button
-                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm"
+                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                     data-action="resetModel"
                   >
                     Reset Model
                   </button>
                   <button
-                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm"
+                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                     data-action="openSaveLoad"
                   >
                     Save / Load
@@ -347,8 +342,9 @@
               </div>
               <div class="menu-section">
                 <button
-                  class="menu-header w-full flex items-center justify-between p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-left"
+                  class="menu-header w-full flex items-center justify-between p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-left focus:outline-none focus:ring-2 focus:ring-brand-500"
                   data-section="data"
+                  aria-expanded="false"
                 >
                   <span class="flex items-center gap-2"><svg
                       class="w-4 h-4"
@@ -382,19 +378,19 @@
                   data-section="data"
                 >
                   <button
-                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm"
+                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                     data-action="openUpload"
                   >
                     Upload Dataset
                   </button>
                   <button
-                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm"
+                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                     data-action="openManualInsert"
                   >
                     Manual Insert
                   </button>
                   <button
-                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm"
+                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                     data-action="exportDataset"
                   >
                     Export Dataset
@@ -403,8 +399,9 @@
               </div>
               <div class="menu-section">
                 <button
-                  class="menu-header w-full flex items-center justify-between p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-left"
+                  class="menu-header w-full flex items-center justify-between p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-left focus:outline-none focus:ring-2 focus:ring-brand-500"
                   data-section="train"
+                  aria-expanded="false"
                 >
                   <span class="flex items-center gap-2"><svg
                       class="w-4 h-4"
@@ -438,13 +435,7 @@
                   data-section="train"
                 >
                   <button
-                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm"
-                    data-action="trainOnline"
-                  >
-                    Train Online
-                  </button>
-                  <button
-                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm"
+                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                     data-action="openRandomTest"
                   >
                     Random Test Data
@@ -453,8 +444,9 @@
               </div>
               <div class="menu-section">
                 <button
-                  class="menu-header w-full flex items-center justify-between p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-left"
+                  class="menu-header w-full flex items-center justify-between p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-left focus:outline-none focus:ring-2 focus:ring-brand-500"
                   data-section="predict"
+                  aria-expanded="false"
                 >
                   <span class="flex items-center gap-2"><svg
                       class="w-4 h-4"
@@ -488,13 +480,13 @@
                   data-section="predict"
                 >
                   <button
-                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm"
+                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                     data-action="openPredict"
                   >
                     Forecast Settings
                   </button>
                   <button
-                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm"
+                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                     data-action="exportPredictions"
                   >
                     Export Predictions
@@ -503,8 +495,9 @@
               </div>
               <div class="menu-section">
                 <button
-                  class="menu-header w-full flex items-center justify-between p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-left"
+                  class="menu-header w-full flex items-center justify-between p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-left focus:outline-none focus:ring-2 focus:ring-brand-500"
                   data-section="visualize"
+                  aria-expanded="false"
                 >
                   <span class="flex items-center gap-2"><svg
                       class="w-4 h-4"
@@ -544,31 +537,31 @@
                   data-section="visualize"
                 >
                   <button
-                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm"
+                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                     data-action="setViewGrid"
                   >
                     Grid View
                   </button>
                   <button
-                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm"
+                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                     data-action="setViewFocus"
                   >
                     Focus View
                   </button>
                   <button
-                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm"
+                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                     data-action="setViewHeatmap"
                   >
                     Heatmap View
                   </button>
                   <button
-                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm"
+                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                     data-action="setViewUncertainty"
                   >
                     Uncertainty View
                   </button>
                   <button
-                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm"
+                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                     data-action="exportChart"
                   >
                     Export Chart PNG
@@ -577,8 +570,9 @@
               </div>
               <div class="menu-section">
                 <button
-                  class="menu-header w-full flex items-center justify-between p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-left"
+                  class="menu-header w-full flex items-center justify-between p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-left focus:outline-none focus:ring-2 focus:ring-brand-500"
                   data-section="advanced"
+                  aria-expanded="false"
                 >
                   <span class="flex items-center gap-2"><svg
                       class="w-4 h-4"
@@ -618,19 +612,19 @@
                   data-section="advanced"
                 >
                   <button
-                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm"
+                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                     data-action="openAdvanced"
                   >
                     Module Settings
                   </button>
                   <button
-                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm"
+                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                     data-action="togglePerformance"
                   >
                     Performance Mode
                   </button>
                   <button
-                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm"
+                    class="menu-item w-full text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                     data-action="clearAll"
                   >
                     Reset Everything
@@ -654,7 +648,9 @@
               id="onboarding"
               class="flex items-center justify-center h-full"
             >
-              <div class="card p-8 max-w-xl w-full text-center fade-in">
+              <div
+                class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-8 max-w-xl w-full text-center fade-in"
+              >
                 <div
                   class="w-16 h-16 mx-auto mb-6 rounded-2xl gradient-border flex items-center justify-center"
                 >
@@ -677,7 +673,7 @@
                 </p>
                 <div class="grid gap-4 sm:grid-cols-3">
                   <button
-                    class="onboard-btn p-4 rounded-xl border-2 border-brand-500 bg-brand-50 dark:bg-brand-900/20 hover:bg-brand-100 dark:hover:bg-brand-900/40 transition-all"
+                    class="onboard-btn p-4 rounded-xl border-2 border-brand-500 bg-brand-50 dark:bg-brand-900/20 hover:bg-brand-100 dark:hover:bg-brand-900/40 transition-all focus:outline-none focus:ring-2 focus:ring-brand-500"
                     data-action="startHere"
                   >
                     <div
@@ -709,7 +705,7 @@
                     </div>
                   </button>
                   <button
-                    class="onboard-btn p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all"
+                    class="onboard-btn p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all focus:outline-none focus:ring-2 focus:ring-brand-500"
                     data-action="loadModel"
                   >
                     <div
@@ -737,7 +733,7 @@
                     </div>
                   </button>
                   <button
-                    class="onboard-btn p-4 rounded-xl border-2 border-purple-300 dark:border-purple-600 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-all"
+                    class="onboard-btn p-4 rounded-xl border-2 border-purple-300 dark:border-purple-600 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-all focus:outline-none focus:ring-2 focus:ring-purple-500"
                     data-action="runTest"
                   >
                     <div
@@ -774,7 +770,9 @@
 
             <!-- Chart Container -->
             <div id="chartArea" class="hidden h-full">
-              <div class="card h-full flex flex-col">
+              <div
+                class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 h-full flex flex-col"
+              >
                 <div
                   class="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700"
                 >
@@ -785,26 +783,30 @@
                       class="hidden sm:flex items-center gap-1 bg-slate-100 dark:bg-slate-700 rounded-lg p-1"
                     >
                       <button
-                        class="view-tab px-3 py-1 text-sm rounded-md transition-all"
+                        class="view-tab px-3 py-1 text-sm rounded-md transition-all focus:outline-none"
                         data-view="grid"
+                        aria-label="Grid view"
                       >
                         Grid
                       </button>
                       <button
-                        class="view-tab px-3 py-1 text-sm rounded-md transition-all"
+                        class="view-tab px-3 py-1 text-sm rounded-md transition-all focus:outline-none bg-white dark:bg-slate-600 shadow-sm"
                         data-view="focus"
+                        aria-label="Focus view"
                       >
                         Focus
                       </button>
                       <button
-                        class="view-tab px-3 py-1 text-sm rounded-md transition-all"
+                        class="view-tab px-3 py-1 text-sm rounded-md transition-all focus:outline-none"
                         data-view="heatmap"
+                        aria-label="Heatmap view"
                       >
                         Heatmap
                       </button>
                       <button
-                        class="view-tab px-3 py-1 text-sm rounded-md transition-all"
+                        class="view-tab px-3 py-1 text-sm rounded-md transition-all focus:outline-none"
                         data-view="uncertainty"
+                        aria-label="Uncertainty view"
                       >
                         Uncertainty
                       </button>
@@ -813,14 +815,16 @@
                   <div class="flex items-center gap-2">
                     <select
                       id="dimSelect"
-                      class="input-field text-sm py-1 w-32 hidden"
+                      class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all text-sm py-1 w-32 hidden"
+                      aria-label="Select target dimension"
                     >
                       <option value="0">Target 0</option>
                     </select>
                     <button
                       id="exportChartBtn"
-                      class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+                      class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
                       title="Export PNG"
+                      aria-label="Export chart as PNG"
                     >
                       <svg
                         class="w-4 h-4"
@@ -872,7 +876,7 @@
                       </p>
                       <button
                         id="runPredictEmpty"
-                        class="btn-primary text-sm"
+                        class="bg-brand-500 hover:bg-brand-600 text-white font-medium px-4 py-2 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                         disabled
                       >
                         Run Prediction
@@ -907,7 +911,8 @@
           >
             <div class="flex items-center gap-4 flex-wrap">
               <div class="flex items-center gap-2">
-                <label class="text-sm font-medium">Steps:</label>
+                <label for="stepsSlider" class="text-sm font-medium"
+                >Steps:</label>
                 <input
                   type="range"
                   id="stepsSlider"
@@ -915,17 +920,22 @@
                   max="100"
                   value="10"
                   class="w-32"
+                  aria-label="Prediction steps"
                 >
                 <input
                   type="number"
                   id="stepsInput"
-                  class="input-field w-16 text-sm py-1"
+                  class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all w-16 text-sm py-1"
                   value="10"
                   min="1"
                   max="1000"
+                  aria-label="Prediction steps number"
                 >
               </div>
-              <button id="runPredict" class="btn-primary">
+              <button
+                id="runPredict"
+                class="bg-brand-500 hover:bg-brand-600 text-white font-medium px-4 py-2 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500"
+              >
                 Run Prediction
               </button>
               <div
@@ -942,8 +952,14 @@
                   >
                   </div>
                 </div>
-                <span id="progressText" class="text-sm font-medium">0%</span>
-                <button id="cancelTrain" class="btn-secondary text-sm py-1">
+                <span
+                  id="progressText"
+                  class="text-sm font-medium whitespace-nowrap"
+                >0%</span>
+                <button
+                  id="cancelTrain"
+                  class="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-medium px-4 py-2 rounded-lg transition-all duration-200 text-sm py-1 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                >
                   Cancel
                 </button>
               </div>
@@ -954,98 +970,118 @@
         <!-- Right Panel -->
         <aside
           id="rightPanel"
-          class="hidden lg:block w-80 border-l border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden flex-shrink-0"
+          class="hidden lg:flex w-80 border-l border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden flex-shrink-0 flex-col"
         >
-          <div class="flex flex-col h-full">
-            <div class="flex border-b border-slate-200 dark:border-slate-700">
-              <button
-                class="panel-tab flex-1 p-3 text-sm font-medium border-b-2 border-transparent hover:bg-slate-50 dark:hover:bg-slate-700"
-                data-panel="metrics"
+          <div class="flex border-b border-slate-200 dark:border-slate-700">
+            <button
+              class="panel-tab flex-1 p-3 text-sm font-medium border-b-2 border-brand-500 text-brand-500 hover:bg-slate-50 dark:hover:bg-slate-700 focus:outline-none"
+              data-panel="metrics"
+            >
+              Metrics
+            </button>
+            <button
+              class="panel-tab flex-1 p-3 text-sm font-medium border-b-2 border-transparent hover:bg-slate-50 dark:hover:bg-slate-700 focus:outline-none"
+              data-panel="log"
+            >
+              Log
+            </button>
+          </div>
+          <div id="metricsPanel" class="flex-1 overflow-auto p-4">
+            <div class="space-y-4">
+              <div
+                class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4"
               >
-                Metrics
-              </button>
-              <button
-                class="panel-tab flex-1 p-3 text-sm font-medium border-b-2 border-transparent hover:bg-slate-50 dark:hover:bg-slate-700"
-                data-panel="log"
-              >
-                Log
-              </button>
-            </div>
-            <div id="metricsPanel" class="flex-1 overflow-auto p-4 hidden">
-              <div class="space-y-4">
-                <div class="card p-4">
-                  <h4
-                    class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3"
-                  >
-                    Model Summary
-                  </h4>
-                  <div id="modelMetrics" class="space-y-2 text-sm">
-                    <p class="text-slate-400">No model created</p>
-                  </div>
-                </div>
-                <div class="card p-4">
-                  <h4
-                    class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3"
-                  >
-                    Training Stats
-                  </h4>
-                  <div id="trainStats" class="space-y-2 text-sm">
-                    <p class="text-slate-400">No training data</p>
-                  </div>
-                </div>
-                <div class="card p-4">
-                  <h4
-                    class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3"
-                  >
-                    Last Prediction
-                  </h4>
-                  <div id="predStats" class="space-y-2 text-sm">
-                    <p class="text-slate-400">No predictions</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div id="logPanel" class="flex-1 overflow-auto p-4 hidden">
-              <div class="flex items-center gap-2 mb-3">
-                <select id="logFilter" class="input-field text-sm py-1 flex-1">
-                  <option value="all">All</option>
-                  <option value="info">Info</option>
-                  <option value="success">Success</option>
-                  <option value="warning">Warning</option>
-                  <option value="error">Error</option>
-                </select>
-                <button
-                  id="clearLog"
-                  class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
-                  title="Clear log"
+                <h4
+                  class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3"
                 >
-                  <svg
-                    class="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                    />
-                  </svg>
-                </button>
+                  Model Summary
+                </h4>
+                <div id="modelMetrics" class="space-y-2 text-sm">
+                  <p class="text-slate-400">No model created</p>
+                </div>
               </div>
-              <div id="logEntries" class="space-y-2 text-sm"></div>
+              <div
+                class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4"
+              >
+                <h4
+                  class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3"
+                >
+                  Training Stats
+                </h4>
+                <div id="trainStats" class="space-y-2 text-sm">
+                  <p class="text-slate-400">No training data</p>
+                </div>
+              </div>
+              <div
+                class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4"
+              >
+                <h4
+                  class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3"
+                >
+                  Last Prediction
+                </h4>
+                <div id="predStats" class="space-y-2 text-sm">
+                  <p class="text-slate-400">No predictions</p>
+                </div>
+              </div>
             </div>
+          </div>
+          <div id="logPanel" class="flex-1 overflow-auto p-4 hidden">
+            <div class="flex items-center gap-2 mb-3">
+              <select
+                id="logFilter"
+                class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all text-sm py-1 flex-1"
+                aria-label="Filter logs"
+              >
+                <option value="all">All</option>
+                <option value="info">Info</option>
+                <option value="success">Success</option>
+                <option value="warning">Warning</option>
+                <option value="error">Error</option>
+              </select>
+              <button
+                id="clearLog"
+                class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                title="Clear log"
+                aria-label="Clear log"
+              >
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div id="logEntries" class="space-y-2 text-sm"></div>
           </div>
         </aside>
       </div>
     </div>
 
     <!-- Toast Container -->
-    <div id="toasts" class="fixed top-4 right-4 z-50 space-y-2"></div>
+    <div
+      id="toasts"
+      class="fixed top-4 right-4 z-50 space-y-2"
+      role="alert"
+      aria-live="polite"
+    >
+    </div>
 
     <!-- Modal Container -->
-    <div id="modalContainer" class="fixed inset-0 z-50 hidden">
+    <div
+      id="modalContainer"
+      class="fixed inset-0 z-50 hidden"
+      role="dialog"
+      aria-modal="true"
+    >
       <div id="modalOverlay" class="absolute inset-0 bg-black/50"></div>
       <div
         class="absolute inset-0 flex items-center justify-center p-4 overflow-auto"
@@ -1062,6 +1098,8 @@
     <div
       id="loadingOverlay"
       class="fixed inset-0 z-50 bg-black/30 flex items-center justify-center hidden"
+      role="status"
+      aria-live="polite"
     >
       <div
         class="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-xl flex items-center gap-4"
@@ -1095,7 +1133,6 @@
       (function () {
         "use strict";
 
-        // Worker source code
         const workerSource = `
 let ESNRegression = null;
 let model = null;
@@ -1110,18 +1147,23 @@ async function loadModule(url) {
     if (!ESNRegression) throw new Error('ESNRegression not found in module');
     return true;
   } catch (e1) {
-    console.warn('Dynamic import failed, trying fetch fallback:', e1);
+    console.warn('Dynamic import failed:', e1.message);
     try {
       const resp = await fetch(url);
+      if (!resp.ok) throw new Error('Fetch failed: ' + resp.status);
       let text = await resp.text();
-      const match = text.match(/class\\s+ESNRegression/);
-      if (!match) throw new Error('ESNRegression class not found in fetched module');
-      text = text.replace(/export\\s*\\{[^}]*\\}/g, '').replace(/export\\s+default/g, '').replace(/export\\s+/g, '');
-      const fn = new Function(text + ';return ESNRegression;');
+      const classMatch = text.match(/class\\s+ESNRegression/);
+      if (!classMatch) throw new Error('ESNRegression class not found');
+      const cleanedText = text
+        .replace(/export\\s*\\{[^}]*\\}/g, '')
+        .replace(/export\\s+default\\s+/g, '')
+        .replace(/export\\s+(class|function|const|let|var)/g, '$1');
+      const fn = new Function(cleanedText + '; return typeof ESNRegression !== "undefined" ? ESNRegression : null;');
       ESNRegression = fn();
+      if (!ESNRegression) throw new Error('Could not extract ESNRegression');
       return true;
     } catch (e2) {
-      throw new Error('Failed to load ESNRegression: ' + e1.message + ' | Fallback: ' + e2.message);
+      throw new Error('Module load failed - Primary: ' + e1.message + ' | Fallback: ' + e2.message);
     }
   }
 }
@@ -1147,7 +1189,7 @@ self.onmessage = async function(e) {
       }
       
       case 'createModel': {
-        if (!ESNRegression) throw new Error('Module not loaded');
+        if (!ESNRegression) throw new Error('Module not loaded. Please wait for initialization.');
         model = new ESNRegression(payload.config || {});
         dataset = { x: [], y: [] };
         const summary = model.getModelSummary();
@@ -1156,8 +1198,9 @@ self.onmessage = async function(e) {
       }
       
       case 'fitOnline': {
-        if (!model) throw new Error('No model created');
+        if (!model) throw new Error('No model created. Please create a model first.');
         const { xCoordinates, yCoordinates, batchSize = 50 } = payload;
+        if (!xCoordinates || !yCoordinates) throw new Error('Missing training data');
         const total = xCoordinates.length;
         let result = null;
         
@@ -1183,6 +1226,7 @@ self.onmessage = async function(e) {
       
       case 'predict': {
         if (!model) throw new Error('No model created');
+        if (!payload.futureSteps || payload.futureSteps < 1) throw new Error('Invalid future steps');
         const result = model.predict(payload.futureSteps);
         respond(requestId, 'predictComplete', { result });
         break;
@@ -1203,7 +1247,7 @@ self.onmessage = async function(e) {
       }
       
       case 'save': {
-        if (!model) throw new Error('No model created');
+        if (!model) throw new Error('No model to save');
         const modelState = model.save();
         const summary = model.getModelSummary();
         const meta = {
@@ -1237,7 +1281,7 @@ self.onmessage = async function(e) {
             modelState = data;
             meta = null;
           }
-        } else if (data.modelState) {
+        } else if (data && data.modelState) {
           modelState = data.modelState;
           meta = data.meta;
         } else {
@@ -1274,19 +1318,17 @@ self.onmessage = async function(e) {
         throw new Error('Unknown command: ' + type);
     }
   } catch (err) {
-    respond(requestId, 'error', { message: err.message, stack: err.stack });
+    respond(requestId, 'error', { message: err.message || String(err), stack: err.stack });
   }
 };
 `;
 
-        // Create worker from blob
         const workerBlob = new Blob([workerSource], {
           type: "application/javascript",
         });
         const workerUrl = URL.createObjectURL(workerBlob);
         let worker = new Worker(workerUrl, { type: "module" });
 
-        // App State
         const state = {
           hasModel: false,
           modelSummary: null,
@@ -1306,25 +1348,29 @@ self.onmessage = async function(e) {
           currentTrainId: null,
           datasetSize: 0,
           lastFitResult: null,
+          workerReady: false,
+          chartHover: null,
         };
 
-        // DOM Elements
         const $ = (s) => document.querySelector(s);
         const $$ = (s) => document.querySelectorAll(s);
 
-        // Initialize dark mode
         if (state.darkMode) {
           document.documentElement.classList.add("dark");
         }
 
-        // Worker communication
         function sendToWorker(type, payload = {}) {
           return new Promise((resolve, reject) => {
             const requestId = ++state.requestCounter;
+            const timeout = setTimeout(() => {
+              state.pendingRequests.delete(requestId);
+              reject(new Error("Worker request timeout"));
+            }, 60000);
             state.pendingRequests.set(requestId, {
               resolve,
               reject,
               type,
+              timeout,
             });
             worker.postMessage({ requestId, type, payload });
           });
@@ -1341,6 +1387,7 @@ self.onmessage = async function(e) {
 
           if (type === "error") {
             if (pending) {
+              clearTimeout(pending.timeout);
               state.pendingRequests.delete(requestId);
               pending.reject(new Error(payload.message));
             }
@@ -1349,33 +1396,40 @@ self.onmessage = async function(e) {
           }
 
           if (pending) {
+            clearTimeout(pending.timeout);
             state.pendingRequests.delete(requestId);
             pending.resolve(payload);
           }
         };
 
-        // Initialize worker
+        worker.onerror = (e) => {
+          console.error("Worker error:", e);
+          addLog(
+            "error",
+            "Worker Fatal",
+            e.message || "Unknown worker error",
+          );
+          showToast("error", "Worker error occurred");
+        };
+
         async function initWorker() {
           showLoading("Initializing ESN module...");
           try {
             await sendToWorker("init", { moduleUrl: state.moduleUrl });
+            state.workerReady = true;
             addLog(
               "success",
               "Module Loaded",
-              "ESNRegression module initialized successfully",
+              "ESNRegression module ready",
             );
             hideLoading();
           } catch (err) {
             hideLoading();
             addLog("error", "Init Failed", err.message);
-            showToast(
-              "error",
-              "Failed to load ESN module: " + err.message,
-            );
+            showToast("error", "Module load failed: " + err.message);
           }
         }
 
-        // UI Functions
         function showLoading(text = "Loading...") {
           $("#loadingText").textContent = text;
           $("#loadingOverlay").classList.remove("hidden");
@@ -1392,36 +1446,25 @@ self.onmessage = async function(e) {
             warning: "bg-amber-500",
             info: "bg-brand-500",
           };
+          const icons = {
+            success:
+              '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>',
+            error:
+              '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>',
+            warning:
+              '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>',
+            info:
+              '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>',
+          };
           const toast = document.createElement("div");
           toast.className =
             `toast-enter px-4 py-3 rounded-lg shadow-lg text-white ${
               colors[type]
-            } flex items-center gap-2`;
-          toast.innerHTML = `
-      <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        ${
-            type === "success"
-              ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>'
-              : ""
-          }
-        ${
-            type === "error"
-              ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>'
-              : ""
-          }
-        ${
-            type === "warning"
-              ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>'
-              : ""
-          }
-        ${
-            type === "info"
-              ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>'
-              : ""
-          }
-      </svg>
-      <span class="text-sm font-medium">${message}</span>
-    `;
+            } flex items-center gap-2 max-w-sm`;
+          toast.innerHTML =
+            `<svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">${
+              icons[type]
+            }</svg><span class="text-sm font-medium">${message}</span>`;
           $("#toasts").appendChild(toast);
           setTimeout(() => {
             toast.classList.remove("toast-enter");
@@ -1454,8 +1497,9 @@ self.onmessage = async function(e) {
             warning: "text-amber-500",
             error: "text-red-500",
           };
-          $("#logEntries").innerHTML = filtered.slice(0, 100).map(
-            (l) => `
+          $("#logEntries").innerHTML = filtered.slice(0, 100).map((
+            l,
+          ) => `
       <div class="p-2 rounded-lg bg-slate-50 dark:bg-slate-700/50">
         <div class="flex items-center gap-2 mb-1">
           <span class="${colors[l.type]} font-medium">${l.action}</span>
@@ -1463,8 +1507,7 @@ self.onmessage = async function(e) {
         </div>
         <div class="text-xs text-slate-500 dark:text-slate-400 break-words">${l.details}</div>
       </div>
-    `,
-          ).join("");
+    `).join("");
         }
 
         function updateProgress(data) {
@@ -1477,12 +1520,12 @@ self.onmessage = async function(e) {
           $("#modalContent").innerHTML = content;
           $("#modalContainer").classList.remove("hidden");
           document.body.style.overflow = "hidden";
-          setTimeout(() => {
-            const firstInput = $("#modalContent").querySelector(
-              "input, select, button",
-            );
-            if (firstInput) firstInput.focus();
-          }, 100);
+          const focusable = $("#modalContent").querySelectorAll(
+            'button, input, select, textarea, [tabindex]:not([tabindex="-1"])',
+          );
+          if (focusable.length) {
+            setTimeout(() => focusable[0].focus(), 50);
+          }
         }
 
         function hideModal() {
@@ -1499,9 +1542,10 @@ self.onmessage = async function(e) {
           $("#controlBar").classList.toggle("hidden", !hasModel);
           $("#rightPanel").classList.toggle("hidden", !hasModel);
           $("#predictBtn").classList.toggle("hidden", !hasModel);
-          $("#predictBtn").disabled = !hasModel;
-          $("#runPredict").disabled = !hasModel;
-          $("#runPredictEmpty").disabled = !hasModel;
+          $("#predictBtn").disabled = !hasModel || !state.workerReady;
+          $("#runPredict").disabled = !hasModel || !state.workerReady;
+          $("#runPredictEmpty").disabled = !hasModel ||
+            !state.workerReady;
 
           if (hasModel && state.modelSummary) {
             $("#modelStatus").textContent =
@@ -1513,8 +1557,9 @@ self.onmessage = async function(e) {
               $("#dataStatus").textContent =
                 `${state.datasetSize} samples`;
               $("#dataStatus").classList.remove("hidden");
+            } else {
+              $("#dataStatus").classList.add("hidden");
             }
-
             updateMetrics();
             updateDimSelect();
           } else {
@@ -1592,7 +1637,8 @@ self.onmessage = async function(e) {
             { length: nTargets },
             (_, i) => `<option value="${i}">Target ${i}</option>`,
           ).join("");
-          select.value = state.selectedDim;
+          select.value = Math.min(state.selectedDim, nTargets - 1);
+          state.selectedDim = parseInt(select.value);
           select.classList.toggle(
             "hidden",
             state.currentView === "grid" ||
@@ -1600,7 +1646,6 @@ self.onmessage = async function(e) {
           );
         }
 
-        // Chart Rendering
         const chartColors = {
           light: {
             line: "#0ea5e9",
@@ -1627,7 +1672,8 @@ self.onmessage = async function(e) {
         }
 
         function niceNumber(range, round) {
-          const exp = Math.floor(Math.log10(range));
+          if (range === 0) return 1;
+          const exp = Math.floor(Math.log10(Math.abs(range)));
           const frac = range / Math.pow(10, exp);
           let nice;
           if (round) {
@@ -1645,6 +1691,10 @@ self.onmessage = async function(e) {
         }
 
         function generateTicks(min, max, targetCount = 5) {
+          if (min === max) {
+            min -= 0.5;
+            max += 0.5;
+          }
           const range = niceNumber(max - min, false);
           const tickSpacing = niceNumber(
             range / (targetCount - 1),
@@ -1658,7 +1708,7 @@ self.onmessage = async function(e) {
             t <= niceMax + tickSpacing * 0.5;
             t += tickSpacing
           ) {
-            ticks.push(t);
+            ticks.push(parseFloat(t.toPrecision(10)));
           }
           return { min: niceMin, max: niceMax, ticks };
         }
@@ -1682,7 +1732,9 @@ self.onmessage = async function(e) {
           ctx.fillStyle = colors.bg;
           ctx.fillRect(0, 0, w, h);
 
-          if (!state.predictions) return;
+          if (
+            !state.predictions || !state.predictions.predictions.length
+          ) return;
 
           switch (state.currentView) {
             case "focus":
@@ -1702,16 +1754,23 @@ self.onmessage = async function(e) {
 
         function renderFocusChart(ctx, w, h, colors) {
           const pred = state.predictions;
-          const dim = state.selectedDim;
+          const dim = Math.min(
+            state.selectedDim,
+            pred.predictions[0].length - 1,
+          );
           const data = pred.predictions.map((p) => p[dim]);
           const lower = pred.lowerBounds.map((l) => l[dim]);
           const upper = pred.upperBounds.map((u) => u[dim]);
 
-          const padding = { top: 40, right: 40, bottom: 50, left: 60 };
+          const padding = { top: 40, right: 40, bottom: 50, left: 70 };
           const chartW = w - padding.left - padding.right;
           const chartH = h - padding.top - padding.bottom;
 
-          const allValues = [...data, ...lower, ...upper];
+          const allValues = [...data, ...lower, ...upper].filter((v) =>
+            isFinite(v)
+          );
+          if (!allValues.length) return;
+
           const dataMin = Math.min(...allValues);
           const dataMax = Math.max(...allValues);
           const yPad = (dataMax - dataMin) * 0.1 || 1;
@@ -1727,12 +1786,14 @@ self.onmessage = async function(e) {
           );
 
           const scaleX = (i) =>
-            padding.left + (i / (data.length - 1 || 1)) * chartW;
+            padding.left +
+            (data.length > 1
+              ? (i / (data.length - 1)) * chartW
+              : chartW / 2);
           const scaleY = (v) =>
             padding.top + chartH -
-            ((v - yAxis.min) / (yAxis.max - yAxis.min)) * chartH;
+            ((v - yAxis.min) / (yAxis.max - yAxis.min || 1)) * chartH;
 
-          // Grid
           ctx.strokeStyle = colors.grid;
           ctx.lineWidth = 1;
           yAxis.ticks.forEach((t) => {
@@ -1743,7 +1804,6 @@ self.onmessage = async function(e) {
             ctx.stroke();
           });
 
-          // Confidence band
           ctx.fillStyle = colors.band;
           ctx.beginPath();
           ctx.moveTo(scaleX(0), scaleY(upper[0]));
@@ -1773,7 +1833,6 @@ self.onmessage = async function(e) {
           }
           ctx.stroke();
 
-          // Prediction line
           ctx.strokeStyle = colors.line;
           ctx.lineWidth = 2;
           ctx.lineJoin = "round";
@@ -1786,7 +1845,6 @@ self.onmessage = async function(e) {
           }
           ctx.stroke();
 
-          // Points
           ctx.fillStyle = colors.line;
           for (let i = 0; i < data.length; i++) {
             ctx.beginPath();
@@ -1794,16 +1852,15 @@ self.onmessage = async function(e) {
             ctx.fill();
           }
 
-          // Axes labels
           ctx.fillStyle = colors.text;
           ctx.font = "12px Inter, sans-serif";
           ctx.textAlign = "center";
           ctx.textBaseline = "top";
           xAxis.ticks.forEach((t) => {
-            if (t >= 0 && t < data.length) {
+            if (t >= 0 && t <= data.length - 1) {
               ctx.fillText(
                 Math.round(t).toString(),
-                scaleX(t),
+                scaleX(Math.round(t)),
                 h - padding.bottom + 10,
               );
             }
@@ -1823,10 +1880,26 @@ self.onmessage = async function(e) {
           ctx.fillText(`Target ${dim}`, 0, 0);
           ctx.restore();
 
-          // Title
           ctx.font = "14px Inter, sans-serif";
           ctx.textAlign = "left";
+          ctx.textBaseline = "top";
           ctx.fillText(`Prediction - Target ${dim}`, padding.left, 15);
+
+          if (state.chartHover && state.currentView === "focus") {
+            const { x } = state.chartHover;
+            const idx = Math.round(
+              (x - padding.left) / chartW * (data.length - 1),
+            );
+            if (idx >= 0 && idx < data.length) {
+              ctx.strokeStyle = colors.axis;
+              ctx.setLineDash([4, 4]);
+              ctx.beginPath();
+              ctx.moveTo(scaleX(idx), padding.top);
+              ctx.lineTo(scaleX(idx), h - padding.bottom);
+              ctx.stroke();
+              ctx.setLineDash([]);
+            }
+          }
         }
 
         function renderGridChart(ctx, w, h, colors) {
@@ -1836,7 +1909,7 @@ self.onmessage = async function(e) {
           const rows = Math.ceil(nTargets / cols);
           const cellW = w / cols;
           const cellH = h / rows;
-          const padding = 20;
+          const padding = 25;
 
           for (let t = 0; t < nTargets; t++) {
             const col = t % cols;
@@ -1850,23 +1923,26 @@ self.onmessage = async function(e) {
             const lower = pred.lowerBounds.map((l) => l[t]);
             const upper = pred.upperBounds.map((u) => u[t]);
 
-            const allValues = [...data, ...lower, ...upper];
+            const allValues = [...data, ...lower, ...upper].filter(
+              (v) => isFinite(v),
+            );
+            if (!allValues.length) continue;
+
             const dataMin = Math.min(...allValues);
             const dataMax = Math.max(...allValues);
             const yPad = (dataMax - dataMin) * 0.1 || 1;
 
             const scaleX = (i) =>
-              x0 + (i / (data.length - 1 || 1)) * cw;
+              x0 +
+              (data.length > 1 ? (i / (data.length - 1)) * cw : cw / 2);
             const scaleY = (v) =>
               y0 + ch -
               ((v - (dataMin - yPad)) /
-                  ((dataMax + yPad) - (dataMin - yPad))) * ch;
+                  ((dataMax + yPad) - (dataMin - yPad) || 1)) * ch;
 
-            // Background
             ctx.fillStyle = colors.bg;
             ctx.fillRect(col * cellW, row * cellH, cellW, cellH);
 
-            // Band
             ctx.fillStyle = colors.band;
             ctx.beginPath();
             ctx.moveTo(scaleX(0), scaleY(upper[0]));
@@ -1879,7 +1955,6 @@ self.onmessage = async function(e) {
             ctx.closePath();
             ctx.fill();
 
-            // Line
             ctx.strokeStyle = colors.line;
             ctx.lineWidth = 1.5;
             ctx.beginPath();
@@ -1890,13 +1965,12 @@ self.onmessage = async function(e) {
             }
             ctx.stroke();
 
-            // Label
             ctx.fillStyle = colors.text;
             ctx.font = "11px Inter, sans-serif";
             ctx.textAlign = "left";
-            ctx.fillText(`T${t}`, x0, y0 - 5);
+            ctx.textBaseline = "bottom";
+            ctx.fillText(`T${t}`, x0, y0 - 2);
 
-            // Border
             ctx.strokeStyle = colors.grid;
             ctx.lineWidth = 1;
             ctx.strokeRect(
@@ -1913,14 +1987,18 @@ self.onmessage = async function(e) {
           const nTargets = pred.predictions[0].length;
           const nSteps = pred.predictions.length;
 
-          const padding = { top: 40, right: 80, bottom: 50, left: 60 };
+          const padding = { top: 50, right: 80, bottom: 50, left: 70 };
           const chartW = w - padding.left - padding.right;
           const chartH = h - padding.top - padding.bottom;
 
           const cellW = chartW / nSteps;
           const cellH = chartH / nTargets;
 
-          const allVals = pred.predictions.flat();
+          const allVals = pred.predictions.flat().filter((v) =>
+            isFinite(v)
+          );
+          if (!allVals.length) return;
+
           const vMin = Math.min(...allVals);
           const vMax = Math.max(...allVals);
           const vRange = vMax - vMin || 1;
@@ -1934,18 +2012,17 @@ self.onmessage = async function(e) {
               ctx.fillRect(
                 padding.left + s * cellW,
                 padding.top + t * cellH,
-                cellW - 1,
-                cellH - 1,
+                Math.max(cellW - 1, 1),
+                Math.max(cellH - 1, 1),
               );
             }
           }
 
-          // Labels
           ctx.fillStyle = colors.text;
           ctx.font = "11px Inter, sans-serif";
           ctx.textAlign = "right";
           ctx.textBaseline = "middle";
-          for (let t = 0; t < nTargets; t++) {
+          for (let t = 0; t < Math.min(nTargets, 20); t++) {
             ctx.fillText(
               `T${t}`,
               padding.left - 10,
@@ -1956,7 +2033,10 @@ self.onmessage = async function(e) {
           ctx.textAlign = "center";
           ctx.textBaseline = "top";
           const stepLabels = Math.min(nSteps, 10);
-          const stepInterval = Math.ceil(nSteps / stepLabels);
+          const stepInterval = Math.max(
+            1,
+            Math.ceil(nSteps / stepLabels),
+          );
           for (let s = 0; s < nSteps; s += stepInterval) {
             ctx.fillText(
               s.toString(),
@@ -1964,10 +2044,8 @@ self.onmessage = async function(e) {
               h - padding.bottom + 10,
             );
           }
-
           ctx.fillText("Step", w / 2, h - 15);
 
-          // Legend
           const legX = w - padding.right + 20;
           const legH = chartH;
           const legW = 15;
@@ -1994,7 +2072,6 @@ self.onmessage = async function(e) {
             padding.top + legH,
           );
 
-          // Title
           ctx.font = "14px Inter, sans-serif";
           ctx.textAlign = "left";
           ctx.textBaseline = "top";
@@ -2003,27 +2080,33 @@ self.onmessage = async function(e) {
 
         function renderUncertaintyChart(ctx, w, h, colors) {
           const pred = state.predictions;
-          const dim = state.selectedDim;
+          const dim = Math.min(
+            state.selectedDim,
+            pred.predictions[0].length - 1,
+          );
           const lower = pred.lowerBounds.map((l) => l[dim]);
           const upper = pred.upperBounds.map((u) => u[dim]);
-          const bandWidth = upper.map((u, i) => u - lower[i]);
+          const bandWidth = upper.map((u, i) => Math.abs(u - lower[i]));
 
-          const padding = { top: 40, right: 40, bottom: 50, left: 60 };
+          const padding = { top: 40, right: 40, bottom: 50, left: 70 };
           const chartW = w - padding.left - padding.right;
           const chartH = h - padding.top - padding.bottom;
 
-          const dataMax = Math.max(...bandWidth);
+          const dataMax = Math.max(
+            ...bandWidth.filter((v) => isFinite(v)),
+            0.1,
+          );
           const yAxis = generateTicks(0, dataMax * 1.1, 6);
 
           const barW = (chartW / bandWidth.length) * 0.7;
-          const gap = (chartW / bandWidth.length) * 0.3;
+          const gap = (chartW / bandWidth.length) * 0.15;
 
           const scaleX = (i) =>
-            padding.left + i * (barW + gap) + barW / 2;
+            padding.left + i * (chartW / bandWidth.length) +
+            (chartW / bandWidth.length) / 2;
           const scaleY = (v) =>
-            padding.top + chartH - (v / yAxis.max) * chartH;
+            padding.top + chartH - (v / (yAxis.max || 1)) * chartH;
 
-          // Grid
           ctx.strokeStyle = colors.grid;
           ctx.lineWidth = 1;
           yAxis.ticks.forEach((t) => {
@@ -2034,7 +2117,6 @@ self.onmessage = async function(e) {
             ctx.stroke();
           });
 
-          // Bars
           const gradient = ctx.createLinearGradient(
             0,
             padding.top + chartH,
@@ -2045,19 +2127,22 @@ self.onmessage = async function(e) {
           gradient.addColorStop(1, colors.line);
 
           for (let i = 0; i < bandWidth.length; i++) {
-            const x = padding.left + i * (barW + gap);
-            const barH = (bandWidth[i] / yAxis.max) * chartH;
+            const x = padding.left + i * (chartW / bandWidth.length) +
+              gap;
+            const barH = (bandWidth[i] / (yAxis.max || 1)) * chartH;
             ctx.fillStyle = gradient;
             ctx.fillRect(x, padding.top + chartH - barH, barW, barH);
           }
 
-          // Axes labels
           ctx.fillStyle = colors.text;
           ctx.font = "12px Inter, sans-serif";
           ctx.textAlign = "center";
           ctx.textBaseline = "top";
           const stepLabels = Math.min(bandWidth.length, 10);
-          const stepInterval = Math.ceil(bandWidth.length / stepLabels);
+          const stepInterval = Math.max(
+            1,
+            Math.ceil(bandWidth.length / stepLabels),
+          );
           for (let i = 0; i < bandWidth.length; i += stepInterval) {
             ctx.fillText(
               i.toString(),
@@ -2080,15 +2165,13 @@ self.onmessage = async function(e) {
           ctx.fillText("Uncertainty (Band Width)", 0, 0);
           ctx.restore();
 
-          // Title
           ctx.font = "14px Inter, sans-serif";
           ctx.textAlign = "left";
+          ctx.textBaseline = "top";
           ctx.fillText(`Uncertainty - Target ${dim}`, padding.left, 15);
         }
 
-        // Event handlers
         function setupEventListeners() {
-          // Dark mode toggle
           $("#darkToggle").onclick = () => {
             state.darkMode = !state.darkMode;
             document.documentElement.classList.toggle(
@@ -2099,21 +2182,19 @@ self.onmessage = async function(e) {
             if (state.predictions) renderChart();
           };
 
-          // Sidebar
           $("#menuBtn").onclick = () => {
             $("#sidebar").classList.remove("-translate-x-full");
             $("#sidebarOverlay").classList.remove("hidden");
           };
-          $("#closeSidebar").onclick = () => {
-            $("#sidebar").classList.add("-translate-x-full");
-            $("#sidebarOverlay").classList.add("hidden");
-          };
-          $("#sidebarOverlay").onclick = () => {
-            $("#sidebar").classList.add("-translate-x-full");
-            $("#sidebarOverlay").classList.add("hidden");
-          };
 
-          // Menu sections
+          $("#closeSidebar").onclick = closeSidebar;
+          $("#sidebarOverlay").onclick = closeSidebar;
+
+          function closeSidebar() {
+            $("#sidebar").classList.add("-translate-x-full");
+            $("#sidebarOverlay").classList.add("hidden");
+          }
+
           $$(".menu-header").forEach((btn) => {
             btn.onclick = () => {
               const section = btn.dataset.section;
@@ -2121,27 +2202,24 @@ self.onmessage = async function(e) {
                 `.menu-content[data-section="${section}"]`,
               );
               const icon = btn.querySelector("svg:last-child");
+              const isOpen = !content.classList.contains("hidden");
               content.classList.toggle("hidden");
-              icon.classList.toggle("rotate-180");
+              icon.classList.toggle("rotate-180", !isOpen);
+              btn.setAttribute("aria-expanded", !isOpen);
             };
           });
 
-          // Menu actions
           $$(".menu-item").forEach((btn) => {
             btn.onclick = () => handleMenuAction(btn.dataset.action);
           });
-
-          // Onboarding buttons
           $$(".onboard-btn").forEach((btn) => {
             btn.onclick = () => handleMenuAction(btn.dataset.action);
           });
 
-          // View tabs
           $$(".view-tab").forEach((tab) => {
             tab.onclick = () => setView(tab.dataset.view);
           });
 
-          // Panel tabs
           $$(".panel-tab").forEach((tab) => {
             tab.onclick = () => {
               const panel = tab.dataset.panel;
@@ -2165,20 +2243,17 @@ self.onmessage = async function(e) {
               );
             };
           });
-          // Init first tab
-          $('[data-panel="metrics"]').click();
 
-          // Dimension select
           $("#dimSelect").onchange = (e) => {
             state.selectedDim = parseInt(e.target.value);
             renderChart();
           };
 
-          // Steps controls
           $("#stepsSlider").oninput = (e) => {
             state.futureSteps = parseInt(e.target.value);
             $("#stepsInput").value = state.futureSteps;
           };
+
           $("#stepsInput").onchange = (e) => {
             state.futureSteps = Math.max(
               1,
@@ -2188,32 +2263,41 @@ self.onmessage = async function(e) {
             e.target.value = state.futureSteps;
           };
 
-          // Predict buttons
           $("#runPredict").onclick = runPrediction;
           $("#predictBtn").onclick = runPrediction;
           $("#runPredictEmpty").onclick = runPrediction;
-
-          // Cancel training
           $("#cancelTrain").onclick = cancelTraining;
-
-          // Log filter
           $("#logFilter").onchange = renderLogs;
           $("#clearLog").onclick = () => {
             state.logs = [];
             renderLogs();
           };
-
-          // Export chart
           $("#exportChartBtn").onclick = exportChart;
-
-          // Modal close
           $("#modalOverlay").onclick = hideModal;
 
-          // Keyboard shortcuts
+          $("#mainChart").onmousemove = (e) => {
+            const rect = e.target.getBoundingClientRect();
+            state.chartHover = {
+              x: e.clientX - rect.left,
+              y: e.clientY - rect.top,
+            };
+            if (state.currentView === "focus" && state.predictions) {
+              renderChart();
+              showChartTooltip(e);
+            }
+          };
+
+          $("#mainChart").onmouseleave = () => {
+            state.chartHover = null;
+            $("#chartTooltip").classList.add("hidden");
+            if (state.predictions) renderChart();
+          };
+
           document.onkeydown = (e) => {
             if (
               e.target.tagName === "INPUT" ||
-              e.target.tagName === "TEXTAREA"
+              e.target.tagName === "TEXTAREA" ||
+              e.target.tagName === "SELECT"
             ) return;
             if (e.key === "Escape") hideModal();
             if (e.key === "m" || e.key === "M") $("#menuBtn").click();
@@ -2223,12 +2307,12 @@ self.onmessage = async function(e) {
             if (e.key === "u" || e.key === "U") {
               handleMenuAction("openUpload");
             }
-            if ((e.key === "p" || e.key === "P") && state.hasModel) {
-              runPrediction();
-            }
+            if (
+              (e.key === "p" || e.key === "P") && state.hasModel &&
+              state.workerReady
+            ) runPrediction();
           };
 
-          // Window resize
           let resizeTimeout;
           window.onresize = () => {
             clearTimeout(resizeTimeout);
@@ -2238,15 +2322,63 @@ self.onmessage = async function(e) {
           };
         }
 
+        function showChartTooltip(e) {
+          if (!state.predictions || state.currentView !== "focus") {
+            return;
+          }
+
+          const canvas = $("#mainChart");
+          const rect = canvas.getBoundingClientRect();
+          const pred = state.predictions;
+          const dim = state.selectedDim;
+          const data = pred.predictions.map((p) => p[dim]);
+
+          const padding = { left: 70, right: 40, top: 40, bottom: 50 };
+          const chartW = rect.width - padding.left - padding.right;
+          const x = e.clientX - rect.left;
+
+          if (x < padding.left || x > rect.width - padding.right) {
+            $("#chartTooltip").classList.add("hidden");
+            return;
+          }
+
+          const idx = Math.round(
+            (x - padding.left) / chartW * (data.length - 1),
+          );
+          if (idx < 0 || idx >= data.length) {
+            $("#chartTooltip").classList.add("hidden");
+            return;
+          }
+
+          const tooltip = $("#chartTooltip");
+          tooltip.innerHTML = `
+      <div class="font-medium mb-1">Step ${idx}</div>
+      <div class="text-slate-500 dark:text-slate-400">Prediction: <span class="text-slate-900 dark:text-white">${
+            data[idx].toFixed(4)
+          }</span></div>
+      <div class="text-slate-500 dark:text-slate-400">Lower: <span class="text-slate-900 dark:text-white">${
+            pred.lowerBounds[idx][dim].toFixed(4)
+          }</span></div>
+      <div class="text-slate-500 dark:text-slate-400">Upper: <span class="text-slate-900 dark:text-white">${
+            pred.upperBounds[idx][dim].toFixed(4)
+          }</span></div>
+    `;
+
+          tooltip.style.left =
+            Math.min(e.clientX - rect.left + 15, rect.width - 160) +
+            "px";
+          tooltip.style.top = Math.max(e.clientY - rect.top - 80, 10) +
+            "px";
+          tooltip.classList.remove("hidden");
+        }
+
         function setView(view) {
           state.currentView = view;
           $$(".view-tab").forEach((t) => {
-            t.classList.toggle("bg-white", t.dataset.view === view);
-            t.classList.toggle(
-              "dark:bg-slate-600",
-              t.dataset.view === view,
-            );
-            t.classList.toggle("shadow-sm", t.dataset.view === view);
+            const isActive = t.dataset.view === view;
+            t.classList.toggle("bg-white", isActive);
+            t.classList.toggle("dark:bg-slate-600", isActive);
+            t.classList.toggle("shadow-sm", isActive);
           });
           $("#dimSelect").classList.toggle(
             "hidden",
@@ -2259,77 +2391,33 @@ self.onmessage = async function(e) {
           $("#sidebar").classList.add("-translate-x-full");
           $("#sidebarOverlay").classList.add("hidden");
 
-          switch (action) {
-            case "openConfig":
-              showConfigModal();
-              break;
-            case "showSummary":
-              showSummaryModal();
-              break;
-            case "resetModel":
-              await resetModel();
-              break;
-            case "openSaveLoad":
-              showSaveLoadModal();
-              break;
-            case "openUpload":
-              showUploadModal();
-              break;
-            case "openManualInsert":
-              showManualInsertModal();
-              break;
-            case "exportDataset":
-              await exportDataset();
-              break;
-            case "trainOnline":
-              await trainOnline();
-              break;
-            case "openRandomTest":
-              showRandomTestModal();
-              break;
-            case "openPredict":
-              showPredictModal();
-              break;
-            case "exportPredictions":
-              exportPredictions();
-              break;
-            case "setViewGrid":
-              setView("grid");
-              break;
-            case "setViewFocus":
-              setView("focus");
-              break;
-            case "setViewHeatmap":
-              setView("heatmap");
-              break;
-            case "setViewUncertainty":
-              setView("uncertainty");
-              break;
-            case "exportChart":
-              exportChart();
-              break;
-            case "openAdvanced":
-              showAdvancedModal();
-              break;
-            case "togglePerformance":
-              togglePerformanceMode();
-              break;
-            case "clearAll":
-              await clearAll();
-              break;
-            case "startHere":
-              await createModelWithPreset("balanced");
-              break;
-            case "loadModel":
-              showSaveLoadModal();
-              break;
-            case "runTest":
-              await runStandardTest();
-              break;
-          }
+          const actions = {
+            openConfig: showConfigModal,
+            showSummary: showSummaryModal,
+            resetModel: resetModel,
+            openSaveLoad: showSaveLoadModal,
+            openUpload: showUploadModal,
+            openManualInsert: showManualInsertModal,
+            exportDataset: exportDataset,
+            openRandomTest: showRandomTestModal,
+            openPredict: showPredictModal,
+            exportPredictions: exportPredictions,
+            setViewGrid: () => setView("grid"),
+            setViewFocus: () => setView("focus"),
+            setViewHeatmap: () => setView("heatmap"),
+            setViewUncertainty: () => setView("uncertainty"),
+            exportChart: exportChart,
+            openAdvanced: showAdvancedModal,
+            togglePerformance: togglePerformanceMode,
+            clearAll: clearAll,
+            startHere: () => createModelWithPreset("balanced"),
+            loadModel: showSaveLoadModal,
+            runTest: runStandardTest,
+          };
+
+          if (actions[action]) await actions[action]();
         }
 
-        // Model operations
         const presets = {
           startHere: {
             reservoirSize: 256,
@@ -2378,6 +2466,10 @@ self.onmessage = async function(e) {
         };
 
         async function createModelWithPreset(preset) {
+          if (!state.workerReady) {
+            showToast("warning", "Please wait for module to load");
+            return;
+          }
           const config = presets[preset] || presets.balanced;
           showLoading("Creating model...");
           try {
@@ -2406,7 +2498,10 @@ self.onmessage = async function(e) {
         }
 
         async function resetModel() {
-          if (!state.hasModel) return;
+          if (!state.hasModel) {
+            showToast("warning", "No model to reset");
+            return;
+          }
           showLoading("Resetting model...");
           try {
             await sendToWorker("reset");
@@ -2426,7 +2521,7 @@ self.onmessage = async function(e) {
         }
 
         async function runPrediction() {
-          if (!state.hasModel) return;
+          if (!state.hasModel || !state.workerReady) return;
           showLoading("Running prediction...");
           try {
             const result = await sendToWorker("predict", {
@@ -2448,13 +2543,6 @@ self.onmessage = async function(e) {
           hideLoading();
         }
 
-        async function trainOnline() {
-          showToast(
-            "info",
-            "Use Upload or Manual Insert to add training data",
-          );
-        }
-
         async function cancelTraining() {
           if (state.currentTrainId) {
             await sendToWorker("cancel", {
@@ -2467,6 +2555,10 @@ self.onmessage = async function(e) {
         }
 
         function exportChart() {
+          if (!state.predictions) {
+            showToast("warning", "No chart to export");
+            return;
+          }
           const canvas = $("#mainChart");
           const link = document.createElement("a");
           link.download = `esn-chart-${Date.now()}.png`;
@@ -2540,20 +2632,23 @@ self.onmessage = async function(e) {
           state.datasetSize = 0;
           state.lastFitResult = null;
           state.logs = [];
+          state.darkMode = false;
+          document.documentElement.classList.remove("dark");
           updateUI();
           renderLogs();
           showToast("success", "Everything cleared");
         }
 
-        // Random test
         async function runStandardTest() {
+          if (!state.workerReady) {
+            showToast("warning", "Please wait for module to load");
+            return;
+          }
           showLoading("Generating test data and training...");
           try {
             await createModelWithPreset("balanced");
 
             const seed = 42;
-            const nFeatures = 3;
-            const nTargets = 2;
             const nSamples = 200;
 
             function seededRandom(s) {
@@ -2632,70 +2727,50 @@ self.onmessage = async function(e) {
           hideLoading();
         }
 
-        // Modals
         function showConfigModal() {
           const current = state.modelSummary || {};
           showModal(`
       <div class="p-6">
         <div class="flex items-center justify-between mb-6">
           <h2 class="text-xl font-bold">Model Configuration</h2>
-          <button onclick="hideModal()" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
+          <button id="closeConfigModal" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500" aria-label="Close">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
-        
         <div class="mb-6">
           <label class="text-sm font-medium mb-2 block">Preset</label>
           <div class="grid grid-cols-3 gap-2">
-            <button class="preset-btn p-2 text-sm rounded-lg border border-slate-200 dark:border-slate-600 hover:border-brand-500 hover:bg-brand-50 dark:hover:bg-brand-900/20" data-preset="startHere">Start Here</button>
-            <button class="preset-btn p-2 text-sm rounded-lg border border-slate-200 dark:border-slate-600 hover:border-brand-500 hover:bg-brand-50 dark:hover:bg-brand-900/20" data-preset="fast">Fast/Light</button>
-            <button class="preset-btn p-2 text-sm rounded-lg border border-slate-200 dark:border-slate-600 hover:border-brand-500 hover:bg-brand-50 dark:hover:bg-brand-900/20" data-preset="balanced">Balanced</button>
-            <button class="preset-btn p-2 text-sm rounded-lg border border-slate-200 dark:border-slate-600 hover:border-brand-500 hover:bg-brand-50 dark:hover:bg-brand-900/20" data-preset="accurate">Accurate</button>
-            <button class="preset-btn p-2 text-sm rounded-lg border border-slate-200 dark:border-slate-600 hover:border-brand-500 hover:bg-brand-50 dark:hover:bg-brand-900/20" data-preset="adaptive">Adaptive</button>
-            <button class="preset-btn p-2 text-sm rounded-lg border border-slate-200 dark:border-slate-600 hover:border-brand-500 hover:bg-brand-50 dark:hover:bg-brand-900/20" data-preset="robust">Robust</button>
+            ${
+            [
+              "startHere",
+              "fast",
+              "balanced",
+              "accurate",
+              "adaptive",
+              "robust",
+            ].map((p) =>
+              `<button class="preset-btn p-2 text-sm rounded-lg border border-slate-200 dark:border-slate-600 hover:border-brand-500 hover:bg-brand-50 dark:hover:bg-brand-900/20 focus:outline-none focus:ring-2 focus:ring-brand-500" data-preset="${p}">${
+                p.charAt(0).toUpperCase() + p.slice(1)
+              }</button>`
+            ).join("")
+          }
           </div>
         </div>
-        
         <div class="space-y-4 max-h-[40vh] overflow-y-auto pr-2">
-          <div>
-            <label class="text-sm font-medium">Reservoir Size</label>
-            <input type="number" id="cfgReservoirSize" class="input-field mt-1" value="${
+          <div><label class="text-sm font-medium">Reservoir Size</label><input type="number" id="cfgReservoirSize" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all mt-1" value="${
             current.reservoirSize || 256
-          }" min="16" max="2048">
-            <p class="text-xs text-slate-500 mt-1">Number of neurons (16-2048). Larger = more capacity, slower training.</p>
-          </div>
-          <div>
-            <label class="text-sm font-medium">Max Sequence Length</label>
-            <input type="number" id="cfgMaxSeqLen" class="input-field mt-1" value="${
+          }" min="16" max="2048"><p class="text-xs text-slate-500 mt-1">Number of neurons (16-2048). Larger = more capacity, slower training.</p></div>
+          <div><label class="text-sm font-medium">Max Sequence Length</label><input type="number" id="cfgMaxSeqLen" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all mt-1" value="${
             current.maxSequenceLength || 64
-          }" min="8" max="512">
-            <p class="text-xs text-slate-500 mt-1">History window and max prediction horizon (8-512).</p>
-          </div>
-          <div>
-            <label class="text-sm font-medium">Spectral Radius</label>
-            <input type="number" id="cfgSpectralRadius" class="input-field mt-1" value="0.9" min="0.1" max="0.99" step="0.01">
-            <p class="text-xs text-slate-500 mt-1">Memory length (0.1-0.99). Higher = longer memory, risk of instability.</p>
-          </div>
-          <div>
-            <label class="text-sm font-medium">Leak Rate</label>
-            <input type="number" id="cfgLeakRate" class="input-field mt-1" value="0.3" min="0.01" max="1" step="0.01">
-            <p class="text-xs text-slate-500 mt-1">Temporal smoothing (0.01-1). Lower = smoother, higher = more reactive.</p>
-          </div>
-          <div>
-            <label class="text-sm font-medium">RLS Lambda</label>
-            <input type="number" id="cfgRlsLambda" class="input-field mt-1" value="0.999" min="0.9" max="0.9999" step="0.001">
-            <p class="text-xs text-slate-500 mt-1">Forgetting factor (0.9-0.9999). Lower = faster adaptation to changes.</p>
-          </div>
-          <div>
-            <label class="text-sm font-medium">Outlier Threshold</label>
-            <input type="number" id="cfgOutlierThreshold" class="input-field mt-1" value="3.0" min="1" max="5" step="0.1">
-            <p class="text-xs text-slate-500 mt-1">Z-score threshold (1-5). Lower = more aggressive outlier filtering.</p>
-          </div>
+          }" min="8" max="512"><p class="text-xs text-slate-500 mt-1">History window and max prediction horizon (8-512).</p></div>
+          <div><label class="text-sm font-medium">Spectral Radius</label><input type="number" id="cfgSpectralRadius" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all mt-1" value="0.9" min="0.1" max="0.99" step="0.01"><p class="text-xs text-slate-500 mt-1">Memory length (0.1-0.99). Higher = longer memory.</p></div>
+          <div><label class="text-sm font-medium">Leak Rate</label><input type="number" id="cfgLeakRate" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all mt-1" value="0.3" min="0.01" max="1" step="0.01"><p class="text-xs text-slate-500 mt-1">Temporal smoothing (0.01-1). Lower = smoother.</p></div>
+          <div><label class="text-sm font-medium">RLS Lambda</label><input type="number" id="cfgRlsLambda" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all mt-1" value="0.999" min="0.9" max="0.9999" step="0.001"><p class="text-xs text-slate-500 mt-1">Forgetting factor (0.9-0.9999).</p></div>
+          <div><label class="text-sm font-medium">Outlier Threshold</label><input type="number" id="cfgOutlierThreshold" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all mt-1" value="3.0" min="1" max="5" step="0.1"><p class="text-xs text-slate-500 mt-1">Z-score threshold (1-5).</p></div>
         </div>
-        
         <div class="flex gap-3 mt-6">
-          <button id="createModelBtn" class="btn-primary flex-1">Create Model</button>
-          <button onclick="hideModal()" class="btn-secondary">Cancel</button>
+          <button id="createModelBtn" class="bg-brand-500 hover:bg-brand-600 text-white font-medium px-4 py-2 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 flex-1">Create Model</button>
+          <button id="cancelConfigModal" class="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-medium px-4 py-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-500">Cancel</button>
         </div>
       </div>
     `);
@@ -2714,6 +2789,9 @@ self.onmessage = async function(e) {
               }
             };
           });
+
+          $("#closeConfigModal").onclick = hideModal;
+          $("#cancelConfigModal").onclick = hideModal;
 
           $("#createModelBtn").onclick = async () => {
             const config = {
@@ -2761,9 +2839,7 @@ self.onmessage = async function(e) {
       <div class="p-6">
         <div class="flex items-center justify-between mb-6">
           <h2 class="text-xl font-bold">Model Summary</h2>
-          <button onclick="hideModal()" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-          </button>
+          <button id="closeSummaryModal" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500" aria-label="Close"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
         </div>
         <div class="space-y-3">
           <div class="flex justify-between py-2 border-b border-slate-200 dark:border-slate-700"><span>Reservoir Size</span><span class="font-medium">${s.reservoirSize}</span></div>
@@ -2781,9 +2857,11 @@ self.onmessage = async function(e) {
           }</span></div>
           <div class="flex justify-between py-2"><span>Dataset Size</span><span class="font-medium">${state.datasetSize}</span></div>
         </div>
-        <button onclick="hideModal()" class="btn-secondary w-full mt-6">Close</button>
+        <button id="closeSummaryBtn" class="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-medium px-4 py-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-500 w-full mt-6">Close</button>
       </div>
     `);
+          $("#closeSummaryModal").onclick = hideModal;
+          $("#closeSummaryBtn").onclick = hideModal;
         }
 
         function showUploadModal() {
@@ -2791,123 +2869,81 @@ self.onmessage = async function(e) {
       <div class="p-6">
         <div class="flex items-center justify-between mb-6">
           <h2 class="text-xl font-bold">Upload Dataset</h2>
-          <button onclick="hideModal()" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-          </button>
+          <button id="closeUploadModal" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500" aria-label="Close"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
         </div>
-        
-        <div class="mb-4">
-          <label class="text-sm font-medium mb-2 block">Upload JSON File</label>
-          <input type="file" id="uploadFile" accept=".json" class="input-field">
-        </div>
-        
-        <div class="mb-4">
-          <label class="text-sm font-medium mb-2 block">Or Paste JSON</label>
-          <textarea id="uploadText" class="input-field h-32 font-mono text-sm" placeholder='{"xCoordinates": [[1,2],[3,4]], "yCoordinates": [[5],[6]]}'></textarea>
-        </div>
-        
-        <div class="mb-4 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
-          <p class="text-xs font-medium mb-2">Accepted Formats:</p>
-          <p class="text-xs text-slate-500 dark:text-slate-400 mb-1">Format A: {"xCoordinates": number[][], "yCoordinates": number[][]}</p>
-          <p class="text-xs text-slate-500 dark:text-slate-400">Format B: {"samples": [{"x": number[], "y": number[]}, ...]}</p>
-        </div>
-        
-        <div id="uploadPreview" class="hidden mb-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-          <p class="text-sm font-medium text-green-700 dark:text-green-400">Preview</p>
-          <div id="uploadPreviewContent" class="text-sm mt-2"></div>
-        </div>
-        
-        <div id="uploadError" class="hidden mb-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
-          <p class="text-sm text-red-700 dark:text-red-400" id="uploadErrorText"></p>
-        </div>
-        
-        <div class="flex gap-3">
-          <button id="validateUpload" class="btn-secondary flex-1">Validate</button>
-          <button id="applyUpload" class="btn-primary flex-1" disabled>Apply & Train</button>
-        </div>
+        <div class="mb-4"><label class="text-sm font-medium mb-2 block">Upload JSON File</label><input type="file" id="uploadFile" accept=".json" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all"></div>
+        <div class="mb-4"><label class="text-sm font-medium mb-2 block">Or Paste JSON</label><textarea id="uploadText" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all h-32 font-mono text-sm" placeholder='{"xCoordinates": [[1,2],[3,4]], "yCoordinates": [[5],[6]]}'></textarea></div>
+        <div class="mb-4 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg"><p class="text-xs font-medium mb-2">Accepted Formats:</p><p class="text-xs text-slate-500 dark:text-slate-400 mb-1">Format A: {"xCoordinates": number[][], "yCoordinates": number[][]}</p><p class="text-xs text-slate-500 dark:text-slate-400">Format B: {"samples": [{"x": number[], "y": number[]}, ...]}</p></div>
+        <div id="uploadPreview" class="hidden mb-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800"><p class="text-sm font-medium text-green-700 dark:text-green-400">Preview</p><div id="uploadPreviewContent" class="text-sm mt-2"></div></div>
+        <div id="uploadError" class="hidden mb-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800"><p class="text-sm text-red-700 dark:text-red-400" id="uploadErrorText"></p></div>
+        <div class="flex gap-3"><button id="validateUpload" class="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-medium px-4 py-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-500 flex-1">Validate</button><button id="applyUpload" class="bg-brand-500 hover:bg-brand-600 text-white font-medium px-4 py-2 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 flex-1" disabled>Apply & Train</button></div>
       </div>
     `);
 
           let parsedData = null;
+          $("#closeUploadModal").onclick = hideModal;
 
           function validateData(text) {
-            try {
-              const data = JSON.parse(text);
-              let xCoordinates, yCoordinates;
-
-              if (data.xCoordinates && data.yCoordinates) {
-                xCoordinates = data.xCoordinates;
-                yCoordinates = data.yCoordinates;
-              } else if (data.samples && Array.isArray(data.samples)) {
-                xCoordinates = data.samples.map((s) => s.x);
-                yCoordinates = data.samples.map((s) => s.y);
-              } else {
-                throw new Error(
-                  "Invalid format. Expected xCoordinates/yCoordinates or samples array.",
-                );
-              }
-
-              if (
-                !Array.isArray(xCoordinates) ||
-                !Array.isArray(yCoordinates)
-              ) {
-                throw new Error(
-                  "xCoordinates and yCoordinates must be arrays.",
-                );
-              }
-              if (xCoordinates.length !== yCoordinates.length) {
-                throw new Error(
-                  `Length mismatch: x has ${xCoordinates.length} samples, y has ${yCoordinates.length}.`,
-                );
-              }
-              if (xCoordinates.length === 0) {
-                throw new Error("Dataset is empty.");
-              }
-
-              const nFeatures = xCoordinates[0].length;
-              const nTargets = yCoordinates[0].length;
-
-              for (let i = 0; i < xCoordinates.length; i++) {
-                if (xCoordinates[i].length !== nFeatures) {
-                  throw new Error(
-                    `Inconsistent feature count at sample ${i}: expected ${nFeatures}, got ${
-                      xCoordinates[i].length
-                    }.`,
-                  );
-                }
-                if (yCoordinates[i].length !== nTargets) {
-                  throw new Error(
-                    `Inconsistent target count at sample ${i}: expected ${nTargets}, got ${
-                      yCoordinates[i].length
-                    }.`,
-                  );
-                }
-                if (
-                  xCoordinates[i].some((v) =>
-                    typeof v !== "number" || isNaN(v)
-                  )
-                ) {
-                  throw new Error(`Invalid value in x at sample ${i}.`);
-                }
-                if (
-                  yCoordinates[i].some((v) =>
-                    typeof v !== "number" || isNaN(v)
-                  )
-                ) {
-                  throw new Error(`Invalid value in y at sample ${i}.`);
-                }
-              }
-
-              return {
-                xCoordinates,
-                yCoordinates,
-                nFeatures,
-                nTargets,
-                sampleCount: xCoordinates.length,
-              };
-            } catch (e) {
-              throw new Error(e.message || "Invalid JSON");
+            const data = JSON.parse(text);
+            let xCoordinates, yCoordinates;
+            if (data.xCoordinates && data.yCoordinates) {
+              xCoordinates = data.xCoordinates;
+              yCoordinates = data.yCoordinates;
+            } else if (data.samples && Array.isArray(data.samples)) {
+              xCoordinates = data.samples.map((s) => s.x);
+              yCoordinates = data.samples.map((s) => s.y);
+            } else {
+              throw new Error(
+                "Invalid format. Expected xCoordinates/yCoordinates or samples array.",
+              );
             }
+            if (
+              !Array.isArray(xCoordinates) ||
+              !Array.isArray(yCoordinates)
+            ) {
+              throw new Error(
+                "xCoordinates and yCoordinates must be arrays.",
+              );
+            }
+            if (xCoordinates.length !== yCoordinates.length) {
+              throw new Error(
+                `Length mismatch: x has ${xCoordinates.length}, y has ${yCoordinates.length}.`,
+              );
+            }
+            if (xCoordinates.length === 0) {
+              throw new Error("Dataset is empty.");
+            }
+            const nFeatures = xCoordinates[0].length;
+            const nTargets = yCoordinates[0].length;
+            for (let i = 0; i < xCoordinates.length; i++) {
+              if (xCoordinates[i].length !== nFeatures) {
+                throw new Error(
+                  `Inconsistent feature count at sample ${i}.`,
+                );
+              }
+              if (yCoordinates[i].length !== nTargets) {
+                throw new Error(
+                  `Inconsistent target count at sample ${i}.`,
+                );
+              }
+              if (
+                xCoordinates[i].some((v) =>
+                  typeof v !== "number" || !isFinite(v)
+                )
+              ) throw new Error(`Invalid value in x at sample ${i}.`);
+              if (
+                yCoordinates[i].some((v) =>
+                  typeof v !== "number" || !isFinite(v)
+                )
+              ) throw new Error(`Invalid value in y at sample ${i}.`);
+            }
+            return {
+              xCoordinates,
+              yCoordinates,
+              nFeatures,
+              nTargets,
+              sampleCount: xCoordinates.length,
+            };
           }
 
           $("#uploadFile").onchange = (e) => {
@@ -2931,16 +2967,12 @@ self.onmessage = async function(e) {
               $("#applyUpload").disabled = true;
               return;
             }
-
             try {
               parsedData = validateData(text);
               $("#uploadError").classList.add("hidden");
               $("#uploadPreview").classList.remove("hidden");
-              $("#uploadPreviewContent").innerHTML = `
-          <div class="flex justify-between"><span>Samples:</span><span class="font-medium">${parsedData.sampleCount}</span></div>
-          <div class="flex justify-between"><span>Features:</span><span class="font-medium">${parsedData.nFeatures}</span></div>
-          <div class="flex justify-between"><span>Targets:</span><span class="font-medium">${parsedData.nTargets}</span></div>
-        `;
+              $("#uploadPreviewContent").innerHTML =
+                `<div class="flex justify-between"><span>Samples:</span><span class="font-medium">${parsedData.sampleCount}</span></div><div class="flex justify-between"><span>Features:</span><span class="font-medium">${parsedData.nFeatures}</span></div><div class="flex justify-between"><span>Targets:</span><span class="font-medium">${parsedData.nTargets}</span></div>`;
               $("#applyUpload").disabled = false;
             } catch (e) {
               $("#uploadPreview").classList.add("hidden");
@@ -2953,23 +2985,19 @@ self.onmessage = async function(e) {
 
           $("#applyUpload").onclick = async () => {
             if (!parsedData) return;
-
             if (!state.hasModel) {
               await createModelWithPreset("balanced");
             }
-
             hideModal();
             state.trainingInProgress = true;
             state.currentTrainId = state.requestCounter + 1;
             $("#trainProgress").classList.remove("hidden");
-
             try {
               const result = await sendToWorker("fitOnline", {
                 xCoordinates: parsedData.xCoordinates,
                 yCoordinates: parsedData.yCoordinates,
                 batchSize: 50,
               });
-
               state.lastFitResult = result.result;
               state.modelSummary = result.summary;
               state.datasetSize = result.datasetSize;
@@ -2984,7 +3012,6 @@ self.onmessage = async function(e) {
               addLog("error", "Training Failed", err.message);
               showToast("error", err.message);
             }
-
             state.trainingInProgress = false;
             $("#trainProgress").classList.add("hidden");
           };
@@ -2995,27 +3022,15 @@ self.onmessage = async function(e) {
       <div class="p-6">
         <div class="flex items-center justify-between mb-6">
           <h2 class="text-xl font-bold">Manual Insert</h2>
-          <button onclick="hideModal()" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-          </button>
+          <button id="closeManualModal" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500" aria-label="Close"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
         </div>
-        
-        <div class="mb-4">
-          <label class="text-sm font-medium mb-2 block">Sample JSON</label>
-          <textarea id="manualText" class="input-field h-24 font-mono text-sm" placeholder='{"x": [1, 2, 3], "y": [4, 5]}'></textarea>
-        </div>
-        
-        <div class="mb-4 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg text-xs">
-          <p class="font-medium mb-1">Formats:</p>
-          <p class="text-slate-500">Single: {"x": number[], "y": number[]}</p>
-          <p class="text-slate-500">Batch: {"samples": [{"x": [...], "y": [...]}, ...]}</p>
-        </div>
-        
+        <div class="mb-4"><label class="text-sm font-medium mb-2 block">Sample JSON</label><textarea id="manualText" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all h-24 font-mono text-sm" placeholder='{"x": [1, 2, 3], "y": [4, 5]}'></textarea></div>
+        <div class="mb-4 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg text-xs"><p class="font-medium mb-1">Formats:</p><p class="text-slate-500">Single: {"x": number[], "y": number[]}</p><p class="text-slate-500">Batch: {"samples": [{"x": [...], "y": [...]}, ...]}</p></div>
         <div id="manualError" class="hidden mb-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg text-sm text-red-700 dark:text-red-400"></div>
-        
-        <button id="insertBtn" class="btn-primary w-full">Insert & Train</button>
+        <button id="insertBtn" class="bg-brand-500 hover:bg-brand-600 text-white font-medium px-4 py-2 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 w-full">Insert & Train</button>
       </div>
     `);
+          $("#closeManualModal").onclick = hideModal;
 
           $("#insertBtn").onclick = async () => {
             const text = $("#manualText").value.trim();
@@ -3025,28 +3040,21 @@ self.onmessage = async function(e) {
                 "Please enter sample data.";
               return;
             }
-
             try {
               const data = JSON.parse(text);
               let xCoordinates, yCoordinates;
-
               if (data.x && data.y) {
                 xCoordinates = [data.x];
                 yCoordinates = [data.y];
               } else if (data.samples) {
                 xCoordinates = data.samples.map((s) => s.x);
                 yCoordinates = data.samples.map((s) => s.y);
-              } else {
-                throw new Error("Invalid format");
-              }
-
+              } else throw new Error("Invalid format");
               if (!state.hasModel) {
                 await createModelWithPreset("balanced");
               }
-
               hideModal();
               showLoading("Training...");
-
               const result = await sendToWorker("fitOnline", {
                 xCoordinates,
                 yCoordinates,
@@ -3075,43 +3083,22 @@ self.onmessage = async function(e) {
       <div class="p-6">
         <div class="flex items-center justify-between mb-6">
           <h2 class="text-xl font-bold">Save / Load Model</h2>
-          <button onclick="hideModal()" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-          </button>
+          <button id="closeSaveLoadModal" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500" aria-label="Close"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
         </div>
-        
         <div class="grid gap-4 sm:grid-cols-2 mb-6">
-          <div class="card p-4">
-            <h3 class="font-medium mb-3">Save</h3>
-            <div class="space-y-2">
-              <button id="saveToFile" class="btn-secondary w-full text-sm" ${
+          <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4"><h3 class="font-medium mb-3">Save</h3><div class="space-y-2"><button id="saveToFile" class="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-medium px-4 py-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-500 w-full text-sm" ${
             !state.hasModel ? "disabled" : ""
-          }>Save to File</button>
-              <button id="saveToStorage" class="btn-secondary w-full text-sm" ${
+          }>Save to File</button><button id="saveToStorage" class="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-medium px-4 py-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-500 w-full text-sm" ${
             !state.hasModel ? "disabled" : ""
-          }>Save to Browser</button>
-            </div>
-          </div>
-          <div class="card p-4">
-            <h3 class="font-medium mb-3">Load</h3>
-            <div class="space-y-2">
-              <input type="file" id="loadFile" accept=".json" class="hidden">
-              <button id="loadFromFile" class="btn-secondary w-full text-sm">Load from File</button>
-              <button id="loadFromStorage" class="btn-secondary w-full text-sm" ${
+          }>Save to Browser</button></div></div>
+          <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4"><h3 class="font-medium mb-3">Load</h3><div class="space-y-2"><input type="file" id="loadFile" accept=".json" class="hidden"><button id="loadFromFile" class="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-medium px-4 py-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-500 w-full text-sm">Load from File</button><button id="loadFromStorage" class="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-medium px-4 py-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-500 w-full text-sm" ${
             !localStorage.getItem("savedModel") ? "disabled" : ""
-          }>Load from Browser</button>
-            </div>
-          </div>
+          }>Load from Browser</button></div></div>
         </div>
-        
-        <div id="loadPreview" class="hidden mb-4 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
-          <p class="text-sm font-medium mb-2">Model Info</p>
-          <div id="loadPreviewContent" class="text-sm"></div>
-        </div>
-        
-        <button id="clearStorage" class="btn-secondary w-full text-sm text-red-500">Clear Browser Storage</button>
+        <button id="clearStorage" class="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-medium px-4 py-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-500 w-full text-sm text-red-500">Clear Browser Storage</button>
       </div>
     `);
+          $("#closeSaveLoadModal").onclick = hideModal;
 
           $("#saveToFile").onclick = async () => {
             try {
@@ -3158,7 +3145,6 @@ self.onmessage = async function(e) {
           $("#loadFile").onchange = async (e) => {
             const file = e.target.files[0];
             if (!file) return;
-
             try {
               const text = await file.text();
               hideModal();
@@ -3183,7 +3169,6 @@ self.onmessage = async function(e) {
               showToast("warning", "No saved model found");
               return;
             }
-
             hideModal();
             showLoading("Loading model...");
             try {
@@ -3219,43 +3204,21 @@ self.onmessage = async function(e) {
       <div class="p-6">
         <div class="flex items-center justify-between mb-6">
           <h2 class="text-xl font-bold">Random Test Data</h2>
-          <button onclick="hideModal()" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-          </button>
+          <button id="closeRandomModal" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500" aria-label="Close"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
         </div>
-        
         <div class="grid grid-cols-2 gap-4 mb-6">
-          <div>
-            <label class="text-sm font-medium">Seed</label>
-            <input type="number" id="testSeed" class="input-field mt-1" value="42">
-          </div>
-          <div>
-            <label class="text-sm font-medium">Samples</label>
-            <input type="number" id="testSamples" class="input-field mt-1" value="200" min="10" max="1000">
-          </div>
-          <div>
-            <label class="text-sm font-medium">Features</label>
-            <input type="number" id="testFeatures" class="input-field mt-1" value="3" min="1" max="20">
-          </div>
-          <div>
-            <label class="text-sm font-medium">Targets</label>
-            <input type="number" id="testTargets" class="input-field mt-1" value="2" min="1" max="10">
-          </div>
-          <div>
-            <label class="text-sm font-medium">Noise</label>
-            <input type="number" id="testNoise" class="input-field mt-1" value="0.05" min="0" max="1" step="0.01">
-          </div>
-          <div>
-            <label class="text-sm font-medium">Predict Steps</label>
-            <input type="number" id="testSteps" class="input-field mt-1" value="20" min="1" max="100">
-          </div>
+          <div><label class="text-sm font-medium">Seed</label><input type="number" id="testSeed" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all mt-1" value="42"></div>
+          <div><label class="text-sm font-medium">Samples</label><input type="number" id="testSamples" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all mt-1" value="200" min="10" max="1000"></div>
+          <div><label class="text-sm font-medium">Features</label><input type="number" id="testFeatures" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all mt-1" value="3" min="1" max="20"></div>
+          <div><label class="text-sm font-medium">Targets</label><input type="number" id="testTargets" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all mt-1" value="2" min="1" max="10"></div>
+          <div><label class="text-sm font-medium">Noise</label><input type="number" id="testNoise" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all mt-1" value="0.05" min="0" max="1" step="0.01"></div>
+          <div><label class="text-sm font-medium">Predict Steps</label><input type="number" id="testSteps" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all mt-1" value="20" min="1" max="100"></div>
         </div>
-        
-        <p class="text-xs text-slate-500 mb-4">Generates synthetic multivariate data with nonlinear relationships including sine/cosine patterns and coupling between dimensions.</p>
-        
-        <button id="runTestBtn" class="btn-primary w-full">Generate + Train + Predict</button>
+        <p class="text-xs text-slate-500 mb-4">Generates synthetic multivariate data with nonlinear relationships including sine/cosine patterns.</p>
+        <button id="runTestBtn" class="bg-brand-500 hover:bg-brand-600 text-white font-medium px-4 py-2 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 w-full">Generate + Train + Predict</button>
       </div>
     `);
+          $("#closeRandomModal").onclick = hideModal;
 
           $("#runTestBtn").onclick = async () => {
             const seed = parseInt($("#testSeed").value) || 42;
@@ -3270,7 +3233,6 @@ self.onmessage = async function(e) {
 
             try {
               await createModelWithPreset("balanced");
-
               function seededRandom(s) {
                 return function () {
                   s = Math.sin(s) * 10000;
@@ -3278,7 +3240,6 @@ self.onmessage = async function(e) {
                 };
               }
               const rng = seededRandom(seed);
-
               const xCoordinates = [];
               const yCoordinates = [];
 
@@ -3296,8 +3257,8 @@ self.onmessage = async function(e) {
                   for (let f = 0; f < Math.min(nFeatures, 3); f++) {
                     val += x[f] * (0.3 + rng() * 0.2);
                   }
-                  val += Math.sin(t * (r + 3) * Math.PI) * 0.3;
-                  val += rng() * noise;
+                  val += Math.sin(t * (r + 3) * Math.PI) * 0.3 +
+                    rng() * noise;
                   y.push(val);
                 }
                 xCoordinates.push(x);
@@ -3352,22 +3313,15 @@ self.onmessage = async function(e) {
       <div class="p-6">
         <div class="flex items-center justify-between mb-6">
           <h2 class="text-xl font-bold">Forecast Settings</h2>
-          <button onclick="hideModal()" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-          </button>
+          <button id="closePredictModal" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500" aria-label="Close"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
         </div>
-        
-        <div class="mb-6">
-          <label class="text-sm font-medium mb-2 block">Future Steps</label>
-          <input type="number" id="modalSteps" class="input-field" value="${state.futureSteps}" min="1" max="1000">
-          <p class="text-xs text-slate-500 mt-1">Number of time steps to predict into the future.</p>
-        </div>
-        
-        <button id="modalPredictBtn" class="btn-primary w-full" ${
+        <div class="mb-6"><label class="text-sm font-medium mb-2 block">Future Steps</label><input type="number" id="modalSteps" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all" value="${state.futureSteps}" min="1" max="1000"><p class="text-xs text-slate-500 mt-1">Number of time steps to predict into the future.</p></div>
+        <button id="modalPredictBtn" class="bg-brand-500 hover:bg-brand-600 text-white font-medium px-4 py-2 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 w-full" ${
             !state.hasModel ? "disabled" : ""
           }>Run Prediction</button>
       </div>
     `);
+          $("#closePredictModal").onclick = hideModal;
 
           $("#modalPredictBtn").onclick = async () => {
             state.futureSteps = parseInt($("#modalSteps").value) || 10;
@@ -3383,34 +3337,21 @@ self.onmessage = async function(e) {
       <div class="p-6">
         <div class="flex items-center justify-between mb-6">
           <h2 class="text-xl font-bold">Advanced Settings</h2>
-          <button onclick="hideModal()" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-          </button>
+          <button id="closeAdvancedModal" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500" aria-label="Close"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
         </div>
-        
-        <div class="mb-6">
-          <label class="text-sm font-medium mb-2 block">Module URL</label>
-          <input type="text" id="moduleUrl" class="input-field font-mono text-sm" value="${state.moduleUrl}">
-          <p class="text-xs text-slate-500 mt-1">ESNRegression module URL. Change only if needed.</p>
-        </div>
-        
-        <div class="flex items-center justify-between mb-6 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
-          <span class="text-sm font-medium">Performance Mode</span>
-          <button id="perfToggle" class="w-12 h-6 rounded-full transition-colors ${
+        <div class="mb-6"><label class="text-sm font-medium mb-2 block">Module URL</label><input type="text" id="moduleUrl" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all font-mono text-sm" value="${state.moduleUrl}"><p class="text-xs text-slate-500 mt-1">ESNRegression module URL. Change only if needed.</p></div>
+        <div class="flex items-center justify-between mb-6 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg"><span class="text-sm font-medium">Performance Mode</span><button id="perfToggle" class="w-12 h-6 rounded-full transition-colors ${
             state.performanceMode
               ? "bg-brand-500"
               : "bg-slate-300 dark:bg-slate-600"
-          }">
-            <span class="block w-5 h-5 bg-white rounded-full shadow transform transition-transform ${
+          } focus:outline-none focus:ring-2 focus:ring-brand-500"><span class="block w-5 h-5 bg-white rounded-full shadow transform transition-transform ${
             state.performanceMode ? "translate-x-6" : "translate-x-0.5"
-          }"></span>
-          </button>
-        </div>
-        
-        <button id="updateModuleBtn" class="btn-primary w-full mb-3">Update Module URL</button>
-        <button id="resetEverything" class="btn-secondary w-full text-red-500">Reset Everything</button>
+          }"></span></button></div>
+        <button id="updateModuleBtn" class="bg-brand-500 hover:bg-brand-600 text-white font-medium px-4 py-2 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 w-full mb-3">Update Module URL</button>
+        <button id="resetEverything" class="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-medium px-4 py-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-500 w-full text-red-500">Reset Everything</button>
       </div>
     `);
+          $("#closeAdvancedModal").onclick = hideModal;
 
           $("#perfToggle").onclick = () => {
             state.performanceMode = !state.performanceMode;
@@ -3423,7 +3364,7 @@ self.onmessage = async function(e) {
                 state.performanceMode
                   ? "bg-brand-500"
                   : "bg-slate-300 dark:bg-slate-600"
-              }`;
+              } focus:outline-none focus:ring-2 focus:ring-brand-500`;
             $("#perfToggle").querySelector("span").className =
               `block w-5 h-5 bg-white rounded-full shadow transform transition-transform ${
                 state.performanceMode
@@ -3435,7 +3376,6 @@ self.onmessage = async function(e) {
           $("#updateModuleBtn").onclick = async () => {
             const url = $("#moduleUrl").value.trim();
             if (!url) return;
-
             hideModal();
             showLoading("Updating module...");
             try {
@@ -3457,14 +3397,9 @@ self.onmessage = async function(e) {
           };
         }
 
-        // Make functions global for inline handlers
-        window.hideModal = hideModal;
-
-        // Initialize
         setupEventListeners();
         initWorker();
         updateUI();
-
         addLog(
           "info",
           "App Started",
