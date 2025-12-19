@@ -47,8 +47,6 @@ seed: number; // Default: 42
 verbose: boolean; // Default: false
 rollforwardMode: "holdLastX" | "autoregressive"; // Default: "holdLastX"
 
-Avoid the "Refused to cross-origin redirects of the top-level worker script" issue by creating the Worker from a Blob URL (inline worker source string -> Blob -> URL.createObjectURL).
-Do NOT load a remote worker script URL.
 Every worker action must show a clear loading indicator and disable relevant controls while running.
 For long operations (bulk training), show progress with processed count and percentage, and allow cancel.
 
