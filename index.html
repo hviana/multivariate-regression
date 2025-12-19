@@ -2704,23 +2704,25 @@ self.onmessage = async function(e) {
 
       function updateConfigValues() {
         CONFIG_SECTIONS.flatMap((s) => s.params).forEach((p) => {
-          const el = document.getElementById(`cfg-${p.key}`);
-          if (el) {
-            if (p.type === "boolean") {
-              const btn = document.getElementById(`cfg-${p.key}-btn`);
-              if (btn) {
-                btn.className =
-                  `relative w-11 h-6 rounded-full transition-colors ${
-                    state.config[p.key]
-                      ? "bg-blue-600"
-                      : "bg-slate-300 dark:bg-slate-600"
-                  }`;
-                btn.querySelector("span").className =
-                  `absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                    state.config[p.key] ? "translate-x-5" : ""
-                  }`;
-              }
-            } else {
+          if (p.type === "boolean") {
+            // Handle boolean toggles separately - they use -btn suffix
+            const btn = document.getElementById(`cfg-${p.key}-btn`);
+            if (btn) {
+              btn.className =
+                `relative w-11 h-6 rounded-full transition-colors ${
+                  state.config[p.key]
+                    ? "bg-blue-600"
+                    : "bg-slate-300 dark:bg-slate-600"
+                }`;
+              btn.querySelector("span").className =
+                `absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                  state.config[p.key] ? "translate-x-5" : ""
+                }`;
+            }
+          } else {
+            // Handle other input types (number, select)
+            const el = document.getElementById(`cfg-${p.key}`);
+            if (el) {
               el.value = state.config[p.key];
             }
           }
