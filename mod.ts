@@ -1,8 +1,44 @@
-/***********************
- * ESNRegression.ts
- * Self-contained TypeScript ESN / Reservoir Computing library for online multivariate regression.
- * Improved version with better numerical stability, prediction accuracy, and uncertainty estimation.
- ***********************/
+/**
+ * ESNRegression: Echo State Network for Multivariate Regression
+ * with Incremental Online Learning using RLS Readout Training
+ * and Welford Z-Score Normalization
+ *
+ * Single self-contained TypeScript module with no heavy runtime dependencies.
+ */
+
+// ============================================================================
+// PUBLIC INTERFACES
+// ============================================================================
+
+export interface ESNRegressionConfig {
+  maxSequenceLength: number;
+  reservoirSize: number;
+  spectralRadius: number;
+  leakRate: number;
+  inputScale: number;
+  biasScale: number;
+  reservoirSparsity: number;
+  inputSparsity: number;
+  activation: "tanh" | "relu";
+  useInputInReadout: boolean;
+  useBiasInReadout: boolean;
+  readoutTraining: "rls";
+  rlsLambda: number;
+  rlsDelta: number;
+  epsilon: number;
+  l2Lambda: number;
+  gradientClipNorm: number;
+  normalizationEpsilon: number;
+  normalizationWarmup: number;
+  outlierThreshold: number;
+  outlierMinWeight: number;
+  residualWindowSize: number;
+  uncertaintyMultiplier: number;
+  weightInitScale: number;
+  seed: number;
+  verbose: boolean;
+  rollforwardMode: "holdLastX" | "autoregressive";
+}
 
 export interface FitResult {
   samplesProcessed: number;
@@ -41,2222 +77,2415 @@ export interface NormalizationStats {
   isActive: boolean;
 }
 
-export interface ESNRegressionConfig {
-  maxSequenceLength: number;
-  reservoirSize: number;
-  spectralRadius: number;
-  leakRate: number;
-  inputScale: number;
-  biasScale: number;
-  reservoirSparsity: number;
-  inputSparsity: number;
-  activation: "tanh" | "relu";
-  useInputInReadout: boolean;
-  useBiasInReadout: boolean;
-  readoutTraining: "rls";
-  rlsLambda: number;
-  rlsDelta: number;
-  epsilon: number;
-  l2Lambda: number;
-  gradientClipNorm: number;
-  normalizationEpsilon: number;
-  normalizationWarmup: number;
-  outlierThreshold: number;
-  outlierMinWeight: number;
-  residualWindowSize: number;
-  uncertaintyMultiplier: number;
-  weightInitScale: number;
-  seed: number;
-  verbose: boolean;
-  rollforwardMode: "holdLastX" | "autoregressive";
-}
+// ============================================================================
+// DEFAULT CONFIGURATION
+// ============================================================================
 
-function defaultConfig(): ESNRegressionConfig {
-  return {
-    maxSequenceLength: 64,
-    reservoirSize: 256,
-    spectralRadius: 0.9,
-    leakRate: 0.3,
-    inputScale: 1.0,
-    biasScale: 0.1,
-    reservoirSparsity: 0.9,
-    inputSparsity: 0.0,
-    activation: "tanh",
-    useInputInReadout: true,
-    useBiasInReadout: true,
-    readoutTraining: "rls",
-    rlsLambda: 0.999,
-    rlsDelta: 1.0,
-    epsilon: 1e-8,
-    l2Lambda: 0.0001,
-    gradientClipNorm: 1.0,
-    normalizationEpsilon: 1e-8,
-    normalizationWarmup: 10,
-    outlierThreshold: 3.0,
-    outlierMinWeight: 0.1,
-    residualWindowSize: 100,
-    uncertaintyMultiplier: 1.96,
-    weightInitScale: 0.1,
-    seed: 42,
-    verbose: false,
-    rollforwardMode: "holdLastX",
-  };
-}
+const DEFAULT_CONFIG: ESNRegressionConfig = {
+  maxSequenceLength: 64,
+  reservoirSize: 256,
+  spectralRadius: 0.9,
+  leakRate: 0.3,
+  inputScale: 1.0,
+  biasScale: 0.1,
+  reservoirSparsity: 0.9,
+  inputSparsity: 0.0,
+  activation: "tanh",
+  useInputInReadout: true,
+  useBiasInReadout: true,
+  readoutTraining: "rls",
+  rlsLambda: 0.999,
+  rlsDelta: 1.0,
+  epsilon: 1e-8,
+  l2Lambda: 0.0001,
+  gradientClipNorm: 1.0,
+  normalizationEpsilon: 1e-8,
+  normalizationWarmup: 10,
+  outlierThreshold: 3.0,
+  outlierMinWeight: 0.1,
+  residualWindowSize: 100,
+  uncertaintyMultiplier: 1.96,
+  weightInitScale: 0.1,
+  seed: 42,
+  verbose: false,
+  rollforwardMode: "holdLastX",
+};
 
-/** Fixed tensor shape metadata. */
+// ============================================================================
+// TENSOR SHAPE
+// ============================================================================
+
 class TensorShape {
-  readonly dims: number[];
+  readonly dims: readonly number[];
   readonly size: number;
+  readonly strides: readonly number[];
+
   constructor(dims: number[]) {
-    this.dims = dims.slice(0);
+    this.dims = Object.freeze([...dims]);
     let s = 1;
-    for (let i = 0; i < dims.length; i++) s *= dims[i] | 0;
-    this.size = s | 0;
+    for (let i = 0; i < dims.length; i++) {
+      s *= dims[i];
+    }
+    this.size = s;
+    const strides: number[] = new Array(dims.length);
+    let stride = 1;
+    for (let i = dims.length - 1; i >= 0; i--) {
+      strides[i] = stride;
+      stride *= dims[i];
+    }
+    this.strides = Object.freeze(strides);
   }
-}
 
-/** Lightweight view into a Float64Array slab. */
-class TensorView {
-  readonly data: Float64Array;
-  readonly offset: number;
-  readonly shape: TensorShape;
-  readonly strides: number[];
-  constructor(
-    data: Float64Array,
-    offset: number,
-    shape: TensorShape,
-    strides?: number[],
-  ) {
-    this.data = data;
-    this.offset = offset | 0;
-    this.shape = shape;
-    if (strides) {
-      this.strides = strides.slice(0);
-    } else {
-      const d = shape.dims;
-      const s = new Array(d.length);
-      let acc = 1;
-      for (let i = d.length - 1; i >= 0; i--) {
-        s[i] = acc;
-        acc *= d[i] | 0;
-      }
-      this.strides = s;
+  index(indices: number[]): number {
+    let idx = 0;
+    for (let i = 0; i < indices.length; i++) {
+      idx += indices[i] * this.strides[i];
     }
+    return idx;
   }
-}
 
-/** Simple fixed-size buffer pool. */
-class BufferPool {
-  private buffers: Float64Array[];
-  private sizes: number[];
-  private count: number;
-  constructor(capacity: number) {
-    this.buffers = new Array(capacity);
-    this.sizes = new Array(capacity);
-    this.count = 0;
-  }
-  acquire(size: number): Float64Array {
-    size = size | 0;
-    for (let i = 0; i < this.count; i++) {
-      if (this.sizes[i] === size) {
-        const b = this.buffers[i]!;
-        this.count--;
-        this.buffers[i] = this.buffers[this.count];
-        this.sizes[i] = this.sizes[this.count];
-        this.buffers[this.count] = undefined as any;
-        this.sizes[this.count] = 0;
-        return b;
-      }
+  equals(other: TensorShape): boolean {
+    if (this.dims.length !== other.dims.length) return false;
+    for (let i = 0; i < this.dims.length; i++) {
+      if (this.dims[i] !== other.dims[i]) return false;
     }
-    return new Float64Array(size);
-  }
-  release(buf: Float64Array): void {
-    if (this.count >= this.buffers.length) return;
-    this.buffers[this.count] = buf;
-    this.sizes[this.count] = buf.length;
-    this.count++;
-  }
-}
-
-/** Deterministic bump allocator over a single slab. */
-class TensorArena {
-  readonly slab: Float64Array;
-  private cursor: number;
-  constructor(size: number) {
-    this.slab = new Float64Array(size | 0);
-    this.cursor = 0;
-  }
-  reset(): void {
-    this.cursor = 0;
-  }
-  alloc(size: number): Float64Array {
-    size = size | 0;
-    const start = this.cursor;
-    const end = start + size;
-    if (end > this.slab.length) throw new Error("TensorArena: out of memory");
-    this.cursor = end;
-    return this.slab.subarray(start, end);
-  }
-}
-
-/** Small numeric ops; allocation-free. */
-class TensorOps {
-  static fill(a: Float64Array, v: number): void {
-    for (let i = 0; i < a.length; i++) a[i] = v;
-  }
-  static copy(dst: Float64Array, src: Float64Array): void {
-    const n = dst.length < src.length ? dst.length : src.length;
-    for (let i = 0; i < n; i++) dst[i] = src[i];
-  }
-  static dot(a: Float64Array, b: Float64Array): number {
-    const n = a.length < b.length ? a.length : b.length;
-    let s = 0.0;
-    for (let i = 0; i < n; i++) s += a[i] * b[i];
-    return s;
-  }
-  static l2Norm(a: Float64Array): number {
-    let s = 0.0;
-    for (let i = 0; i < a.length; i++) {
-      const v = a[i];
-      s += v * v;
-    }
-    return Math.sqrt(s);
-  }
-  static clamp(x: number, lo: number, hi: number): number {
-    if (x < lo) return lo;
-    if (x > hi) return hi;
-    return x;
-  }
-  static isFinite(x: number): boolean {
-    return Number.isFinite(x);
-  }
-  static safeDiv(num: number, denom: number, eps: number): number {
-    const absDenom = Math.abs(denom);
-    if (absDenom < eps) {
-      return denom >= 0 ? num / eps : -num / eps;
-    }
-    return num / denom;
-  }
-  static ensureFinite(x: number, fallback: number): number {
-    return Number.isFinite(x) ? x : fallback;
-  }
-}
-
-/** Activation functions. */
-class ActivationOps {
-  static applyInPlace(a: Float64Array, kind: "tanh" | "relu"): void {
-    if (kind === "tanh") {
-      for (let i = 0; i < a.length; i++) a[i] = Math.tanh(a[i]);
-    } else {
-      for (let i = 0; i < a.length; i++) a[i] = a[i] > 0 ? a[i] : 0;
-    }
-  }
-  static applyScalar(x: number, kind: "tanh" | "relu"): number {
-    if (kind === "tanh") return Math.tanh(x);
-    return x > 0 ? x : 0;
-  }
-}
-
-/** Deterministic PRNG (xorshift128+). */
-class RandomGenerator {
-  private s0: number;
-  private s1: number;
-  constructor(seed: number) {
-    seed = (seed | 0) >>> 0;
-    if (seed === 0) seed = 0x9e3779b9;
-    this.s0 = seed;
-    this.s1 = seed ^ 0xdeadbeef;
-    for (let i = 0; i < 20; i++) this.nextU32();
-  }
-  nextU32(): number {
-    let s1 = this.s0;
-    const s0 = this.s1;
-    this.s0 = s0;
-    s1 ^= s1 << 23;
-    s1 ^= s1 >>> 17;
-    s1 ^= s0;
-    s1 ^= s0 >>> 26;
-    this.s1 = s1;
-    return (this.s0 + this.s1) >>> 0;
-  }
-  nextFloat(): number {
-    return (this.nextU32() >>> 0) / 4294967296.0;
-  }
-  nextSigned(): number {
-    return this.nextFloat() * 2.0 - 1.0;
-  }
-  nextGaussian(): number {
-    const u1 = this.nextFloat();
-    const u2 = this.nextFloat();
-    const r = Math.sqrt(-2.0 * Math.log(u1 + 1e-10));
-    return r * Math.cos(2.0 * Math.PI * u2);
-  }
-}
-
-/** Welford accumulator for mean/variance with numerical stability. */
-class WelfordAccumulator {
-  readonly mean: Float64Array;
-  readonly m2: Float64Array;
-  count: number;
-  constructor(dim: number) {
-    this.mean = new Float64Array(dim | 0);
-    this.m2 = new Float64Array(dim | 0);
-    this.count = 0;
-  }
-  reset(): void {
-    this.count = 0;
-    TensorOps.fill(this.mean, 0.0);
-    TensorOps.fill(this.m2, 0.0);
-  }
-  update(x: Float64Array): void {
-    const n = this.mean.length;
-    this.count++;
-    const c = this.count;
-    for (let i = 0; i < n; i++) {
-      const xi = x[i];
-      if (!TensorOps.isFinite(xi)) continue;
-      const delta = xi - this.mean[i];
-      this.mean[i] += delta / c;
-      const delta2 = xi - this.mean[i];
-      this.m2[i] += delta * delta2;
-    }
-  }
-  updateFromArray(x: number[]): void {
-    const n = this.mean.length;
-    this.count++;
-    const c = this.count;
-    for (let i = 0; i < n; i++) {
-      const xi = x[i];
-      if (!TensorOps.isFinite(xi)) continue;
-      const delta = xi - this.mean[i];
-      this.mean[i] += delta / c;
-      const delta2 = xi - this.mean[i];
-      this.m2[i] += delta * delta2;
-    }
-  }
-  varianceAt(i: number): number {
-    if (this.count < 2) return 0.0;
-    const v = this.m2[i] / (this.count - 1);
-    return v > 0 ? v : 0.0;
-  }
-}
-
-/** Online z-score normalizer with robust variance estimation. */
-class WelfordNormalizer {
-  readonly acc: WelfordAccumulator;
-  readonly std: Float64Array;
-  readonly minVals: Float64Array;
-  readonly maxVals: Float64Array;
-  readonly eps: number;
-  readonly warmup: number;
-  constructor(dim: number, eps: number, warmup: number) {
-    this.acc = new WelfordAccumulator(dim | 0);
-    this.std = new Float64Array(dim | 0);
-    this.minVals = new Float64Array(dim | 0);
-    this.maxVals = new Float64Array(dim | 0);
-    this.eps = eps;
-    this.warmup = warmup | 0;
-    TensorOps.fill(this.minVals, Infinity);
-    TensorOps.fill(this.maxVals, -Infinity);
-  }
-  reset(): void {
-    this.acc.reset();
-    TensorOps.fill(this.std, 0.0);
-    TensorOps.fill(this.minVals, Infinity);
-    TensorOps.fill(this.maxVals, -Infinity);
-  }
-  updateStats(xRaw: Float64Array): void {
-    this.acc.update(xRaw);
-    const n = this.std.length;
-    for (let i = 0; i < n; i++) {
-      const xi = xRaw[i];
-      if (TensorOps.isFinite(xi)) {
-        if (xi < this.minVals[i]) this.minVals[i] = xi;
-        if (xi > this.maxVals[i]) this.maxVals[i] = xi;
-      }
-      const v = this.acc.varianceAt(i);
-      this.std[i] = Math.sqrt(v);
-    }
-  }
-  normalize(xRaw: Float64Array, dst: Float64Array): void {
-    const n = dst.length;
-    const mean = this.acc.mean;
-    const std = this.std;
-    const eps = this.eps;
-    const count = this.acc.count;
-    for (let i = 0; i < n; i++) {
-      const xi = xRaw[i];
-      if (!TensorOps.isFinite(xi)) {
-        dst[i] = 0.0;
-        continue;
-      }
-      if (count < 2) {
-        dst[i] = 0.0;
-        continue;
-      }
-      let denom = std[i];
-      if (denom < eps) {
-        const range = this.maxVals[i] - this.minVals[i];
-        denom = range > eps ? range * 0.5 : eps;
-      }
-      dst[i] = (xi - mean[i]) / denom;
-      dst[i] = TensorOps.clamp(dst[i], -6.0, 6.0);
-    }
-  }
-  getStats(): NormalizationStats {
-    const n = this.acc.mean.length;
-    const means = new Array<number>(n);
-    const stds = new Array<number>(n);
-    for (let i = 0; i < n; i++) {
-      means[i] = this.acc.mean[i];
-      stds[i] = this.std[i] > this.eps ? this.std[i] : this.eps;
-    }
-    return {
-      means,
-      stds,
-      count: this.acc.count,
-      isActive: this.acc.count >= this.warmup,
-    };
-  }
-}
-
-/** Target statistics tracker for output scaling. */
-class TargetStatsTracker {
-  readonly acc: WelfordAccumulator;
-  readonly std: Float64Array;
-  readonly eps: number;
-  readonly warmup: number;
-  constructor(dim: number, eps: number, warmup: number) {
-    this.acc = new WelfordAccumulator(dim | 0);
-    this.std = new Float64Array(dim | 0);
-    this.eps = eps;
-    this.warmup = warmup | 0;
-    TensorOps.fill(this.std, 1.0);
-  }
-  reset(): void {
-    this.acc.reset();
-    TensorOps.fill(this.std, 1.0);
-  }
-  updateStats(yRaw: number[]): void {
-    this.acc.updateFromArray(yRaw);
-    const n = this.std.length;
-    for (let i = 0; i < n; i++) {
-      const v = this.acc.varianceAt(i);
-      const s = Math.sqrt(v);
-      this.std[i] = s > this.eps ? s : 1.0;
-    }
-  }
-  isActive(): boolean {
-    return this.acc.count >= this.warmup;
-  }
-  getMean(idx: number): number {
-    return this.acc.mean[idx];
-  }
-  getStd(idx: number): number {
-    return this.std[idx];
-  }
-  normalize(yRaw: number[], dst: Float64Array): void {
-    const n = dst.length;
-    if (!this.isActive()) {
-      for (let i = 0; i < n; i++) dst[i] = yRaw[i];
-      return;
-    }
-    for (let i = 0; i < n; i++) {
-      dst[i] = (yRaw[i] - this.acc.mean[i]) / this.std[i];
-    }
-  }
-  denormalize(yNorm: Float64Array, dst: Float64Array): void {
-    const n = dst.length;
-    if (!this.isActive()) {
-      for (let i = 0; i < n; i++) dst[i] = yNorm[i];
-      return;
-    }
-    for (let i = 0; i < n; i++) {
-      dst[i] = yNorm[i] * this.std[i] + this.acc.mean[i];
-    }
-  }
-  denormalizeInPlace(y: Float64Array): void {
-    if (!this.isActive()) return;
-    const n = y.length;
-    for (let i = 0; i < n; i++) {
-      y[i] = y[i] * this.std[i] + this.acc.mean[i];
-    }
-  }
-}
-
-/** Fixed-capacity ring buffer for time series rows. */
-class RingBuffer {
-  private readonly capacity: number;
-  private readonly dim: number;
-  private data: Float64Array;
-  private head: number;
-  private count: number;
-  constructor(capacity: number, dim: number) {
-    this.capacity = capacity | 0;
-    this.dim = dim | 0;
-    this.data = new Float64Array((this.capacity * this.dim) | 0);
-    this.head = 0;
-    this.count = 0;
-  }
-  reset(): void {
-    this.head = 0;
-    this.count = 0;
-    TensorOps.fill(this.data, 0.0);
-  }
-  size(): number {
-    return this.count;
-  }
-  pushRow(row: number[]): void {
-    if (row.length !== this.dim) {
-      throw new Error("RingBuffer.pushRow: row dimension mismatch");
-    }
-    const idx = this.head;
-    const base = idx * this.dim;
-    for (let j = 0; j < this.dim; j++) this.data[base + j] = row[j];
-    this.head++;
-    if (this.head >= this.capacity) this.head = 0;
-    if (this.count < this.capacity) this.count++;
-  }
-  getLatestRow(dst: Float64Array): void {
-    if (this.count <= 0) throw new Error("RingBuffer.getLatestRow: empty");
-    let idx = this.head - 1;
-    if (idx < 0) idx += this.capacity;
-    const base = idx * this.dim;
-    for (let j = 0; j < this.dim; j++) dst[j] = this.data[base + j];
-  }
-  getRow(stepsBack: number, dst: Float64Array): boolean {
-    if (stepsBack < 0 || stepsBack >= this.count) return false;
-    let idx = this.head - 1 - stepsBack;
-    while (idx < 0) idx += this.capacity;
-    const base = idx * this.dim;
-    for (let j = 0; j < this.dim; j++) dst[j] = this.data[base + j];
     return true;
   }
-  toJSON(): {
-    capacity: number;
-    dim: number;
-    head: number;
-    count: number;
-    data: number[];
-  } {
-    return {
-      capacity: this.capacity,
-      dim: this.dim,
-      head: this.head,
-      count: this.count,
-      data: Array.from(this.data),
-    };
+}
+
+// ============================================================================
+// TENSOR VIEW (Zero-copy view into Float64Array)
+// ============================================================================
+
+class TensorView {
+  data: Float64Array;
+  offset: number;
+  shape: TensorShape;
+
+  constructor(data: Float64Array, offset: number, shape: TensorShape) {
+    this.data = data;
+    this.offset = offset;
+    this.shape = shape;
   }
-  static fromJSON(obj: any): RingBuffer {
-    const rb = new RingBuffer(obj.capacity | 0, obj.dim | 0);
-    rb.head = obj.head | 0;
-    rb.count = obj.count | 0;
-    const arr = obj.data as number[];
-    const n = rb.data.length;
-    for (let i = 0; i < n; i++) rb.data[i] = arr[i];
-    return rb;
+
+  get(indices: number[]): number {
+    return this.data[this.offset + this.shape.index(indices)];
+  }
+
+  set(indices: number[], value: number): void {
+    this.data[this.offset + this.shape.index(indices)] = value;
+  }
+
+  getFlat(i: number): number {
+    return this.data[this.offset + i];
+  }
+
+  setFlat(i: number, value: number): void {
+    this.data[this.offset + i] = value;
+  }
+
+  fill(value: number): void {
+    const end = this.offset + this.shape.size;
+    for (let i = this.offset; i < end; i++) {
+      this.data[i] = value;
+    }
+  }
+
+  copyFrom(source: TensorView): void {
+    const size = this.shape.size;
+    for (let i = 0; i < size; i++) {
+      this.data[this.offset + i] = source.data[source.offset + i];
+    }
+  }
+
+  copyFromArray(arr: number[]): void {
+    for (let i = 0; i < arr.length; i++) {
+      this.data[this.offset + i] = arr[i];
+    }
+  }
+
+  toArray(): number[] {
+    const result: number[] = new Array(this.shape.size);
+    for (let i = 0; i < this.shape.size; i++) {
+      result[i] = this.data[this.offset + i];
+    }
+    return result;
   }
 }
 
-/** Tracks recent residual distribution per target with exponential smoothing. */
-class ResidualStatsTracker {
-  readonly windowSize: number;
-  readonly nTargets: number;
-  private buffers: Float64Array;
-  private writeIndex: number;
-  private count: number;
-  private sum: Float64Array;
-  private sumsq: Float64Array;
-  private expMean: Float64Array;
-  private expVar: Float64Array;
-  private absSum: Float64Array;
-  private readonly alpha: number;
-  private eps: number;
+// ============================================================================
+// BUFFER POOL (Object reuse for TensorView shells)
+// ============================================================================
 
-  constructor(nTargets: number, windowSize: number, eps: number) {
-    this.nTargets = nTargets | 0;
-    this.windowSize = windowSize | 0;
-    this.eps = eps;
-    this.alpha = 2.0 / (windowSize + 1);
-    this.buffers = new Float64Array((this.nTargets * this.windowSize) | 0);
-    this.writeIndex = 0;
-    this.count = 0;
-    this.sum = new Float64Array(this.nTargets);
-    this.sumsq = new Float64Array(this.nTargets);
-    this.expMean = new Float64Array(this.nTargets);
-    this.expVar = new Float64Array(this.nTargets);
-    this.absSum = new Float64Array(this.nTargets);
+class BufferPool {
+  private pool: TensorView[] = [];
+
+  acquire(data: Float64Array, offset: number, shape: TensorShape): TensorView {
+    let view = this.pool.pop();
+    if (view) {
+      view.data = data;
+      view.offset = offset;
+      view.shape = shape;
+      return view;
+    }
+    return new TensorView(data, offset, shape);
+  }
+
+  release(view: TensorView): void {
+    this.pool.push(view);
+  }
+}
+
+// ============================================================================
+// TENSOR ARENA (Preallocated contiguous memory)
+// ============================================================================
+
+class TensorArena {
+  private buffer: Float64Array;
+  private allocated: number = 0;
+
+  constructor(totalSize: number) {
+    this.buffer = new Float64Array(totalSize);
+  }
+
+  allocate(shape: TensorShape): TensorView {
+    const offset = this.allocated;
+    this.allocated += shape.size;
+    if (this.allocated > this.buffer.length) {
+      throw new Error("TensorArena: out of memory");
+    }
+    return new TensorView(this.buffer, offset, shape);
   }
 
   reset(): void {
-    this.writeIndex = 0;
-    this.count = 0;
-    TensorOps.fill(this.buffers, 0.0);
-    TensorOps.fill(this.sum, 0.0);
-    TensorOps.fill(this.sumsq, 0.0);
-    TensorOps.fill(this.expMean, 0.0);
-    TensorOps.fill(this.expVar, 0.0);
-    TensorOps.fill(this.absSum, 0.0);
+    this.allocated = 0;
+    this.buffer.fill(0);
   }
 
-  update(residuals: Float64Array): void {
-    const nT = this.nTargets;
-    const w = this.windowSize;
-    const idx = this.writeIndex;
-    const alpha = this.alpha;
+  getUsed(): number {
+    return this.allocated;
+  }
 
-    if (this.count >= w) {
-      const baseOld = idx * nT;
-      for (let t = 0; t < nT; t++) {
-        const old = this.buffers[baseOld + t];
-        this.sum[t] -= old;
-        this.sumsq[t] -= old * old;
-        this.absSum[t] -= Math.abs(old);
+  getCapacity(): number {
+    return this.buffer.length;
+  }
+}
+
+// ============================================================================
+// TENSOR OPS (Basic linear algebra, allocation-free)
+// ============================================================================
+
+class TensorOps {
+  /**
+   * Matrix-vector multiply: y = A * x
+   * A: [rows, cols], x: [cols], y: [rows]
+   */
+  static matVec(
+    A: Float64Array,
+    aOffset: number,
+    rows: number,
+    cols: number,
+    x: Float64Array,
+    xOffset: number,
+    y: Float64Array,
+    yOffset: number,
+  ): void {
+    for (let i = 0; i < rows; i++) {
+      let sum = 0;
+      const rowOffset = aOffset + i * cols;
+      for (let j = 0; j < cols; j++) {
+        sum += A[rowOffset + j] * x[xOffset + j];
       }
+      y[yOffset + i] = sum;
+    }
+  }
+
+  /**
+   * Sparse matrix-vector multiply using mask
+   */
+  static sparseMatVec(
+    A: Float64Array,
+    aOffset: number,
+    rows: number,
+    cols: number,
+    mask: Uint8Array,
+    maskOffset: number,
+    x: Float64Array,
+    xOffset: number,
+    y: Float64Array,
+    yOffset: number,
+  ): void {
+    for (let i = 0; i < rows; i++) {
+      let sum = 0;
+      const rowOffset = aOffset + i * cols;
+      const maskRowOffset = maskOffset + i * cols;
+      for (let j = 0; j < cols; j++) {
+        if (mask[maskRowOffset + j]) {
+          sum += A[rowOffset + j] * x[xOffset + j];
+        }
+      }
+      y[yOffset + i] = sum;
+    }
+  }
+
+  /**
+   * Vector add: y = a + b
+   */
+  static vecAdd(
+    a: Float64Array,
+    aOffset: number,
+    b: Float64Array,
+    bOffset: number,
+    y: Float64Array,
+    yOffset: number,
+    len: number,
+  ): void {
+    for (let i = 0; i < len; i++) {
+      y[yOffset + i] = a[aOffset + i] + b[bOffset + i];
+    }
+  }
+
+  /**
+   * Vector scale: y = alpha * x
+   */
+  static vecScale(
+    x: Float64Array,
+    xOffset: number,
+    alpha: number,
+    y: Float64Array,
+    yOffset: number,
+    len: number,
+  ): void {
+    for (let i = 0; i < len; i++) {
+      y[yOffset + i] = alpha * x[xOffset + i];
+    }
+  }
+
+  /**
+   * Vector dot product
+   */
+  static dot(
+    a: Float64Array,
+    aOffset: number,
+    b: Float64Array,
+    bOffset: number,
+    len: number,
+  ): number {
+    let sum = 0;
+    for (let i = 0; i < len; i++) {
+      sum += a[aOffset + i] * b[bOffset + i];
+    }
+    return sum;
+  }
+
+  /**
+   * Vector L2 norm
+   */
+  static norm(x: Float64Array, xOffset: number, len: number): number {
+    let sum = 0;
+    for (let i = 0; i < len; i++) {
+      const v = x[xOffset + i];
+      sum += v * v;
+    }
+    return Math.sqrt(sum);
+  }
+
+  /**
+   * Outer product update: A += alpha * x * y^T
+   * A: [m, n], x: [m], y: [n]
+   */
+  static outerUpdate(
+    A: Float64Array,
+    aOffset: number,
+    m: number,
+    n: number,
+    x: Float64Array,
+    xOffset: number,
+    y: Float64Array,
+    yOffset: number,
+    alpha: number,
+  ): void {
+    for (let i = 0; i < m; i++) {
+      const xi = x[xOffset + i];
+      const rowOffset = aOffset + i * n;
+      for (let j = 0; j < n; j++) {
+        A[rowOffset + j] += alpha * xi * y[yOffset + j];
+      }
+    }
+  }
+
+  /**
+   * Copy vector
+   */
+  static vecCopy(
+    src: Float64Array,
+    srcOffset: number,
+    dst: Float64Array,
+    dstOffset: number,
+    len: number,
+  ): void {
+    for (let i = 0; i < len; i++) {
+      dst[dstOffset + i] = src[srcOffset + i];
+    }
+  }
+
+  /**
+   * Fill vector with value
+   */
+  static vecFill(
+    dst: Float64Array,
+    dstOffset: number,
+    value: number,
+    len: number,
+  ): void {
+    for (let i = 0; i < len; i++) {
+      dst[dstOffset + i] = value;
+    }
+  }
+
+  /**
+   * Clamp vector values
+   */
+  static vecClamp(
+    x: Float64Array,
+    xOffset: number,
+    minVal: number,
+    maxVal: number,
+    len: number,
+  ): void {
+    for (let i = 0; i < len; i++) {
+      const idx = xOffset + i;
+      if (x[idx] < minVal) x[idx] = minVal;
+      else if (x[idx] > maxVal) x[idx] = maxVal;
+    }
+  }
+}
+
+// ============================================================================
+// ACTIVATION OPS
+// ============================================================================
+
+class ActivationOps {
+  static tanh(
+    x: Float64Array,
+    xOffset: number,
+    y: Float64Array,
+    yOffset: number,
+    len: number,
+  ): void {
+    for (let i = 0; i < len; i++) {
+      y[yOffset + i] = Math.tanh(x[xOffset + i]);
+    }
+  }
+
+  static relu(
+    x: Float64Array,
+    xOffset: number,
+    y: Float64Array,
+    yOffset: number,
+    len: number,
+  ): void {
+    for (let i = 0; i < len; i++) {
+      const v = x[xOffset + i];
+      y[yOffset + i] = v > 0 ? v : 0;
+    }
+  }
+
+  static apply(
+    activation: "tanh" | "relu",
+    x: Float64Array,
+    xOffset: number,
+    y: Float64Array,
+    yOffset: number,
+    len: number,
+  ): void {
+    if (activation === "tanh") {
+      ActivationOps.tanh(x, xOffset, y, yOffset, len);
     } else {
+      ActivationOps.relu(x, xOffset, y, yOffset, len);
+    }
+  }
+}
+
+// ============================================================================
+// RANDOM GENERATOR (Seeded PRNG)
+// ============================================================================
+
+class RandomGenerator {
+  private state: number;
+
+  constructor(seed: number) {
+    this.state = seed >>> 0;
+    if (this.state === 0) this.state = 1;
+  }
+
+  /**
+   * Xorshift32 PRNG
+   */
+  next(): number {
+    let x = this.state;
+    x ^= x << 13;
+    x ^= x >>> 17;
+    x ^= x << 5;
+    this.state = x >>> 0;
+    return this.state;
+  }
+
+  /**
+   * Uniform random in [0, 1)
+   */
+  uniform(): number {
+    return this.next() / 4294967296;
+  }
+
+  /**
+   * Normal distribution using Box-Muller
+   */
+  normal(mean: number = 0, std: number = 1): number {
+    const u1 = this.uniform();
+    const u2 = this.uniform();
+    const z0 = Math.sqrt(-2 * Math.log(u1 + 1e-10)) *
+      Math.cos(2 * Math.PI * u2);
+    return mean + std * z0;
+  }
+
+  /**
+   * Returns true with probability p
+   */
+  bernoulli(p: number): boolean {
+    return this.uniform() < p;
+  }
+
+  getState(): number {
+    return this.state;
+  }
+
+  setState(state: number): void {
+    this.state = state >>> 0;
+    if (this.state === 0) this.state = 1;
+  }
+}
+
+// ============================================================================
+// WELFORD ACCUMULATOR (Online mean/variance)
+// ============================================================================
+
+class WelfordAccumulator {
+  count: number = 0;
+  mean: number = 0;
+  m2: number = 0;
+
+  update(value: number): void {
+    this.count++;
+    const delta = value - this.mean;
+    this.mean += delta / this.count;
+    const delta2 = value - this.mean;
+    this.m2 += delta * delta2;
+  }
+
+  getVariance(): number {
+    if (this.count < 2) return 0;
+    return this.m2 / (this.count - 1);
+  }
+
+  getStd(): number {
+    return Math.sqrt(this.getVariance());
+  }
+
+  reset(): void {
+    this.count = 0;
+    this.mean = 0;
+    this.m2 = 0;
+  }
+}
+
+// ============================================================================
+// WELFORD NORMALIZER (Per-feature online normalization)
+// ============================================================================
+
+class WelfordNormalizer {
+  private nFeatures: number;
+  private counts: Float64Array;
+  private means: Float64Array;
+  private m2s: Float64Array;
+  private epsilon: number;
+  private warmup: number;
+
+  constructor(nFeatures: number, epsilon: number, warmup: number) {
+    this.nFeatures = nFeatures;
+    this.counts = new Float64Array(nFeatures);
+    this.means = new Float64Array(nFeatures);
+    this.m2s = new Float64Array(nFeatures);
+    this.epsilon = epsilon;
+    this.warmup = warmup;
+  }
+
+  /**
+   * Update statistics with new observation
+   */
+  update(x: Float64Array, xOffset: number): void {
+    for (let j = 0; j < this.nFeatures; j++) {
+      const value = x[xOffset + j];
+      this.counts[j]++;
+      const delta = value - this.means[j];
+      this.means[j] += delta / this.counts[j];
+      const delta2 = value - this.means[j];
+      this.m2s[j] += delta * delta2;
+    }
+  }
+
+  /**
+   * Normalize input in-place
+   */
+  normalize(
+    x: Float64Array,
+    xOffset: number,
+    out: Float64Array,
+    outOffset: number,
+  ): void {
+    for (let j = 0; j < this.nFeatures; j++) {
+      const mean = this.means[j];
+      const variance = this.counts[j] > 1
+        ? this.m2s[j] / (this.counts[j] - 1)
+        : 0;
+      const std = Math.sqrt(variance);
+      const denom = Math.max(std, this.epsilon);
+      out[outOffset + j] = (x[xOffset + j] - mean) / denom;
+    }
+  }
+
+  isActive(): boolean {
+    if (this.nFeatures === 0) return false;
+    return this.counts[0] >= this.warmup;
+  }
+
+  getMeans(): number[] {
+    return Array.from(this.means);
+  }
+
+  getStds(): number[] {
+    const stds: number[] = new Array(this.nFeatures);
+    for (let j = 0; j < this.nFeatures; j++) {
+      const variance = this.counts[j] > 1
+        ? this.m2s[j] / (this.counts[j] - 1)
+        : 0;
+      stds[j] = Math.sqrt(variance);
+    }
+    return stds;
+  }
+
+  getCount(): number {
+    return this.nFeatures > 0 ? this.counts[0] : 0;
+  }
+
+  reset(): void {
+    this.counts.fill(0);
+    this.means.fill(0);
+    this.m2s.fill(0);
+  }
+
+  // Serialization
+  serialize(): { counts: number[]; means: number[]; m2s: number[] } {
+    return {
+      counts: Array.from(this.counts),
+      means: Array.from(this.means),
+      m2s: Array.from(this.m2s),
+    };
+  }
+
+  deserialize(
+    data: { counts: number[]; means: number[]; m2s: number[] },
+  ): void {
+    for (let i = 0; i < this.nFeatures; i++) {
+      this.counts[i] = data.counts[i] || 0;
+      this.means[i] = data.means[i] || 0;
+      this.m2s[i] = data.m2s[i] || 0;
+    }
+  }
+}
+
+// ============================================================================
+// RING BUFFER (Fixed-size circular buffer for time series)
+// ============================================================================
+
+class RingBuffer {
+  private buffer: Float64Array;
+  private head: number = 0;
+  private count: number = 0;
+  private capacity: number;
+  private nFeatures: number;
+
+  constructor(capacity: number, nFeatures: number) {
+    this.capacity = capacity;
+    this.nFeatures = nFeatures;
+    this.buffer = new Float64Array(capacity * nFeatures);
+  }
+
+  /**
+   * Push a new row into the buffer
+   */
+  push(row: number[] | Float64Array, rowOffset: number = 0): void {
+    const writeIdx = this.head * this.nFeatures;
+    for (let i = 0; i < this.nFeatures; i++) {
+      this.buffer[writeIdx + i] = row instanceof Float64Array
+        ? row[rowOffset + i]
+        : row[i];
+    }
+    this.head = (this.head + 1) % this.capacity;
+    if (this.count < this.capacity) {
       this.count++;
     }
-
-    const base = idx * nT;
-    for (let t = 0; t < nT; t++) {
-      const r = TensorOps.ensureFinite(residuals[t], 0.0);
-      this.buffers[base + t] = r;
-      this.sum[t] += r;
-      this.sumsq[t] += r * r;
-      this.absSum[t] += Math.abs(r);
-
-      const delta = r - this.expMean[t];
-      this.expMean[t] += alpha * delta;
-      this.expVar[t] = (1 - alpha) * (this.expVar[t] + alpha * delta * delta);
-    }
-
-    this.writeIndex++;
-    if (this.writeIndex >= w) this.writeIndex = 0;
   }
 
-  getSigma(dst: Float64Array): void {
-    const nT = this.nTargets;
-    const c = this.count;
-    const eps = this.eps;
-    if (c <= 1) {
-      for (let t = 0; t < nT; t++) dst[t] = eps;
-      return;
+  /**
+   * Get the most recent row (index 0 = newest)
+   */
+  getLatest(out: Float64Array, outOffset: number): boolean {
+    if (this.count === 0) return false;
+    const idx = ((this.head - 1 + this.capacity) % this.capacity) *
+      this.nFeatures;
+    for (let i = 0; i < this.nFeatures; i++) {
+      out[outOffset + i] = this.buffer[idx + i];
     }
-    for (let t = 0; t < nT; t++) {
-      const mean = this.sum[t] / c;
-      const windowVar = this.sumsq[t] / c - mean * mean;
-      const expStd = Math.sqrt(Math.max(0, this.expVar[t]));
-      const windowStd = Math.sqrt(Math.max(0, windowVar));
-      const s = Math.max(expStd, windowStd);
-      dst[t] = s > eps ? s : eps;
-    }
+    return true;
   }
 
-  getMeanAbsResidual(): number {
-    if (this.count === 0) return 0;
-    let total = 0;
-    for (let t = 0; t < this.nTargets; t++) {
-      total += this.absSum[t] / this.count;
+  /**
+   * Get row by age (0 = newest, count-1 = oldest)
+   */
+  getByAge(age: number, out: Float64Array, outOffset: number): boolean {
+    if (age >= this.count) return false;
+    const idx = ((this.head - 1 - age + this.capacity * 2) % this.capacity) *
+      this.nFeatures;
+    for (let i = 0; i < this.nFeatures; i++) {
+      out[outOffset + i] = this.buffer[idx + i];
     }
-    return total / this.nTargets;
+    return true;
+  }
+
+  /**
+   * Get recent window as contiguous array (oldest to newest)
+   * Returns actual length filled
+   */
+  getWindow(windowSize: number, out: Float64Array, outOffset: number): number {
+    const actualSize = Math.min(windowSize, this.count);
+    for (let age = actualSize - 1; age >= 0; age--) {
+      const idx = ((this.head - 1 - age + this.capacity * 2) % this.capacity) *
+        this.nFeatures;
+      const outIdx = outOffset + (actualSize - 1 - age) * this.nFeatures;
+      for (let i = 0; i < this.nFeatures; i++) {
+        out[outIdx + i] = this.buffer[idx + i];
+      }
+    }
+    return actualSize;
   }
 
   getCount(): number {
     return this.count;
   }
 
-  toJSON(): any {
+  getCapacity(): number {
+    return this.capacity;
+  }
+
+  getNFeatures(): number {
+    return this.nFeatures;
+  }
+
+  isEmpty(): boolean {
+    return this.count === 0;
+  }
+
+  reset(): void {
+    this.head = 0;
+    this.count = 0;
+    this.buffer.fill(0);
+  }
+
+  // Serialization
+  serialize(): { buffer: number[]; head: number; count: number } {
     return {
-      windowSize: this.windowSize,
-      nTargets: this.nTargets,
-      buffers: Array.from(this.buffers),
-      writeIndex: this.writeIndex,
+      buffer: Array.from(this.buffer),
+      head: this.head,
       count: this.count,
-      sum: Array.from(this.sum),
-      sumsq: Array.from(this.sumsq),
-      expMean: Array.from(this.expMean),
-      expVar: Array.from(this.expVar),
-      absSum: Array.from(this.absSum),
-      eps: this.eps,
     };
   }
-  static fromJSON(obj: any): ResidualStatsTracker {
-    const tr = new ResidualStatsTracker(
-      obj.nTargets | 0,
-      obj.windowSize | 0,
-      obj.eps,
-    );
-    const b = obj.buffers as number[];
-    for (let i = 0; i < tr.buffers.length; i++) tr.buffers[i] = b[i];
-    tr.writeIndex = obj.writeIndex | 0;
-    tr.count = obj.count | 0;
-    const s = obj.sum as number[];
-    const ss = obj.sumsq as number[];
-    for (let i = 0; i < tr.sum.length; i++) tr.sum[i] = s[i];
-    for (let i = 0; i < tr.sumsq.length; i++) tr.sumsq[i] = ss[i];
-    if (obj.expMean) {
-      for (let i = 0; i < tr.expMean.length; i++) {
-        tr.expMean[i] = obj.expMean[i];
-      }
+
+  deserialize(data: { buffer: number[]; head: number; count: number }): void {
+    for (let i = 0; i < this.buffer.length; i++) {
+      this.buffer[i] = data.buffer[i] || 0;
     }
-    if (obj.expVar) {
-      for (let i = 0; i < tr.expVar.length; i++) tr.expVar[i] = obj.expVar[i];
-    }
-    if (obj.absSum) {
-      for (let i = 0; i < tr.absSum.length; i++) tr.absSum[i] = obj.absSum[i];
-    }
-    return tr;
+    this.head = data.head;
+    this.count = data.count;
   }
 }
 
-/** Downweights outliers based on residual z-score with smooth transition. */
+// ============================================================================
+// RESIDUAL STATS TRACKER (Rolling window of residuals per target)
+// ============================================================================
+
+class ResidualStatsTracker {
+  private windowSize: number;
+  private nTargets: number;
+  private buffers: Float64Array;
+  private heads: Int32Array;
+  private counts: Int32Array;
+  private sums: Float64Array;
+  private sumSqs: Float64Array;
+
+  constructor(windowSize: number, nTargets: number) {
+    this.windowSize = windowSize;
+    this.nTargets = nTargets;
+    this.buffers = new Float64Array(windowSize * nTargets);
+    this.heads = new Int32Array(nTargets);
+    this.counts = new Int32Array(nTargets);
+    this.sums = new Float64Array(nTargets);
+    this.sumSqs = new Float64Array(nTargets);
+  }
+
+  /**
+   * Update residual stats with new residuals
+   */
+  update(residuals: Float64Array, offset: number): void {
+    for (let t = 0; t < this.nTargets; t++) {
+      const r = residuals[offset + t];
+      const bufferStart = t * this.windowSize;
+      const idx = bufferStart + this.heads[t];
+
+      // If buffer is full, subtract old value
+      if (this.counts[t] === this.windowSize) {
+        const oldVal = this.buffers[idx];
+        this.sums[t] -= oldVal;
+        this.sumSqs[t] -= oldVal * oldVal;
+      } else {
+        this.counts[t]++;
+      }
+
+      // Add new value
+      this.buffers[idx] = r;
+      this.sums[t] += r;
+      this.sumSqs[t] += r * r;
+
+      // Advance head
+      this.heads[t] = (this.heads[t] + 1) % this.windowSize;
+    }
+  }
+
+  /**
+   * Get standard deviation for target
+   */
+  getStd(targetIdx: number): number {
+    const n = this.counts[targetIdx];
+    if (n < 2) return 0;
+    const mean = this.sums[targetIdx] / n;
+    const variance = (this.sumSqs[targetIdx] / n) - mean * mean;
+    return Math.sqrt(Math.max(0, variance));
+  }
+
+  /**
+   * Get mean residual for target
+   */
+  getMean(targetIdx: number): number {
+    const n = this.counts[targetIdx];
+    if (n === 0) return 0;
+    return this.sums[targetIdx] / n;
+  }
+
+  /**
+   * Fill array with standard deviations
+   */
+  getStds(out: Float64Array, offset: number): void {
+    for (let t = 0; t < this.nTargets; t++) {
+      out[offset + t] = this.getStd(t);
+    }
+  }
+
+  getCount(): number {
+    return this.nTargets > 0 ? this.counts[0] : 0;
+  }
+
+  reset(): void {
+    this.buffers.fill(0);
+    this.heads.fill(0);
+    this.counts.fill(0);
+    this.sums.fill(0);
+    this.sumSqs.fill(0);
+  }
+
+  // Serialization
+  serialize(): {
+    buffers: number[];
+    heads: number[];
+    counts: number[];
+    sums: number[];
+    sumSqs: number[];
+  } {
+    return {
+      buffers: Array.from(this.buffers),
+      heads: Array.from(this.heads),
+      counts: Array.from(this.counts),
+      sums: Array.from(this.sums),
+      sumSqs: Array.from(this.sumSqs),
+    };
+  }
+
+  deserialize(data: {
+    buffers: number[];
+    heads: number[];
+    counts: number[];
+    sums: number[];
+    sumSqs: number[];
+  }): void {
+    for (let i = 0; i < this.buffers.length; i++) {
+      this.buffers[i] = data.buffers[i] || 0;
+    }
+    for (let i = 0; i < this.nTargets; i++) {
+      this.heads[i] = data.heads[i] || 0;
+      this.counts[i] = data.counts[i] || 0;
+      this.sums[i] = data.sums[i] || 0;
+      this.sumSqs[i] = data.sumSqs[i] || 0;
+    }
+  }
+}
+
+// ============================================================================
+// OUTLIER DOWNWEIGHTER
+// ============================================================================
+
 class OutlierDownweighter {
   private threshold: number;
   private minWeight: number;
+
   constructor(threshold: number, minWeight: number) {
     this.threshold = threshold;
     this.minWeight = minWeight;
   }
-  computeWeight(residuals: Float64Array, sigma: Float64Array): number {
-    let maxZ = 0.0;
-    for (let i = 0; i < residuals.length; i++) {
-      const s = sigma[i] > 1e-10 ? sigma[i] : 1.0;
-      const z = Math.abs(residuals[i]) / s;
-      if (TensorOps.isFinite(z) && z > maxZ) maxZ = z;
+
+  /**
+   * Compute sample weight based on residual z-scores
+   * Uses soft downweighting for outliers
+   */
+  computeWeight(
+    residuals: Float64Array,
+    offset: number,
+    stds: Float64Array,
+    stdOffset: number,
+    nTargets: number,
+  ): number {
+    let maxZ = 0;
+    for (let t = 0; t < nTargets; t++) {
+      const std = stds[stdOffset + t];
+      if (std > 1e-10) {
+        const z = Math.abs(residuals[offset + t]) / std;
+        if (z > maxZ) maxZ = z;
+      }
     }
-    if (!TensorOps.isFinite(maxZ)) return this.minWeight;
     if (maxZ <= this.threshold) return 1.0;
+    // Soft decay: weight = 1 / (1 + (z - threshold))
     const excess = maxZ - this.threshold;
-    const decay = Math.exp(-0.5 * excess);
-    const w = this.minWeight + (1.0 - this.minWeight) * decay;
-    return TensorOps.clamp(w, this.minWeight, 1.0);
+    const weight = 1.0 / (1.0 + excess);
+    return Math.max(weight, this.minWeight);
   }
 }
 
-/** Loss function utilities. */
+// ============================================================================
+// LOSS FUNCTION
+// ============================================================================
+
 class LossFunction {
-  static mse(y: number[], yhat: Float64Array): number {
-    const n = y.length;
-    let s = 0.0;
-    for (let i = 0; i < n; i++) {
-      const d = y[i] - yhat[i];
-      s += d * d;
+  /**
+   * Compute MSE loss
+   */
+  static mse(
+    pred: Float64Array,
+    predOffset: number,
+    target: Float64Array,
+    targetOffset: number,
+    len: number,
+  ): number {
+    let sum = 0;
+    for (let i = 0; i < len; i++) {
+      const diff = pred[predOffset + i] - target[targetOffset + i];
+      sum += diff * diff;
     }
-    return s / (n > 0 ? n : 1);
+    return sum / len;
   }
-  static mae(y: number[], yhat: Float64Array): number {
-    const n = y.length;
-    let s = 0.0;
-    for (let i = 0; i < n; i++) {
-      s += Math.abs(y[i] - yhat[i]);
+
+  /**
+   * Compute residuals: residuals = pred - target
+   */
+  static residuals(
+    pred: Float64Array,
+    predOffset: number,
+    target: Float64Array,
+    targetOffset: number,
+    out: Float64Array,
+    outOffset: number,
+    len: number,
+  ): void {
+    for (let i = 0; i < len; i++) {
+      out[outOffset + i] = pred[predOffset + i] - target[targetOffset + i];
     }
-    return s / (n > 0 ? n : 1);
   }
 }
 
-/** Tracks running metrics with exponential smoothing. */
+// ============================================================================
+// METRICS ACCUMULATOR
+// ============================================================================
+
 class MetricsAccumulator {
-  private sumLoss: number;
-  private count: number;
-  private expLoss: number;
-  private recentLoss: Float64Array;
-  private recentIdx: number;
-  private recentCount: number;
-  private readonly alpha: number;
-  private readonly recentWindow: number;
-  constructor() {
-    this.sumLoss = 0.0;
-    this.count = 0;
-    this.expLoss = 0.0;
-    this.alpha = 0.02;
-    this.recentWindow = 50;
-    this.recentLoss = new Float64Array(this.recentWindow);
-    this.recentIdx = 0;
-    this.recentCount = 0;
+  private lossSum: number = 0;
+  private lossCount: number = 0;
+  private gradNormSum: number = 0;
+  private gradNormCount: number = 0;
+  private lastWeight: number = 1.0;
+
+  update(loss: number, gradNorm: number, weight: number): void {
+    this.lossSum += loss;
+    this.lossCount++;
+    this.gradNormSum += gradNorm;
+    this.gradNormCount++;
+    this.lastWeight = weight;
   }
+
+  getAverageLoss(): number {
+    return this.lossCount > 0 ? this.lossSum / this.lossCount : 0;
+  }
+
+  getAverageGradNorm(): number {
+    return this.gradNormCount > 0 ? this.gradNormSum / this.gradNormCount : 0;
+  }
+
+  getLastWeight(): number {
+    return this.lastWeight;
+  }
+
+  getCount(): number {
+    return this.lossCount;
+  }
+
   reset(): void {
-    this.sumLoss = 0.0;
-    this.count = 0;
-    this.expLoss = 0.0;
-    TensorOps.fill(this.recentLoss, 0.0);
-    this.recentIdx = 0;
-    this.recentCount = 0;
-  }
-  add(loss: number): void {
-    if (!TensorOps.isFinite(loss)) return;
-    this.sumLoss += loss;
-    this.count++;
-    if (this.count === 1) {
-      this.expLoss = loss;
-    } else {
-      this.expLoss = (1 - this.alpha) * this.expLoss + this.alpha * loss;
-    }
-    this.recentLoss[this.recentIdx] = loss;
-    this.recentIdx = (this.recentIdx + 1) % this.recentWindow;
-    if (this.recentCount < this.recentWindow) this.recentCount++;
-  }
-  mean(): number {
-    if (this.count <= 0) return 0.0;
-    return this.sumLoss / this.count;
-  }
-  exponentialMean(): number {
-    return this.expLoss;
-  }
-  recentMean(): number {
-    if (this.recentCount <= 0) return 0.0;
-    let s = 0.0;
-    for (let i = 0; i < this.recentCount; i++) s += this.recentLoss[i];
-    return s / this.recentCount;
+    this.lossSum = 0;
+    this.lossCount = 0;
+    this.gradNormSum = 0;
+    this.gradNormCount = 0;
+    this.lastWeight = 1.0;
   }
 }
 
-/** Masks for sparse initialization. */
+// ============================================================================
+// RESERVOIR INIT MASK (Sparse connectivity)
+// ============================================================================
+
 class ReservoirInitMask {
-  static initMask(
-    rng: RandomGenerator,
+  /**
+   * Generate sparse mask for W (reservoir x reservoir)
+   */
+  static generateReservoirMask(
     size: number,
     sparsity: number,
-    dst: Uint8Array,
-  ): void {
-    const pKeep = 1.0 - TensorOps.clamp(sparsity, 0.0, 1.0);
-    for (let i = 0; i < size; i++) dst[i] = rng.nextFloat() < pKeep ? 1 : 0;
+    rng: RandomGenerator,
+  ): Uint8Array {
+    const mask = new Uint8Array(size * size);
+    const density = 1.0 - sparsity;
+    for (let i = 0; i < size * size; i++) {
+      mask[i] = rng.bernoulli(density) ? 1 : 0;
+    }
+    return mask;
+  }
+
+  /**
+   * Generate sparse mask for Win (reservoir x features)
+   */
+  static generateInputMask(
+    rows: number,
+    cols: number,
+    sparsity: number,
+    rng: RandomGenerator,
+  ): Uint8Array {
+    const mask = new Uint8Array(rows * cols);
+    const density = 1.0 - sparsity;
+    for (let i = 0; i < rows * cols; i++) {
+      mask[i] = rng.bernoulli(density) ? 1 : 0;
+    }
+    return mask;
   }
 }
 
-/** Spectral radius estimation and scaling via power method. */
+// ============================================================================
+// SPECTRAL RADIUS SCALER (Power iteration)
+// ============================================================================
+
 class SpectralRadiusScaler {
-  static estimateSpectralRadius(
+  private static readonly MAX_ITERATIONS = 100;
+  private static readonly TOLERANCE = 1e-6;
+
+  /**
+   * Estimate spectral radius using power iteration
+   * Returns estimated largest eigenvalue magnitude
+   */
+  static estimate(
     W: Float64Array,
-    n: number,
-    iters: number,
-    tmpV: Float64Array,
-    tmpWv: Float64Array,
+    wOffset: number,
+    size: number,
+    mask: Uint8Array,
+    maskOffset: number,
+    rng: RandomGenerator,
+    scratch: Float64Array,
+    scratchOffset: number,
   ): number {
-    const invSqrtN = 1.0 / Math.sqrt(n);
-    for (let i = 0; i < n; i++) tmpV[i] = invSqrtN;
+    // Initialize random vector
+    const v = scratch;
+    const vOffset = scratchOffset;
+    const u = scratch;
+    const uOffset = scratchOffset + size;
 
-    for (let it = 0; it < iters; it++) {
-      for (let i = 0; i < n; i++) {
-        let s = 0.0;
-        const row = i * n;
-        for (let j = 0; j < n; j++) s += W[row + j] * tmpV[j];
-        tmpWv[i] = s;
-      }
-      let norm = 0.0;
-      for (let i = 0; i < n; i++) {
-        const v = tmpWv[i];
-        norm += v * v;
-      }
-      norm = Math.sqrt(norm);
-      if (!TensorOps.isFinite(norm) || norm <= 1e-12) return 0.0;
-      const inv = 1.0 / norm;
-      for (let i = 0; i < n; i++) tmpV[i] = tmpWv[i] * inv;
-    }
-
-    for (let i = 0; i < n; i++) {
-      let s = 0.0;
-      const row = i * n;
-      for (let j = 0; j < n; j++) s += W[row + j] * tmpV[j];
-      tmpWv[i] = s;
-    }
-    let norm = 0.0;
-    for (let i = 0; i < n; i++) {
-      const v = tmpWv[i];
-      norm += v * v;
+    // Initialize with random unit vector
+    let norm = 0;
+    for (let i = 0; i < size; i++) {
+      v[vOffset + i] = rng.normal();
+      norm += v[vOffset + i] * v[vOffset + i];
     }
     norm = Math.sqrt(norm);
-    if (!TensorOps.isFinite(norm)) return 0.0;
-    return norm;
+    if (norm > 1e-10) {
+      for (let i = 0; i < size; i++) {
+        v[vOffset + i] /= norm;
+      }
+    }
+
+    let eigenvalue = 0;
+    for (let iter = 0; iter < SpectralRadiusScaler.MAX_ITERATIONS; iter++) {
+      // u = W * v (sparse)
+      TensorOps.sparseMatVec(
+        W,
+        wOffset,
+        size,
+        size,
+        mask,
+        maskOffset,
+        v,
+        vOffset,
+        u,
+        uOffset,
+      );
+
+      // Compute norm of u
+      let uNorm = 0;
+      for (let i = 0; i < size; i++) {
+        uNorm += u[uOffset + i] * u[uOffset + i];
+      }
+      uNorm = Math.sqrt(uNorm);
+
+      if (uNorm < 1e-10) {
+        return 0; // Matrix is essentially zero
+      }
+
+      // Rayleigh quotient: lambda = v^T * u
+      const newEigenvalue = TensorOps.dot(v, vOffset, u, uOffset, size);
+
+      // Normalize u -> v
+      for (let i = 0; i < size; i++) {
+        v[vOffset + i] = u[uOffset + i] / uNorm;
+      }
+
+      // Check convergence
+      if (
+        Math.abs(newEigenvalue - eigenvalue) < SpectralRadiusScaler.TOLERANCE
+      ) {
+        return Math.abs(newEigenvalue);
+      }
+      eigenvalue = newEigenvalue;
+    }
+
+    return Math.abs(eigenvalue);
   }
 
-  static scaleToSpectralRadius(
+  /**
+   * Scale W so that spectral radius equals target
+   */
+  static scale(
     W: Float64Array,
-    n: number,
-    target: number,
-    iters: number,
-    tmpV: Float64Array,
-    tmpWv: Float64Array,
-    eps: number,
-  ): number {
-    const est = this.estimateSpectralRadius(W, n, iters, tmpV, tmpWv);
-    if (est < eps) {
-      return target;
+    wOffset: number,
+    size: number,
+    currentRadius: number,
+    targetRadius: number,
+  ): void {
+    if (currentRadius < 1e-10) return;
+    const scaleFactor = targetRadius / currentRadius;
+    const end = wOffset + size * size;
+    for (let i = wOffset; i < end; i++) {
+      W[i] *= scaleFactor;
     }
-    const scale = target / est;
-    for (let i = 0; i < W.length; i++) W[i] *= scale;
-    return target;
   }
 }
 
-class ESNReservoirParams {
-  readonly reservoirSize: number;
-  readonly nFeatures: number;
-  readonly Win: Float64Array;
-  readonly W: Float64Array;
-  readonly b: Float64Array;
+// ============================================================================
+// ESN RESERVOIR PARAMS
+// ============================================================================
+
+interface ESNReservoirParams {
+  Win: Float64Array; // Input weights [reservoirSize x nFeatures]
+  W: Float64Array; // Reservoir weights [reservoirSize x reservoirSize]
+  b: Float64Array; // Bias [reservoirSize]
+  WinMask: Uint8Array; // Input sparsity mask
+  WMask: Uint8Array; // Reservoir sparsity mask
+}
+
+// ============================================================================
+// ESN RESERVOIR
+// ============================================================================
+
+class ESNReservoir {
+  private reservoirSize: number;
+  private nFeatures: number;
+  private leakRate: number;
+  private activation: "tanh" | "relu";
+  private inputScale: number;
+
+  // Weights (fixed after init)
+  private Win: Float64Array;
+  private W: Float64Array;
+  private b: Float64Array;
+  private WinMask: Uint8Array;
+  private WMask: Uint8Array;
+
+  // State
+  private state: Float64Array;
+
+  // Scratch buffers (preallocated)
+  private preActivation: Float64Array;
+  private inputContrib: Float64Array;
+  private recurrentContrib: Float64Array;
+
   constructor(
     reservoirSize: number,
     nFeatures: number,
-    Win: Float64Array,
-    W: Float64Array,
-    b: Float64Array,
+    config: ESNRegressionConfig,
+    rng: RandomGenerator,
   ) {
-    this.reservoirSize = reservoirSize | 0;
-    this.nFeatures = nFeatures | 0;
-    this.Win = Win;
-    this.W = W;
-    this.b = b;
+    this.reservoirSize = reservoirSize;
+    this.nFeatures = nFeatures;
+    this.leakRate = config.leakRate;
+    this.activation = config.activation;
+    this.inputScale = config.inputScale;
+
+    // Allocate weights
+    this.Win = new Float64Array(reservoirSize * nFeatures);
+    this.W = new Float64Array(reservoirSize * reservoirSize);
+    this.b = new Float64Array(reservoirSize);
+
+    // Generate masks
+    this.WinMask = ReservoirInitMask.generateInputMask(
+      reservoirSize,
+      nFeatures,
+      config.inputSparsity,
+      rng,
+    );
+    this.WMask = ReservoirInitMask.generateReservoirMask(
+      reservoirSize,
+      config.reservoirSparsity,
+      rng,
+    );
+
+    // Initialize Win with random values
+    for (let i = 0; i < this.Win.length; i++) {
+      if (this.WinMask[i]) {
+        this.Win[i] = rng.normal(0, config.weightInitScale);
+      }
+    }
+
+    // Initialize W with random values
+    for (let i = 0; i < this.W.length; i++) {
+      if (this.WMask[i]) {
+        this.W[i] = rng.normal(0, config.weightInitScale);
+      }
+    }
+
+    // Initialize bias
+    for (let i = 0; i < reservoirSize; i++) {
+      this.b[i] = rng.normal(0, config.biasScale);
+    }
+
+    // Scale W to achieve target spectral radius
+    const scratch = new Float64Array(reservoirSize * 2);
+    const currentRadius = SpectralRadiusScaler.estimate(
+      this.W,
+      0,
+      reservoirSize,
+      this.WMask,
+      0,
+      rng,
+      scratch,
+      0,
+    );
+    SpectralRadiusScaler.scale(
+      this.W,
+      0,
+      reservoirSize,
+      currentRadius,
+      config.spectralRadius,
+    );
+
+    // Initialize state
+    this.state = new Float64Array(reservoirSize);
+
+    // Allocate scratch buffers
+    this.preActivation = new Float64Array(reservoirSize);
+    this.inputContrib = new Float64Array(reservoirSize);
+    this.recurrentContrib = new Float64Array(reservoirSize);
+  }
+
+  /**
+   * Update reservoir state with new input
+   * r_t = (1 - leakRate) * r_{t-1} + leakRate * activation( Win*x + W*r_{t-1} + b )
+   */
+  update(x: Float64Array, xOffset: number): void {
+    const rs = this.reservoirSize;
+
+    // Compute Win * (inputScale * x)
+    for (let i = 0; i < rs; i++) {
+      let sum = 0;
+      const rowOffset = i * this.nFeatures;
+      for (let j = 0; j < this.nFeatures; j++) {
+        if (this.WinMask[rowOffset + j]) {
+          sum += this.Win[rowOffset + j] * this.inputScale * x[xOffset + j];
+        }
+      }
+      this.inputContrib[i] = sum;
+    }
+
+    // Compute W * r_{t-1}
+    TensorOps.sparseMatVec(
+      this.W,
+      0,
+      rs,
+      rs,
+      this.WMask,
+      0,
+      this.state,
+      0,
+      this.recurrentContrib,
+      0,
+    );
+
+    // Compute pre-activation: Win*x + W*r + b
+    for (let i = 0; i < rs; i++) {
+      this.preActivation[i] = this.inputContrib[i] + this.recurrentContrib[i] +
+        this.b[i];
+    }
+
+    // Apply activation
+    if (this.activation === "tanh") {
+      for (let i = 0; i < rs; i++) {
+        this.preActivation[i] = Math.tanh(this.preActivation[i]);
+      }
+    } else {
+      for (let i = 0; i < rs; i++) {
+        this.preActivation[i] = this.preActivation[i] > 0
+          ? this.preActivation[i]
+          : 0;
+      }
+    }
+
+    // Leaky integration
+    const oneMinusLeak = 1.0 - this.leakRate;
+    for (let i = 0; i < rs; i++) {
+      this.state[i] = oneMinusLeak * this.state[i] +
+        this.leakRate * this.preActivation[i];
+    }
+  }
+
+  /**
+   * Get current state (zero-copy view)
+   */
+  getState(): Float64Array {
+    return this.state;
+  }
+
+  /**
+   * Copy state to output
+   */
+  copyStateTo(out: Float64Array, outOffset: number): void {
+    for (let i = 0; i < this.reservoirSize; i++) {
+      out[outOffset + i] = this.state[i];
+    }
+  }
+
+  /**
+   * Set state from source
+   */
+  setStateFrom(src: Float64Array, srcOffset: number): void {
+    for (let i = 0; i < this.reservoirSize; i++) {
+      this.state[i] = src[srcOffset + i];
+    }
+  }
+
+  /**
+   * Reset state to zeros
+   */
+  resetState(): void {
+    this.state.fill(0);
+  }
+
+  getReservoirSize(): number {
+    return this.reservoirSize;
+  }
+
+  getNFeatures(): number {
+    return this.nFeatures;
+  }
+
+  // Serialization
+  getParams(): ESNReservoirParams {
+    return {
+      Win: this.Win,
+      W: this.W,
+      b: this.b,
+      WinMask: this.WinMask,
+      WMask: this.WMask,
+    };
+  }
+
+  serialize(): {
+    state: number[];
+    Win: number[];
+    W: number[];
+    b: number[];
+    WinMask: number[];
+    WMask: number[];
+  } {
+    return {
+      state: Array.from(this.state),
+      Win: Array.from(this.Win),
+      W: Array.from(this.W),
+      b: Array.from(this.b),
+      WinMask: Array.from(this.WinMask),
+      WMask: Array.from(this.WMask),
+    };
+  }
+
+  deserialize(data: {
+    state: number[];
+    Win: number[];
+    W: number[];
+    b: number[];
+    WinMask: number[];
+    WMask: number[];
+  }): void {
+    for (let i = 0; i < this.state.length; i++) {
+      this.state[i] = data.state[i] || 0;
+    }
+    for (let i = 0; i < this.Win.length; i++) {
+      this.Win[i] = data.Win[i] || 0;
+    }
+    for (let i = 0; i < this.W.length; i++) {
+      this.W[i] = data.W[i] || 0;
+    }
+    for (let i = 0; i < this.b.length; i++) {
+      this.b[i] = data.b[i] || 0;
+    }
+    for (let i = 0; i < this.WinMask.length; i++) {
+      this.WinMask[i] = data.WinMask[i] || 0;
+    }
+    for (let i = 0; i < this.WMask.length; i++) {
+      this.WMask[i] = data.WMask[i] || 0;
+    }
   }
 }
 
-class ESNReservoir {
-  readonly params: ESNReservoirParams;
-  private activation: "tanh" | "relu";
-  private leakRate: number;
-  private inputScale: number;
-  readonly state: Float64Array;
-  private prev: Float64Array;
-  private preAct: Float64Array;
+// ============================================================================
+// READOUT CONFIG
+// ============================================================================
+
+interface ReadoutConfig {
+  useInputInReadout: boolean;
+  useBiasInReadout: boolean;
+}
+
+// ============================================================================
+// RLS STATE
+// ============================================================================
+
+interface RLSState {
+  P: Float64Array; // Inverse covariance matrix [zDim x zDim]
+  gain: Float64Array; // Gain vector [zDim]
+  temp: Float64Array; // Temporary vector [zDim]
+}
+
+// ============================================================================
+// RLS OPTIMIZER (Recursive Least Squares)
+// ============================================================================
+
+class RLSOptimizer {
+  private zDim: number;
+  private nTargets: number;
+  private lambda: number;
+  private delta: number;
+  private l2Lambda: number;
+  private epsilon: number;
+
+  // State
+  private P: Float64Array;
+  private gain: Float64Array;
+  private temp: Float64Array;
+  private Pz: Float64Array;
+
+  // Readout weights [nTargets x zDim]
+  private Wout: Float64Array;
 
   constructor(
-    params: ESNReservoirParams,
-    activation: "tanh" | "relu",
-    leakRate: number,
-    inputScale: number,
-    arena: TensorArena,
+    zDim: number,
+    nTargets: number,
+    lambda: number,
+    delta: number,
+    l2Lambda: number,
+    epsilon: number,
   ) {
-    this.params = params;
-    this.activation = activation;
-    this.leakRate = leakRate;
-    this.inputScale = inputScale;
-    this.state = arena.alloc(params.reservoirSize);
-    this.prev = arena.alloc(params.reservoirSize);
-    this.preAct = arena.alloc(params.reservoirSize);
-    TensorOps.fill(this.state, 0.0);
-    TensorOps.fill(this.prev, 0.0);
-    TensorOps.fill(this.preAct, 0.0);
+    this.zDim = zDim;
+    this.nTargets = nTargets;
+    this.lambda = lambda;
+    this.delta = delta;
+    this.l2Lambda = l2Lambda;
+    this.epsilon = epsilon;
+
+    // Initialize P = delta * I
+    this.P = new Float64Array(zDim * zDim);
+    for (let i = 0; i < zDim; i++) {
+      this.P[i * zDim + i] = delta;
+    }
+
+    // Scratch vectors
+    this.gain = new Float64Array(zDim);
+    this.temp = new Float64Array(zDim);
+    this.Pz = new Float64Array(zDim);
+
+    // Initialize Wout to zeros
+    this.Wout = new Float64Array(nTargets * zDim);
+  }
+
+  /**
+   * Perform RLS update
+   * @param z Extended state vector [zDim]
+   * @param y Target vector [nTargets]
+   * @param weight Sample weight for outlier handling
+   * @returns Gradient norm (approximation)
+   */
+  update(
+    z: Float64Array,
+    zOffset: number,
+    y: Float64Array,
+    yOffset: number,
+    weight: number,
+  ): number {
+    const zDim = this.zDim;
+    const nTargets = this.nTargets;
+
+    // Compute Pz = P * z
+    TensorOps.matVec(this.P, 0, zDim, zDim, z, zOffset, this.Pz, 0);
+
+    // Compute denominator: lambda + z^T * P * z
+    let denom = this.lambda;
+    for (let i = 0; i < zDim; i++) {
+      denom += z[zOffset + i] * this.Pz[i];
+    }
+    denom = Math.max(denom, this.epsilon);
+
+    // Compute gain: k = Pz / denom
+    for (let i = 0; i < zDim; i++) {
+      this.gain[i] = this.Pz[i] / denom;
+    }
+
+    // Apply weight to gain
+    for (let i = 0; i < zDim; i++) {
+      this.gain[i] *= weight;
+    }
+
+    // Compute prediction errors and update Wout
+    let gradNormSq = 0;
+    for (let t = 0; t < nTargets; t++) {
+      // Compute prediction: y_hat = Wout[t,:] * z
+      let yHat = 0;
+      const rowOffset = t * zDim;
+      for (let i = 0; i < zDim; i++) {
+        yHat += this.Wout[rowOffset + i] * z[zOffset + i];
+      }
+
+      // Compute error
+      const error = y[yOffset + t] - yHat;
+      gradNormSq += error * error;
+
+      // Update Wout[t,:] += gain * error
+      for (let i = 0; i < zDim; i++) {
+        this.Wout[rowOffset + i] += this.gain[i] * error;
+      }
+    }
+
+    // Update P: P = (P - k * z^T * P) / lambda
+    // Simplified: P = (1/lambda) * (P - gain * Pz^T)
+    const invLambda = 1.0 / this.lambda;
+    for (let i = 0; i < zDim; i++) {
+      const rowOffset = i * zDim;
+      for (let j = 0; j < zDim; j++) {
+        this.P[rowOffset + j] = invLambda *
+          (this.P[rowOffset + j] - this.gain[i] * this.Pz[j]);
+      }
+    }
+
+    // Apply L2 regularization to Wout (shrinkage)
+    if (this.l2Lambda > 0) {
+      const shrink = 1.0 - this.l2Lambda;
+      for (let i = 0; i < this.Wout.length; i++) {
+        this.Wout[i] *= shrink;
+      }
+    }
+
+    return Math.sqrt(gradNormSq / nTargets);
+  }
+
+  /**
+   * Predict: y = Wout * z
+   */
+  predict(
+    z: Float64Array,
+    zOffset: number,
+    out: Float64Array,
+    outOffset: number,
+  ): void {
+    TensorOps.matVec(
+      this.Wout,
+      0,
+      this.nTargets,
+      this.zDim,
+      z,
+      zOffset,
+      out,
+      outOffset,
+    );
+  }
+
+  getWout(): Float64Array {
+    return this.Wout;
+  }
+
+  getZDim(): number {
+    return this.zDim;
+  }
+
+  getNTargets(): number {
+    return this.nTargets;
+  }
+
+  // Serialization
+  serialize(): {
+    P: number[];
+    Wout: number[];
+  } {
+    return {
+      P: Array.from(this.P),
+      Wout: Array.from(this.Wout),
+    };
+  }
+
+  deserialize(data: { P: number[]; Wout: number[] }): void {
+    for (let i = 0; i < this.P.length; i++) {
+      this.P[i] = data.P[i] || 0;
+    }
+    for (let i = 0; i < this.Wout.length; i++) {
+      this.Wout[i] = data.Wout[i] || 0;
+    }
   }
 
   reset(): void {
-    TensorOps.fill(this.state, 0.0);
-    TensorOps.fill(this.prev, 0.0);
-    TensorOps.fill(this.preAct, 0.0);
-  }
-
-  /**
-   * ESN leaky integrator update:
-   * r_t = (1-α) r_{t-1} + α tanh( Win*(inputScale*x) + W*r_{t-1} + b )
-   */
-  updateStateInPlace(
-    state: Float64Array,
-    prev: Float64Array,
-    xNorm: Float64Array,
-  ): void {
-    const N = this.params.reservoirSize;
-    const F = this.params.nFeatures;
-    const Win = this.params.Win;
-    const W = this.params.W;
-    const b = this.params.b;
-    const leak = this.leakRate;
-    const oneMinus = 1.0 - leak;
-    const inScale = this.inputScale;
-
-    for (let i = 0; i < N; i++) prev[i] = state[i];
-
-    for (let i = 0; i < N; i++) {
-      let s = b[i];
-      const winRow = i * F;
-      for (let j = 0; j < F; j++) {
-        s += Win[winRow + j] * xNorm[j] * inScale;
-      }
-      const wRow = i * N;
-      for (let j = 0; j < N; j++) {
-        s += W[wRow + j] * prev[j];
-      }
-      const a = ActivationOps.applyScalar(s, this.activation);
-      state[i] = oneMinus * prev[i] + leak * a;
-      if (!TensorOps.isFinite(state[i])) {
-        state[i] = 0.0;
-      }
+    this.P.fill(0);
+    for (let i = 0; i < this.zDim; i++) {
+      this.P[i * this.zDim + i] = this.delta;
     }
-  }
-
-  step(xNorm: Float64Array): void {
-    this.updateStateInPlace(this.state, this.prev, xNorm);
+    this.Wout.fill(0);
   }
 }
 
-class ReadoutConfig {
-  readonly useInputInReadout: boolean;
-  readonly useBiasInReadout: boolean;
-  readonly l2Lambda: number;
-  readonly gradientClipNorm: number;
-  constructor(cfg: ESNRegressionConfig) {
-    this.useInputInReadout = cfg.useInputInReadout;
-    this.useBiasInReadout = cfg.useBiasInReadout;
-    this.l2Lambda = cfg.l2Lambda;
-    this.gradientClipNorm = cfg.gradientClipNorm;
-  }
-}
-
-class ReadoutParams {
-  readonly nTargets: number;
-  readonly zDim: number;
-  readonly Wout: Float64Array;
-  constructor(nTargets: number, zDim: number, Wout: Float64Array) {
-    this.nTargets = nTargets | 0;
-    this.zDim = zDim | 0;
-    this.Wout = Wout;
-  }
-}
+// ============================================================================
+// LINEAR READOUT
+// ============================================================================
 
 class LinearReadout {
-  readonly params: ReadoutParams;
-  constructor(params: ReadoutParams) {
-    this.params = params;
-  }
-  forward(z: Float64Array, yOut: Float64Array): void {
-    const T = this.params.nTargets;
-    const D = this.params.zDim;
-    const W = this.params.Wout;
-    for (let t = 0; t < T; t++) {
-      const base = t * D;
-      let s = 0.0;
-      for (let i = 0; i < D; i++) s += W[base + i] * z[i];
-      yOut[t] = TensorOps.ensureFinite(s, 0.0);
-    }
-  }
-}
+  private reservoirSize: number;
+  private nFeatures: number;
+  private nTargets: number;
+  private useInputInReadout: boolean;
+  private useBiasInReadout: boolean;
+  private zDim: number;
 
-class RLSState {
-  readonly zDim: number;
-  readonly P: Float64Array;
-  readonly Pz: Float64Array;
-  readonly k: Float64Array;
-  private readonly l2Lambda: number;
-  private readonly eps: number;
+  private rls: RLSOptimizer;
+
+  // Scratch buffers
+  private z: Float64Array;
+  private prediction: Float64Array;
+
   constructor(
-    zDim: number,
-    P: Float64Array,
-    Pz: Float64Array,
-    k: Float64Array,
-    l2Lambda: number,
-    eps: number,
+    reservoirSize: number,
+    nFeatures: number,
+    nTargets: number,
+    config: ESNRegressionConfig,
   ) {
-    this.zDim = zDim | 0;
-    this.P = P;
-    this.Pz = Pz;
-    this.k = k;
-    this.l2Lambda = l2Lambda;
-    this.eps = eps;
-  }
-  reset(delta: number): void {
-    const D = this.zDim;
-    const P = this.P;
-    TensorOps.fill(P, 0.0);
-    const v = 1.0 / (delta > 0 ? delta : 1.0);
-    for (let i = 0; i < D; i++) P[i * D + i] = v;
-    TensorOps.fill(this.Pz, 0.0);
-    TensorOps.fill(this.k, 0.0);
-  }
-  stabilize(): void {
-    const D = this.zDim;
-    const P = this.P;
-    const eps = this.eps;
-    const l2 = this.l2Lambda;
-    for (let i = 0; i < D; i++) {
-      for (let j = i + 1; j < D; j++) {
-        const avg = 0.5 * (P[i * D + j] + P[j * D + i]);
-        P[i * D + j] = avg;
-        P[j * D + i] = avg;
-      }
-    }
-    const minDiag = eps + l2;
-    const maxDiag = 1e6;
-    for (let i = 0; i < D; i++) {
-      let pii = P[i * D + i];
-      if (!TensorOps.isFinite(pii) || pii < minDiag) {
-        pii = minDiag;
-      } else if (pii > maxDiag) {
-        pii = maxDiag;
-      }
-      P[i * D + i] = pii;
-    }
-  }
-}
+    this.reservoirSize = reservoirSize;
+    this.nFeatures = nFeatures;
+    this.nTargets = nTargets;
+    this.useInputInReadout = config.useInputInReadout;
+    this.useBiasInReadout = config.useBiasInReadout;
 
-class RLSOptimizer {
-  private lambda: number;
-  private eps: number;
-  private l2Lambda: number;
-  constructor(lambda: number, eps: number, l2Lambda: number) {
-    this.lambda = lambda;
-    this.eps = eps;
-    this.l2Lambda = l2Lambda;
+    // Compute zDim = reservoirSize + (useInput ? nFeatures : 0) + (useBias ? 1 : 0)
+    this.zDim = reservoirSize;
+    if (this.useInputInReadout) this.zDim += nFeatures;
+    if (this.useBiasInReadout) this.zDim += 1;
+
+    // Initialize RLS optimizer
+    this.rls = new RLSOptimizer(
+      this.zDim,
+      nTargets,
+      config.rlsLambda,
+      config.rlsDelta,
+      config.l2Lambda,
+      config.epsilon,
+    );
+
+    // Allocate scratch
+    this.z = new Float64Array(this.zDim);
+    this.prediction = new Float64Array(nTargets);
   }
 
   /**
-   * RLS update with regularization:
-   * Pz = P z
-   * denom = λ + z^T P z + l2
-   * k = Pz / denom
-   * Wout[t,:] += k * err[t]
-   * P = (P - k * Pz^T) / λ
+   * Build extended state z = [r; x; 1]
    */
-  stepSharedP(
-    state: RLSState,
-    Wout: Float64Array,
-    z: Float64Array,
-    err: Float64Array,
-    nTargets: number,
-    gradientClipNorm: number,
+  buildZ(
+    reservoirState: Float64Array,
+    rsOffset: number,
+    input: Float64Array,
+    inputOffset: number,
+    out: Float64Array,
+    outOffset: number,
+  ): void {
+    let idx = outOffset;
+
+    // Copy reservoir state
+    for (let i = 0; i < this.reservoirSize; i++) {
+      out[idx++] = reservoirState[rsOffset + i];
+    }
+
+    // Optionally append input
+    if (this.useInputInReadout) {
+      for (let i = 0; i < this.nFeatures; i++) {
+        out[idx++] = input[inputOffset + i];
+      }
+    }
+
+    // Optionally append bias
+    if (this.useBiasInReadout) {
+      out[idx] = 1.0;
+    }
+  }
+
+  /**
+   * Forward pass (prediction)
+   */
+  forward(
+    reservoirState: Float64Array,
+    rsOffset: number,
+    input: Float64Array,
+    inputOffset: number,
+    out: Float64Array,
+    outOffset: number,
+  ): void {
+    this.buildZ(reservoirState, rsOffset, input, inputOffset, this.z, 0);
+    this.rls.predict(this.z, 0, out, outOffset);
+  }
+
+  /**
+   * Training step
+   */
+  train(
+    reservoirState: Float64Array,
+    rsOffset: number,
+    input: Float64Array,
+    inputOffset: number,
+    target: Float64Array,
+    targetOffset: number,
+    weight: number,
   ): number {
-    const D = state.zDim;
-    const P = state.P;
-    const Pz = state.Pz;
-    const k = state.k;
-    const lambda = this.lambda;
-    const eps = this.eps;
-    const l2 = this.l2Lambda;
+    this.buildZ(reservoirState, rsOffset, input, inputOffset, this.z, 0);
+    return this.rls.update(this.z, 0, target, targetOffset, weight);
+  }
 
-    for (let i = 0; i < D; i++) {
-      let s = 0.0;
-      const row = i * D;
-      for (let j = 0; j < D; j++) s += P[row + j] * z[j];
-      Pz[i] = s;
-    }
+  getZDim(): number {
+    return this.zDim;
+  }
 
-    let zTPz = 0.0;
-    for (let i = 0; i < D; i++) zTPz += z[i] * Pz[i];
+  getNTargets(): number {
+    return this.nTargets;
+  }
 
-    let denom = lambda + zTPz + l2;
-    if (!TensorOps.isFinite(denom) || denom < eps) {
-      denom = eps;
-    }
+  getWout(): Float64Array {
+    return this.rls.getWout();
+  }
 
-    const invDen = 1.0 / denom;
-    for (let i = 0; i < D; i++) {
-      k[i] = Pz[i] * invDen;
-      if (!TensorOps.isFinite(k[i])) k[i] = 0.0;
-    }
+  getRLS(): RLSOptimizer {
+    return this.rls;
+  }
 
-    let sumErr2 = 0.0;
-    for (let t = 0; t < nTargets; t++) {
-      const e = err[t];
-      if (TensorOps.isFinite(e)) {
-        sumErr2 += e * e;
-      }
-    }
-    const kNorm = TensorOps.l2Norm(k);
-    let updateNorm = kNorm * Math.sqrt(sumErr2);
-    if (!TensorOps.isFinite(updateNorm)) {
-      updateNorm = gradientClipNorm > 0 ? gradientClipNorm : 1.0;
-    }
+  // Serialization
+  serialize(): { rls: { P: number[]; Wout: number[] } } {
+    return { rls: this.rls.serialize() };
+  }
 
-    let scale = 1.0;
-    if (
-      gradientClipNorm > 0 && updateNorm > gradientClipNorm && updateNorm > eps
-    ) {
-      scale = gradientClipNorm / updateNorm;
-      updateNorm = gradientClipNorm;
-    }
+  deserialize(data: { rls: { P: number[]; Wout: number[] } }): void {
+    this.rls.deserialize(data.rls);
+  }
 
-    for (let t = 0; t < nTargets; t++) {
-      const base = t * D;
-      const et = TensorOps.ensureFinite(err[t], 0.0) * scale;
-      for (let i = 0; i < D; i++) {
-        const delta = k[i] * et;
-        if (TensorOps.isFinite(delta)) {
-          Wout[base + i] += delta;
-        }
-      }
-      // Apply L2 decay to weights
-      if (l2 > 0) {
-        const decay = 1.0 - l2 * scale * 0.01;
-        for (let i = 0; i < D; i++) {
-          Wout[base + i] *= decay;
-        }
-      }
-    }
-
-    const invLambda = 1.0 / (lambda > eps ? lambda : eps);
-    for (let i = 0; i < D; i++) {
-      const ki = k[i];
-      const row = i * D;
-      for (let j = 0; j < D; j++) {
-        P[row + j] = (P[row + j] - ki * Pz[j]) * invLambda;
-      }
-    }
-
-    state.stabilize();
-
-    return updateNorm;
+  reset(): void {
+    this.rls.reset();
   }
 }
+
+// ============================================================================
+// SERIALIZATION HELPER
+// ============================================================================
 
 class SerializationHelper {
-  static toNumberArray(a: Float64Array): number[] {
-    return Array.from(a);
+  static serialize(model: ESNRegression): string {
+    return JSON.stringify(model.getSerializableState());
   }
-  static fromNumberArray(dst: Float64Array, src: number[]): void {
-    const n = dst.length;
-    for (let i = 0; i < n; i++) dst[i] = src[i];
+
+  static deserialize(model: ESNRegression, json: string): void {
+    const state = JSON.parse(json);
+    model.setSerializableState(state);
   }
 }
 
-/** Main model. */
+// ============================================================================
+// ESN REGRESSION (Main class)
+// ============================================================================
+
+/**
+ * Echo State Network for Multivariate Regression with Online Learning
+ *
+ * @example
+ * ```typescript
+ * const model = new ESNRegression({ reservoirSize: 128 });
+ *
+ * const xTrain = [[1.0, 2.0], [1.5, 2.5], [2.0, 3.0]];
+ * const yTrain = [[10, 11], [15, 16], [20, 21]];
+ *
+ * const fitResult = model.fitOnline({ xCoordinates: xTrain, yCoordinates: yTrain });
+ * const prediction = model.predict(3);
+ * ```
+ */
 export class ESNRegression {
-  readonly config: ESNRegressionConfig;
+  private config: ESNRegressionConfig;
+  private initialized: boolean = false;
+  private nFeatures: number = 0;
+  private nTargets: number = 0;
+  private sampleCount: number = 0;
 
-  private initialized: boolean;
-  private nFeatures: number;
-  private nTargets: number;
-  private zDim: number;
-
+  // Components (created on first fitOnline)
+  private reservoir: ESNReservoir | null = null;
+  private readout: LinearReadout | null = null;
+  private normalizer: WelfordNormalizer | null = null;
+  private ringBuffer: RingBuffer | null = null;
+  private residualStats: ResidualStatsTracker | null = null;
+  private outlierDownweighter: OutlierDownweighter | null = null;
+  private metricsAccumulator: MetricsAccumulator | null = null;
   private rng: RandomGenerator;
-  private arena: TensorArena | null;
-  private ring: RingBuffer | null;
-  private normalizer: WelfordNormalizer | null;
-  private targetStats: TargetStatsTracker | null;
-  private residualTracker: ResidualStatsTracker | null;
-  private outlier: OutlierDownweighter | null;
-  private reservoirParams: ESNReservoirParams | null;
-  private reservoir: ESNReservoir | null;
-  private readoutCfg: ReadoutConfig | null;
-  private readoutParams: ReadoutParams | null;
-  private readout: LinearReadout | null;
-  private rlsState: RLSState | null;
-  private rlsOpt: RLSOptimizer | null;
 
-  private xRawScratch: Float64Array | null;
-  private xNormScratch: Float64Array | null;
-  private zScratch: Float64Array | null;
-  private yHatScratch: Float64Array | null;
-  private yHatDenormScratch: Float64Array | null;
-  private yNormScratch: Float64Array | null;
-  private residualScratch: Float64Array | null;
-  private sigmaScratch: Float64Array | null;
-  private errScratch: Float64Array | null;
+  // Scratch buffers (preallocated after init)
+  private scratchX: Float64Array | null = null;
+  private scratchXNorm: Float64Array | null = null;
+  private scratchY: Float64Array | null = null;
+  private scratchPred: Float64Array | null = null;
+  private scratchResiduals: Float64Array | null = null;
+  private scratchStds: Float64Array | null = null;
+  private scratchReservoirState: Float64Array | null = null;
 
-  private rScratch: Float64Array | null;
-  private rPrevScratch: Float64Array | null;
-  private xStepRawScratch: Float64Array | null;
-  private xStepNormScratch: Float64Array | null;
-  private zPredScratch: Float64Array | null;
-  private yPredScratch: Float64Array | null;
-  private yPredDenormScratch: Float64Array | null;
-  private sigmaPredScratch: Float64Array | null;
+  // Reusable result objects
+  private fitResultObj: FitResult;
+  private predictionResultObj: PredictionResult;
 
-  private fitRes: FitResult;
-  private predRes: PredictionResult | null;
-
-  private metrics: MetricsAccumulator;
-  private sampleCount: number;
-  private scaledSpectralRadius: number;
-  private trainedSamples: number;
-
-  constructor(cfg?: Partial<ESNRegressionConfig>) {
-    const base = defaultConfig();
-    this.config = Object.assign({}, base, cfg || {});
-    if (this.config.maxSequenceLength <= 0) this.config.maxSequenceLength = 1;
-    if (this.config.reservoirSize <= 0) this.config.reservoirSize = 1;
-    if (this.config.leakRate <= 0) this.config.leakRate = 0.01;
-    if (this.config.leakRate > 1) this.config.leakRate = 1;
-
-    this.initialized = false;
-    this.nFeatures = 0;
-    this.nTargets = 0;
-    this.zDim = 0;
+  constructor(config: Partial<ESNRegressionConfig> = {}) {
+    this.config = { ...DEFAULT_CONFIG, ...config };
     this.rng = new RandomGenerator(this.config.seed);
-    this.arena = null;
-    this.ring = null;
-    this.normalizer = null;
-    this.targetStats = null;
-    this.residualTracker = null;
-    this.outlier = null;
-    this.reservoirParams = null;
-    this.reservoir = null;
-    this.readoutCfg = null;
-    this.readoutParams = null;
-    this.readout = null;
-    this.rlsState = null;
-    this.rlsOpt = null;
 
-    this.xRawScratch = null;
-    this.xNormScratch = null;
-    this.zScratch = null;
-    this.yHatScratch = null;
-    this.yHatDenormScratch = null;
-    this.yNormScratch = null;
-    this.residualScratch = null;
-    this.sigmaScratch = null;
-    this.errScratch = null;
-
-    this.rScratch = null;
-    this.rPrevScratch = null;
-    this.xStepRawScratch = null;
-    this.xStepNormScratch = null;
-    this.zPredScratch = null;
-    this.yPredScratch = null;
-    this.yPredDenormScratch = null;
-    this.sigmaPredScratch = null;
-
-    this.fitRes = {
+    // Initialize reusable result objects
+    this.fitResultObj = {
       samplesProcessed: 0,
       averageLoss: 0,
       gradientNorm: 0,
       driftDetected: false,
       sampleWeight: 1.0,
     };
-    this.predRes = null;
-    this.metrics = new MetricsAccumulator();
-    this.sampleCount = 0;
-    this.trainedSamples = 0;
-    this.scaledSpectralRadius = this.config.spectralRadius;
+
+    // Initialize prediction result with max capacity
+    const maxSteps = this.config.maxSequenceLength;
+    this.predictionResultObj = {
+      predictions: [],
+      lowerBounds: [],
+      upperBounds: [],
+      confidence: 0,
+    };
+    // Pre-allocate arrays (will be resized/filled as needed)
+    for (let i = 0; i < maxSteps; i++) {
+      this.predictionResultObj.predictions.push([]);
+      this.predictionResultObj.lowerBounds.push([]);
+      this.predictionResultObj.upperBounds.push([]);
+    }
   }
 
-  private ensureInitializedFromBatch(
-    xCoordinates: number[][],
-    yCoordinates: number[][],
-  ): void {
-    if (this.initialized) return;
-    if (xCoordinates.length === 0) return;
-    const F = xCoordinates[0].length | 0;
-    const T = yCoordinates[0].length | 0;
-    if (F <= 0) throw new Error("fitOnline: nFeatures must be > 0");
-    if (T <= 0) throw new Error("fitOnline: nTargets must be > 0");
-    for (let i = 0; i < xCoordinates.length; i++) {
-      if (xCoordinates[i].length !== F) {
-        throw new Error(
-          "fitOnline: inconsistent xCoordinates feature dimension",
-        );
-      }
-      if (yCoordinates[i].length !== T) {
-        throw new Error(
-          "fitOnline: inconsistent yCoordinates target dimension",
-        );
-      }
-    }
+  /**
+   * Initialize model components on first data
+   */
+  private initialize(nFeatures: number, nTargets: number): void {
+    this.nFeatures = nFeatures;
+    this.nTargets = nTargets;
 
-    this.nFeatures = F;
-    this.nTargets = T;
-
-    const N = this.config.reservoirSize | 0;
-    const useX = this.config.useInputInReadout;
-    const useB = this.config.useBiasInReadout;
-    this.zDim = (N + (useX ? F : 0) + (useB ? 1 : 0)) | 0;
-
-    const D = this.zDim;
-    let total = 0;
-    total += N * N;
-    total += N * F;
-    total += N;
-    total += N;
-    total += N;
-    total += N;
-    total += N;
-    total += N;
-    total += D * D;
-    total += D;
-    total += D;
-    total += T * D;
-    total += F;
-    total += F;
-    total += D;
-    total += T;
-    total += T;
-    total += T;
-    total += T;
-    total += T;
-    total += F;
-    total += F;
-    total += D;
-    total += T;
-    total += T;
-    total += T;
-    total += N;
-    total += N;
-    total += 256;
-
-    this.arena = new TensorArena(total | 0);
-
-    const W = this.arena.alloc(N * N);
-    const Win = this.arena.alloc(N * F);
-    const b = this.arena.alloc(N);
-
-    this.initReservoirWeights(W, Win, b, F);
-
-    this.reservoirParams = new ESNReservoirParams(N, F, Win, W, b);
+    // Create reservoir
     this.reservoir = new ESNReservoir(
-      this.reservoirParams,
-      this.config.activation,
-      this.config.leakRate,
-      this.config.inputScale,
-      this.arena,
+      this.config.reservoirSize,
+      nFeatures,
+      this.config,
+      this.rng,
     );
 
-    this.rScratch = this.arena.alloc(N);
-    this.rPrevScratch = this.arena.alloc(N);
-    TensorOps.fill(this.rScratch, 0.0);
-    TensorOps.fill(this.rPrevScratch, 0.0);
-
-    const Wout = this.arena.alloc(T * D);
-    this.initReadoutWeights(Wout, T, D);
-    this.readoutCfg = new ReadoutConfig(this.config);
-    this.readoutParams = new ReadoutParams(T, D, Wout);
-    this.readout = new LinearReadout(this.readoutParams);
-
-    const P = this.arena.alloc(D * D);
-    const Pz = this.arena.alloc(D);
-    const k = this.arena.alloc(D);
-    this.rlsState = new RLSState(
-      D,
-      P,
-      Pz,
-      k,
-      this.config.l2Lambda,
-      this.config.epsilon,
-    );
-    this.rlsState.reset(this.config.rlsDelta);
-    this.rlsOpt = new RLSOptimizer(
-      this.config.rlsLambda,
-      this.config.epsilon,
-      this.config.l2Lambda,
+    // Create readout
+    this.readout = new LinearReadout(
+      this.config.reservoirSize,
+      nFeatures,
+      nTargets,
+      this.config,
     );
 
-    this.ring = new RingBuffer(this.config.maxSequenceLength, F);
+    // Create normalizer
     this.normalizer = new WelfordNormalizer(
-      F,
+      nFeatures,
       this.config.normalizationEpsilon,
       this.config.normalizationWarmup,
     );
-    this.targetStats = new TargetStatsTracker(
-      T,
-      this.config.normalizationEpsilon,
-      this.config.normalizationWarmup,
-    );
-    this.residualTracker = new ResidualStatsTracker(
-      T,
+
+    // Create ring buffer
+    this.ringBuffer = new RingBuffer(this.config.maxSequenceLength, nFeatures);
+
+    // Create residual stats tracker
+    this.residualStats = new ResidualStatsTracker(
       this.config.residualWindowSize,
-      this.config.epsilon,
+      nTargets,
     );
-    this.outlier = new OutlierDownweighter(
+
+    // Create outlier downweighter
+    this.outlierDownweighter = new OutlierDownweighter(
       this.config.outlierThreshold,
       this.config.outlierMinWeight,
     );
 
-    this.xRawScratch = this.arena.alloc(F);
-    this.xNormScratch = this.arena.alloc(F);
-    this.zScratch = this.arena.alloc(D);
-    this.yHatScratch = this.arena.alloc(T);
-    this.yHatDenormScratch = this.arena.alloc(T);
-    this.yNormScratch = this.arena.alloc(T);
-    this.residualScratch = this.arena.alloc(T);
-    this.sigmaScratch = this.arena.alloc(T);
-    this.errScratch = this.arena.alloc(T);
+    // Create metrics accumulator
+    this.metricsAccumulator = new MetricsAccumulator();
 
-    this.xStepRawScratch = this.arena.alloc(F);
-    this.xStepNormScratch = this.arena.alloc(F);
-    this.zPredScratch = this.arena.alloc(D);
-    this.yPredScratch = this.arena.alloc(T);
-    this.yPredDenormScratch = this.arena.alloc(T);
-    this.sigmaPredScratch = this.arena.alloc(T);
+    // Allocate scratch buffers
+    this.scratchX = new Float64Array(nFeatures);
+    this.scratchXNorm = new Float64Array(nFeatures);
+    this.scratchY = new Float64Array(nTargets);
+    this.scratchPred = new Float64Array(nTargets);
+    this.scratchResiduals = new Float64Array(nTargets);
+    this.scratchStds = new Float64Array(nTargets);
+    this.scratchReservoirState = new Float64Array(this.config.reservoirSize);
 
-    TensorOps.fill(this.xRawScratch, 0.0);
-    TensorOps.fill(this.xNormScratch, 0.0);
-    TensorOps.fill(this.zScratch, 0.0);
-    TensorOps.fill(this.yHatScratch, 0.0);
-    TensorOps.fill(this.yHatDenormScratch, 0.0);
-    TensorOps.fill(this.yNormScratch, 0.0);
-    TensorOps.fill(this.residualScratch, 0.0);
-    TensorOps.fill(this.sigmaScratch, 0.0);
-    TensorOps.fill(this.errScratch, 0.0);
-    TensorOps.fill(this.xStepRawScratch, 0.0);
-    TensorOps.fill(this.xStepNormScratch, 0.0);
-    TensorOps.fill(this.zPredScratch, 0.0);
-    TensorOps.fill(this.yPredScratch, 0.0);
-    TensorOps.fill(this.yPredDenormScratch, 0.0);
-    TensorOps.fill(this.sigmaPredScratch, 0.0);
+    // Resize prediction result arrays for nTargets
+    for (let i = 0; i < this.config.maxSequenceLength; i++) {
+      this.predictionResultObj.predictions[i] = new Array(nTargets).fill(0);
+      this.predictionResultObj.lowerBounds[i] = new Array(nTargets).fill(0);
+      this.predictionResultObj.upperBounds[i] = new Array(nTargets).fill(0);
+    }
 
-    this.metrics.reset();
-    this.sampleCount = 0;
-    this.trainedSamples = 0;
-
-    this.predRes = this.allocatePredictionResult(
-      this.config.maxSequenceLength,
-      T,
-    );
     this.initialized = true;
   }
 
-  private allocatePredictionResult(
-    maxSteps: number,
-    nTargets: number,
-  ): PredictionResult {
-    const preds = new Array<number[]>(maxSteps);
-    const lows = new Array<number[]>(maxSteps);
-    const ups = new Array<number[]>(maxSteps);
-    for (let i = 0; i < maxSteps; i++) {
-      const p = new Array<number>(nTargets);
-      const l = new Array<number>(nTargets);
-      const u = new Array<number>(nTargets);
-      for (let t = 0; t < nTargets; t++) {
-        p[t] = 0.0;
-        l[t] = 0.0;
-        u[t] = 0.0;
-      }
-      preds[i] = p;
-      lows[i] = l;
-      ups[i] = u;
-    }
-    return {
-      predictions: preds,
-      lowerBounds: lows,
-      upperBounds: ups,
-      confidence: 0.0,
-    };
-  }
-
-  private initReservoirWeights(
-    W: Float64Array,
-    Win: Float64Array,
-    b: Float64Array,
-    nFeatures: number,
-  ): void {
-    const cfg = this.config;
-    const N = cfg.reservoirSize | 0;
-    const F = nFeatures | 0;
-    const rng = new RandomGenerator(cfg.seed);
-
-    // Input weight initialization with proper scaling
-    const winMask = new Uint8Array(N * F);
-    ReservoirInitMask.initMask(rng, winMask.length, cfg.inputSparsity, winMask);
-    const winScale = cfg.weightInitScale / Math.sqrt(Math.max(1, F));
-
-    for (let i = 0; i < N; i++) {
-      for (let j = 0; j < F; j++) {
-        const idx = i * F + j;
-        if (winMask[idx]) {
-          Win[idx] = rng.nextGaussian() * winScale;
-        } else {
-          Win[idx] = 0.0;
-        }
-      }
-    }
-
-    // Reservoir weight initialization
-    const wMask = new Uint8Array(N * N);
-    ReservoirInitMask.initMask(rng, wMask.length, cfg.reservoirSparsity, wMask);
-
-    // Count non-zero connections per row for proper scaling
-    const avgConnections = N * (1 - cfg.reservoirSparsity);
-    const wScale = cfg.weightInitScale / Math.sqrt(Math.max(1, avgConnections));
-
-    for (let i = 0; i < N * N; i++) {
-      if (wMask[i]) {
-        W[i] = rng.nextGaussian() * wScale;
-      } else {
-        W[i] = 0.0;
-      }
-    }
-
-    // Bias initialization
-    const bscale = cfg.biasScale;
-    for (let i = 0; i < N; i++) {
-      b[i] = rng.nextGaussian() * bscale;
-    }
-
-    // Scale to target spectral radius
-    const tmpV = new Float64Array(N);
-    const tmpWv = new Float64Array(N);
-    this.scaledSpectralRadius = SpectralRadiusScaler.scaleToSpectralRadius(
-      W,
-      N,
-      cfg.spectralRadius,
-      100, // More iterations for better accuracy
-      tmpV,
-      tmpWv,
-      cfg.epsilon,
-    );
-  }
-
-  private initReadoutWeights(
-    Wout: Float64Array,
-    nTargets: number,
-    zDim: number,
-  ): void {
-    // Initialize to small random values for better initial dynamics
-    const rng = new RandomGenerator(this.config.seed + 12345);
-    const scale = 0.001 / Math.sqrt(zDim);
-    for (let i = 0; i < Wout.length; i++) {
-      Wout[i] = rng.nextGaussian() * scale;
-    }
-  }
-
-  private buildZ(
-    rState: Float64Array,
-    xNorm: Float64Array,
-    zOut: Float64Array,
-  ): void {
-    const N = this.config.reservoirSize | 0;
-    const F = this.nFeatures | 0;
-    let idx = 0;
-    for (let i = 0; i < N; i++) zOut[idx++] = rState[i];
-    if (this.config.useInputInReadout) {
-      for (let j = 0; j < F; j++) zOut[idx++] = xNorm[j];
-    }
-    if (this.config.useBiasInReadout) {
-      zOut[idx++] = 1.0;
-    }
-  }
-
   /**
-   * Online training with one sample at a time (batch accepted).
-   * @param args.xCoordinates Feature rows [nSamples][nFeatures]
-   * @param args.yCoordinates Target rows [nSamples][nTargets]
-   * @returns FitResult with metrics
+   * Online training with new samples
+   *
+   * @param xCoordinates Input features [N x nFeatures]
+   * @param yCoordinates Target values [N x nTargets]
+   * @returns FitResult with training metrics
+   *
+   * @example
+   * ```typescript
+   * const result = model.fitOnline({
+   *   xCoordinates: [[1.0, 2.0], [1.5, 2.5]],
+   *   yCoordinates: [[10, 11], [15, 16]]
+   * });
+   * console.log(result.averageLoss);
+   * ```
    */
-  fitOnline(
-    args: { xCoordinates: number[][]; yCoordinates: number[][] },
-  ): FitResult {
-    const xCoordinates = args.xCoordinates;
-    const yCoordinates = args.yCoordinates;
-
-    if ((xCoordinates.length | 0) !== (yCoordinates.length | 0)) {
+  fitOnline({ xCoordinates, yCoordinates }: {
+    xCoordinates: number[][];
+    yCoordinates: number[][];
+  }): FitResult {
+    // CRITICAL: Validate lengths match BEFORE any ingestion
+    if (xCoordinates.length !== yCoordinates.length) {
       throw new Error(
-        "fitOnline: xCoordinates.length must equal yCoordinates.length",
+        `fitOnline: xCoordinates.length (${xCoordinates.length}) must equal ` +
+          `yCoordinates.length (${yCoordinates.length})`,
       );
     }
 
-    const N = xCoordinates.length | 0;
-    if (N > 0) {
-      if (!this.initialized) {
-        this.ensureInitializedFromBatch(xCoordinates, yCoordinates);
-      } else {
-        const F = this.nFeatures | 0;
-        const T = this.nTargets | 0;
-        for (let i = 0; i < N; i++) {
-          if (xCoordinates[i].length !== F) {
-            throw new Error(
-              "fitOnline: inconsistent xCoordinates feature dimension",
-            );
-          }
-          if (yCoordinates[i].length !== T) {
-            throw new Error(
-              "fitOnline: inconsistent yCoordinates target dimension",
-            );
-          }
-        }
-      }
-    } else {
-      this.fitRes.samplesProcessed = 0;
-      this.fitRes.averageLoss = this.metrics.mean();
-      this.fitRes.gradientNorm = 0;
-      this.fitRes.driftDetected = false;
-      this.fitRes.sampleWeight = 1.0;
-      return this.fitRes;
+    const N = xCoordinates.length;
+    if (N === 0) {
+      this.fitResultObj.samplesProcessed = 0;
+      this.fitResultObj.averageLoss = 0;
+      this.fitResultObj.gradientNorm = 0;
+      this.fitResultObj.driftDetected = false;
+      this.fitResultObj.sampleWeight = 1.0;
+      return this.fitResultObj;
     }
 
+    // Initialize on first non-empty call
     if (!this.initialized) {
-      throw new Error("fitOnline: failed to initialize");
+      const nFeatures = xCoordinates[0].length;
+      const nTargets = yCoordinates[0].length;
+      if (nFeatures === 0) throw new Error("fitOnline: nFeatures must be > 0");
+      if (nTargets === 0) throw new Error("fitOnline: nTargets must be > 0");
+      this.initialize(nFeatures, nTargets);
     }
 
-    const ring = this.ring!;
-    const normalizer = this.normalizer!;
-    const targetStats = this.targetStats!;
-    const reservoir = this.reservoir!;
-    const readout = this.readout!;
-    const rlsState = this.rlsState!;
-    const rlsOpt = this.rlsOpt!;
-    const residualTracker = this.residualTracker!;
-    const outlier = this.outlier!;
-
-    const xRaw = this.xRawScratch!;
-    const xNorm = this.xNormScratch!;
-    const z = this.zScratch!;
-    const yHat = this.yHatScratch!;
-    const yHatDenorm = this.yHatDenormScratch!;
-    const yNorm = this.yNormScratch!;
-    const residual = this.residualScratch!;
-    const sigma = this.sigmaScratch!;
-    const err = this.errScratch!;
-
-    const T = this.nTargets | 0;
-    const warmup = this.config.normalizationWarmup;
-
-    let lastUpdateNorm = 0.0;
-    let lastWeight = 1.0;
-
+    // Validate all rows have correct dimensions
     for (let i = 0; i < N; i++) {
-      // 1. Push x to ring buffer FIRST
-      ring.pushRow(xCoordinates[i]);
-      ring.getLatestRow(xRaw);
-
-      // 2. Update input normalizer and normalize
-      normalizer.updateStats(xRaw);
-      normalizer.normalize(xRaw, xNorm);
-
-      // 3. Update target stats BEFORE using them (consistent normalization)
-      targetStats.updateStats(yCoordinates[i]);
-
-      // 4. Step reservoir with normalized input
-      reservoir.step(xNorm);
-
-      // 5. Build z vector and forward
-      this.buildZ(reservoir.state, xNorm, z);
-      readout.forward(z, yHat);
-
-      // 6. Denormalize prediction for loss and residual computation
-      targetStats.denormalize(yHat, yHatDenorm);
-
-      // 7. Compute residuals in original scale
-      const yRow = yCoordinates[i];
-      for (let t = 0; t < T; t++) {
-        residual[t] = yRow[t] - yHatDenorm[t];
-      }
-
-      // 8. Get sigma and compute outlier weight
-      residualTracker.getSigma(sigma);
-      lastWeight = outlier.computeWeight(residual, sigma);
-
-      // 9. Compute loss in original scale
-      const loss = LossFunction.mse(yRow, yHatDenorm);
-      this.metrics.add(loss);
-
-      // 10. RLS update (if past warmup)
-      if (this.sampleCount >= warmup) {
-        // Normalize target
-        targetStats.normalize(yRow, yNorm);
-
-        // Compute error in normalized space (yHat is already in normalized space)
-        for (let t = 0; t < T; t++) {
-          err[t] = (yNorm[t] - yHat[t]) * Math.sqrt(lastWeight);
-        }
-
-        lastUpdateNorm = rlsOpt.stepSharedP(
-          rlsState,
-          this.readoutParams!.Wout,
-          z,
-          err,
-          T,
-          this.config.gradientClipNorm,
+      if (xCoordinates[i].length !== this.nFeatures) {
+        throw new Error(
+          `fitOnline: xCoordinates[${i}].length (${xCoordinates[i].length}) ` +
+            `must equal nFeatures (${this.nFeatures})`,
         );
-        this.trainedSamples++;
+      }
+      if (yCoordinates[i].length !== this.nTargets) {
+        throw new Error(
+          `fitOnline: yCoordinates[${i}].length (${yCoordinates[i].length}) ` +
+            `must equal nTargets (${this.nTargets})`,
+        );
+      }
+    }
+
+    // Reset metrics for this batch
+    this.metricsAccumulator!.reset();
+
+    // Process each sample
+    for (let i = 0; i < N; i++) {
+      // 1. FIRST: Push x into RingBuffer (Critical: must happen before any training)
+      for (let j = 0; j < this.nFeatures; j++) {
+        this.scratchX![j] = xCoordinates[i][j];
+      }
+      this.ringBuffer!.push(this.scratchX!, 0);
+
+      // 2. Update normalization stats
+      this.normalizer!.update(this.scratchX!, 0);
+
+      // 3. Normalize x
+      this.normalizer!.normalize(this.scratchX!, 0, this.scratchXNorm!, 0);
+
+      // 4. Update reservoir state
+      this.reservoir!.update(this.scratchXNorm!, 0);
+
+      // 5. Copy target
+      for (let j = 0; j < this.nTargets; j++) {
+        this.scratchY![j] = yCoordinates[i][j];
       }
 
-      // 11. Update residual tracker
-      residualTracker.update(residual);
+      // 6. Compute prediction
+      this.readout!.forward(
+        this.reservoir!.getState(),
+        0,
+        this.scratchXNorm!,
+        0,
+        this.scratchPred!,
+        0,
+      );
+
+      // 7. Compute residuals
+      for (let j = 0; j < this.nTargets; j++) {
+        this.scratchResiduals![j] = this.scratchPred![j] - this.scratchY![j];
+      }
+
+      // 8. Get residual stds for outlier detection
+      this.residualStats!.getStds(this.scratchStds!, 0);
+
+      // 9. Compute sample weight
+      const weight = this.outlierDownweighter!.computeWeight(
+        this.scratchResiduals!,
+        0,
+        this.scratchStds!,
+        0,
+        this.nTargets,
+      );
+
+      // 10. Perform RLS update
+      const gradNorm = this.readout!.train(
+        this.reservoir!.getState(),
+        0,
+        this.scratchXNorm!,
+        0,
+        this.scratchY!,
+        0,
+        weight,
+      );
+
+      // 11. Compute loss
+      let loss = 0;
+      for (let j = 0; j < this.nTargets; j++) {
+        loss += this.scratchResiduals![j] * this.scratchResiduals![j];
+      }
+      loss /= this.nTargets;
+
+      // 12. Update residual stats (after computing loss)
+      this.residualStats!.update(this.scratchResiduals!, 0);
+
+      // 13. Update metrics
+      this.metricsAccumulator!.update(loss, gradNorm, weight);
+
       this.sampleCount++;
     }
 
-    this.fitRes.samplesProcessed = N;
-    this.fitRes.averageLoss = this.metrics.recentMean();
-    this.fitRes.gradientNorm = lastUpdateNorm;
-    this.fitRes.driftDetected = false;
-    this.fitRes.sampleWeight = lastWeight;
+    // Fill result object (reused)
+    this.fitResultObj.samplesProcessed = N;
+    this.fitResultObj.averageLoss = this.metricsAccumulator!.getAverageLoss();
+    this.fitResultObj.gradientNorm = this.metricsAccumulator!
+      .getAverageGradNorm();
+    this.fitResultObj.driftDetected = false; // ADWIN not implemented
+    this.fitResultObj.sampleWeight = this.metricsAccumulator!.getLastWeight();
 
-    return this.fitRes;
+    return this.fitResultObj;
   }
 
   /**
-   * Predict multiple steps ahead using deterministic roll-forward.
+   * Multi-step prediction
+   *
    * @param futureSteps Number of steps to predict (1 to maxSequenceLength)
    * @returns PredictionResult with predictions and uncertainty bounds
+   *
+   * @example
+   * ```typescript
+   * const pred = model.predict(3);
+   * console.log(pred.predictions[0]); // 1-step ahead
+   * console.log(pred.predictions[2]); // 3-step ahead
+   * ```
    */
   predict(futureSteps: number): PredictionResult {
+    // Validate model is initialized
     if (
-      !this.initialized ||
-      !this.ring ||
-      !this.reservoir ||
-      !this.readout ||
-      !this.normalizer ||
-      !this.residualTracker ||
-      !this.targetStats
+      !this.initialized || !this.reservoir || !this.readout || !this.ringBuffer
     ) {
       throw new Error("predict: model not initialized (call fitOnline first)");
     }
-    if ((futureSteps | 0) !== futureSteps || futureSteps < 1) {
-      throw new Error("predict: futureSteps must be an integer >= 1");
+
+    // Validate futureSteps
+    if (!Number.isInteger(futureSteps) || futureSteps < 1) {
+      throw new Error("predict: futureSteps must be a positive integer >= 1");
     }
     if (futureSteps > this.config.maxSequenceLength) {
-      throw new Error("predict: futureSteps must be <= maxSequenceLength");
+      throw new Error(
+        `predict: futureSteps (${futureSteps}) exceeds maxSequenceLength (${this.config.maxSequenceLength})`,
+      );
     }
-    if (this.ring.size() <= 0) {
+
+    // Check if we have data
+    if (this.ringBuffer.isEmpty()) {
       throw new Error("predict: model not initialized (call fitOnline first)");
     }
 
-    const ring = this.ring;
-    const normalizer = this.normalizer;
-    const targetStats = this.targetStats;
-    const reservoir = this.reservoir;
-    const readout = this.readout;
-    const residualTracker = this.residualTracker;
+    // Get latest x from RingBuffer
+    this.ringBuffer.getLatest(this.scratchX!, 0);
 
-    const N = this.config.reservoirSize | 0;
-    const F = this.nFeatures | 0;
-    const T = this.nTargets | 0;
+    // Copy current reservoir state to scratch
+    this.reservoir.copyStateTo(this.scratchReservoirState!, 0);
 
-    const rScratch = this.rScratch!;
-    const rPrevScratch = this.rPrevScratch!;
-    const xStepRaw = this.xStepRawScratch!;
-    const xStepNorm = this.xStepNormScratch!;
-    const zPred = this.zPredScratch!;
-    const yPred = this.yPredScratch!;
-    const yPredDenorm = this.yPredDenormScratch!;
-    const sigma = this.sigmaPredScratch!;
+    // Get base residual stds for uncertainty
+    this.residualStats!.getStds(this.scratchStds!, 0);
 
-    const res = this.predRes!;
-    residualTracker.getSigma(sigma);
-
-    // Copy live reservoir state to scratch
-    for (let i = 0; i < N; i++) rScratch[i] = reservoir.state[i];
-
-    // Get latest x from ring buffer
-    ring.getLatestRow(xStepRaw);
-
-    // Compute base sigma for uncertainty
-    let baseSigma = 0.0;
-    for (let t = 0; t < T; t++) baseSigma += sigma[t];
-    baseSigma /= T > 0 ? T : 1;
-
-    // Compute confidence based on training quality
-    const recentLoss = this.metrics.recentMean();
-    const meanAbsRes = residualTracker.getMeanAbsResidual();
-    const residualCount = residualTracker.getCount();
-
-    let conf = 1.0;
-    if (baseSigma > 1e-10) {
-      const relError = Math.sqrt(Math.max(0, recentLoss)) / baseSigma;
-      conf = 1.0 / (1.0 + relError);
-    }
-
-    // Reduce confidence if not enough training samples
-    const minSamples = this.config.normalizationWarmup * 3;
-    if (this.trainedSamples < minSamples) {
-      conf *= this.trainedSamples / minSamples;
-    }
-
-    // Reduce confidence based on mean absolute residual
-    if (meanAbsRes > 0 && baseSigma > 1e-10) {
-      const residualRatio = meanAbsRes / baseSigma;
-      conf *= Math.exp(-0.5 * residualRatio);
-    }
-
-    if (!TensorOps.isFinite(conf)) conf = 0.0;
-    res.confidence = TensorOps.clamp(conf, 0.0, 1.0);
-
-    const uncMult = this.config.uncertaintyMultiplier;
-    const rollMode = this.config.rollforwardMode;
-    const canAutoregress = rollMode === "autoregressive" && F === T;
-
+    // Roll forward for each step
     for (let step = 0; step < futureSteps; step++) {
-      // Normalize current input
-      normalizer.normalize(xStepRaw, xStepNorm);
+      // Normalize current x
+      this.normalizer!.normalize(this.scratchX!, 0, this.scratchXNorm!, 0);
 
       // Update scratch reservoir state
-      reservoir.updateStateInPlace(rScratch, rPrevScratch, xStepNorm);
+      this.updateScratchReservoir(this.scratchXNorm!, 0);
 
-      // Build z and forward to get prediction
-      this.buildZ(rScratch, xStepNorm, zPred);
-      readout.forward(zPred, yPred);
+      // Compute prediction
+      this.readout.forward(
+        this.scratchReservoirState!,
+        0,
+        this.scratchXNorm!,
+        0,
+        this.scratchPred!,
+        0,
+      );
 
-      // Denormalize prediction
-      targetStats.denormalize(yPred, yPredDenorm);
+      // Store predictions with proper array bounds
+      for (let t = 0; t < this.nTargets; t++) {
+        this.predictionResultObj.predictions[step][t] = this.scratchPred![t];
 
-      const pRow = res.predictions[step];
-      const lRow = res.lowerBounds[step];
-      const uRow = res.upperBounds[step];
+        // Compute uncertainty bounds with horizon scaling
+        // sigma_k = sigma_1 * sqrt(step + 1)
+        const horizonScale = Math.sqrt(step + 1);
+        const sigma = this.scratchStds![t] * horizonScale;
+        const halfWidth = this.config.uncertaintyMultiplier * sigma;
 
-      // Horizon-dependent uncertainty scaling
-      // Use sqrt(step+1) as base, with mild additional growth
-      const horizonScale = Math.sqrt(step + 1) * (1.0 + 0.1 * step);
-
-      for (let t = 0; t < T; t++) {
-        const y = yPredDenorm[t];
-        const targetScale = targetStats.getStd(t);
-        // Combine residual sigma with target scale for proper uncertainty
-        const s = Math.max(sigma[t], baseSigma * 0.5) * horizonScale;
-        const delta = uncMult * s;
-
-        pRow[t] = TensorOps.ensureFinite(y, targetStats.getMean(t));
-        lRow[t] = TensorOps.ensureFinite(y - delta, pRow[t] - delta);
-        uRow[t] = TensorOps.ensureFinite(y + delta, pRow[t] + delta);
+        this.predictionResultObj.lowerBounds[step][t] = this.scratchPred![t] -
+          halfWidth;
+        this.predictionResultObj.upperBounds[step][t] = this.scratchPred![t] +
+          halfWidth;
       }
 
-      // Prepare input for next step
-      if (canAutoregress && step < futureSteps - 1) {
-        // Autoregressive: use prediction as next input
-        // Need to handle scale mismatch between targets and inputs
-        for (let j = 0; j < F; j++) {
-          const predVal = yPredDenorm[j];
-          // Use normalizer stats to transform prediction to input scale
-          const inputMean = normalizer.acc.mean[j];
-          const inputStd = normalizer.std[j] > normalizer.eps
-            ? normalizer.std[j]
-            : 1.0;
-          const targetMean = targetStats.getMean(j);
-          const targetStd = targetStats.getStd(j);
-
-          // If scales are similar, use prediction directly
-          // Otherwise, transform to input scale
-          if (Math.abs(inputMean - targetMean) < inputStd + targetStd) {
-            xStepRaw[j] = TensorOps.ensureFinite(predVal, xStepRaw[j]);
-          } else {
-            // Transform: (pred - targetMean) / targetStd * inputStd + inputMean
-            const normalized = (predVal - targetMean) / targetStd;
-            const transformed = normalized * inputStd + inputMean;
-            xStepRaw[j] = TensorOps.ensureFinite(transformed, xStepRaw[j]);
-          }
+      // Prepare x for next step based on rollforward mode
+      if (
+        this.config.rollforwardMode === "autoregressive" &&
+        this.nFeatures === this.nTargets
+      ) {
+        // Use prediction as next input
+        for (let j = 0; j < this.nFeatures; j++) {
+          this.scratchX![j] = this.scratchPred![j];
         }
       }
-      // For holdLastX mode, xStepRaw stays the same (already loaded from ring buffer)
+      // else: holdLastX mode - scratchX remains unchanged
     }
 
-    return res;
-  }
-
-  getModelSummary(): ModelSummary {
-    if (!this.initialized) {
-      return {
-        totalParameters: 0,
-        receptiveField: this.config.maxSequenceLength | 0,
-        spectralRadius: this.scaledSpectralRadius,
-        reservoirSize: this.config.reservoirSize | 0,
-        nFeatures: 0,
-        nTargets: 0,
-        maxSequenceLength: this.config.maxSequenceLength | 0,
-        sampleCount: this.sampleCount | 0,
-      };
+    // Compute confidence (based on residual stats and prediction horizon)
+    let avgStd = 0;
+    for (let t = 0; t < this.nTargets; t++) {
+      avgStd += this.scratchStds![t];
     }
-    const N = this.config.reservoirSize | 0;
-    const F = this.nFeatures | 0;
-    const T = this.nTargets | 0;
-    const D = this.zDim | 0;
-    const totalParams = (N * N + N * F + N + T * D + D * D) | 0;
-    return {
-      totalParameters: totalParams,
-      receptiveField: this.config.maxSequenceLength | 0,
-      spectralRadius: this.scaledSpectralRadius,
-      reservoirSize: N,
-      nFeatures: F,
-      nTargets: T,
-      maxSequenceLength: this.config.maxSequenceLength | 0,
-      sampleCount: this.sampleCount | 0,
-    };
-  }
+    avgStd /= this.nTargets;
 
-  getWeights(): WeightInfo {
-    if (
-      !this.initialized ||
-      !this.reservoirParams ||
-      !this.readoutParams ||
-      !this.rlsState
-    ) {
-      return { weights: [] };
-    }
-    const N = this.config.reservoirSize | 0;
-    const F = this.nFeatures | 0;
-    const T = this.nTargets | 0;
-    const D = this.zDim | 0;
-    const rp = this.reservoirParams;
-    const ro = this.readoutParams;
-    const rls = this.rlsState;
-
-    return {
-      weights: [
-        {
-          name: "Win",
-          shape: [N, F],
-          values: SerializationHelper.toNumberArray(rp.Win),
-        },
-        {
-          name: "W",
-          shape: [N, N],
-          values: SerializationHelper.toNumberArray(rp.W),
-        },
-        {
-          name: "b",
-          shape: [N],
-          values: SerializationHelper.toNumberArray(rp.b),
-        },
-        {
-          name: "Wout",
-          shape: [T, D],
-          values: SerializationHelper.toNumberArray(ro.Wout),
-        },
-        {
-          name: "P",
-          shape: [D, D],
-          values: SerializationHelper.toNumberArray(rls.P),
-        },
-      ],
-    };
-  }
-
-  getNormalizationStats(): NormalizationStats {
-    if (!this.initialized || !this.normalizer) {
-      return { means: [], stds: [], count: 0, isActive: false };
-    }
-    return this.normalizer.getStats();
-  }
-
-  reset(): void {
-    if (!this.initialized) {
-      this.metrics.reset();
-      this.sampleCount = 0;
-      this.trainedSamples = 0;
-      this.fitRes.samplesProcessed = 0;
-      this.fitRes.averageLoss = 0;
-      this.fitRes.gradientNorm = 0;
-      this.fitRes.driftDetected = false;
-      this.fitRes.sampleWeight = 1;
-      if (this.predRes) this.predRes.confidence = 0.0;
-      return;
-    }
-
-    const T = this.nTargets | 0;
-    const F = this.nFeatures | 0;
-
-    this.ring!.reset();
-    this.normalizer!.reset();
-    this.targetStats!.reset();
-    this.residualTracker!.reset();
-
-    this.initReservoirWeights(
-      this.reservoirParams!.W,
-      this.reservoirParams!.Win,
-      this.reservoirParams!.b,
-      F,
+    // Confidence decreases with std and horizon
+    // Base confidence from inverse of normalized uncertainty
+    const baseConfidence = avgStd > 0 ? 1.0 / (1.0 + avgStd) : 1.0;
+    // Apply horizon penalty
+    const horizonPenalty = 1.0 / Math.sqrt(futureSteps);
+    this.predictionResultObj.confidence = Math.max(
+      0,
+      Math.min(1, baseConfidence * horizonPenalty),
     );
 
-    this.reservoir!.reset();
-    TensorOps.fill(this.rScratch!, 0.0);
-    TensorOps.fill(this.rPrevScratch!, 0.0);
+    return this.predictionResultObj;
+  }
 
-    this.initReadoutWeights(this.readoutParams!.Wout, T, this.zDim);
+  /**
+   * Update scratch reservoir state (helper for roll-forward)
+   * Uses the same dynamics as main reservoir but on scratch state
+   */
+  private updateScratchReservoir(xNorm: Float64Array, xOffset: number): void {
+    const params = this.reservoir!.getParams();
+    const rs = this.config.reservoirSize;
+    const leakRate = this.config.leakRate;
 
-    this.rlsState!.reset(this.config.rlsDelta);
+    // Temporary storage (reuse scratchPred as temp since we overwrite it anyway)
+    const preAct = new Float64Array(rs);
+    const inputContrib = new Float64Array(rs);
+    const recurrentContrib = new Float64Array(rs);
 
-    TensorOps.fill(this.xRawScratch!, 0.0);
-    TensorOps.fill(this.xNormScratch!, 0.0);
-    TensorOps.fill(this.zScratch!, 0.0);
-    TensorOps.fill(this.yHatScratch!, 0.0);
-    TensorOps.fill(this.yHatDenormScratch!, 0.0);
-    TensorOps.fill(this.yNormScratch!, 0.0);
-    TensorOps.fill(this.residualScratch!, 0.0);
-    TensorOps.fill(this.sigmaScratch!, 0.0);
-    TensorOps.fill(this.errScratch!, 0.0);
-
-    TensorOps.fill(this.xStepRawScratch!, 0.0);
-    TensorOps.fill(this.xStepNormScratch!, 0.0);
-    TensorOps.fill(this.zPredScratch!, 0.0);
-    TensorOps.fill(this.yPredScratch!, 0.0);
-    TensorOps.fill(this.yPredDenormScratch!, 0.0);
-    TensorOps.fill(this.sigmaPredScratch!, 0.0);
-
-    this.metrics.reset();
-    this.sampleCount = 0;
-    this.trainedSamples = 0;
-
-    this.fitRes.samplesProcessed = 0;
-    this.fitRes.averageLoss = 0;
-    this.fitRes.gradientNorm = 0;
-    this.fitRes.driftDetected = false;
-    this.fitRes.sampleWeight = 1.0;
-
-    if (this.predRes) {
-      this.predRes.confidence = 0.0;
-      for (let i = 0; i < this.config.maxSequenceLength; i++) {
-        const p = this.predRes.predictions[i];
-        const l = this.predRes.lowerBounds[i];
-        const u = this.predRes.upperBounds[i];
-        for (let t = 0; t < T; t++) {
-          p[t] = 0.0;
-          l[t] = 0.0;
-          u[t] = 0.0;
+    // Compute Win * (inputScale * x)
+    for (let i = 0; i < rs; i++) {
+      let sum = 0;
+      const rowOffset = i * this.nFeatures;
+      for (let j = 0; j < this.nFeatures; j++) {
+        if (params.WinMask[rowOffset + j]) {
+          sum += params.Win[rowOffset + j] * this.config.inputScale *
+            xNorm[xOffset + j];
         }
       }
+      inputContrib[i] = sum;
+    }
+
+    // Compute W * r
+    TensorOps.sparseMatVec(
+      params.W,
+      0,
+      rs,
+      rs,
+      params.WMask,
+      0,
+      this.scratchReservoirState!,
+      0,
+      recurrentContrib,
+      0,
+    );
+
+    // Compute pre-activation
+    for (let i = 0; i < rs; i++) {
+      preAct[i] = inputContrib[i] + recurrentContrib[i] + params.b[i];
+    }
+
+    // Apply activation
+    if (this.config.activation === "tanh") {
+      for (let i = 0; i < rs; i++) {
+        preAct[i] = Math.tanh(preAct[i]);
+      }
+    } else {
+      for (let i = 0; i < rs; i++) {
+        preAct[i] = preAct[i] > 0 ? preAct[i] : 0;
+      }
+    }
+
+    // Leaky integration
+    const oneMinusLeak = 1.0 - leakRate;
+    for (let i = 0; i < rs; i++) {
+      this.scratchReservoirState![i] =
+        oneMinusLeak * this.scratchReservoirState![i] + leakRate * preAct[i];
     }
   }
 
+  /**
+   * Get model summary
+   */
+  getModelSummary(): ModelSummary {
+    const zDim = this.readout ? this.readout.getZDim() : 0;
+    const totalParams = this.nTargets * zDim; // Only Wout is trainable
+
+    return {
+      totalParameters: totalParams,
+      receptiveField: this.config.maxSequenceLength,
+      spectralRadius: this.config.spectralRadius,
+      reservoirSize: this.config.reservoirSize,
+      nFeatures: this.nFeatures,
+      nTargets: this.nTargets,
+      maxSequenceLength: this.config.maxSequenceLength,
+      sampleCount: this.sampleCount,
+    };
+  }
+
+  /**
+   * Get weight information
+   */
+  getWeights(): WeightInfo {
+    const weights: Array<{ name: string; shape: number[]; values: number[] }> =
+      [];
+
+    if (this.readout) {
+      const Wout = this.readout.getWout();
+      weights.push({
+        name: "Wout",
+        shape: [this.nTargets, this.readout.getZDim()],
+        values: Array.from(Wout),
+      });
+    }
+
+    if (this.reservoir) {
+      const params = this.reservoir.getParams();
+      weights.push({
+        name: "Win",
+        shape: [this.config.reservoirSize, this.nFeatures],
+        values: Array.from(params.Win),
+      });
+      weights.push({
+        name: "W",
+        shape: [this.config.reservoirSize, this.config.reservoirSize],
+        values: Array.from(params.W),
+      });
+      weights.push({
+        name: "b",
+        shape: [this.config.reservoirSize],
+        values: Array.from(params.b),
+      });
+    }
+
+    return { weights };
+  }
+
+  /**
+   * Get normalization statistics
+   */
+  getNormalizationStats(): NormalizationStats {
+    if (!this.normalizer) {
+      return {
+        means: [],
+        stds: [],
+        count: 0,
+        isActive: false,
+      };
+    }
+
+    return {
+      means: this.normalizer.getMeans(),
+      stds: this.normalizer.getStds(),
+      count: this.normalizer.getCount(),
+      isActive: this.normalizer.isActive(),
+    };
+  }
+
+  /**
+   * Reset model to initial state
+   */
+  reset(): void {
+    if (this.reservoir) this.reservoir.resetState();
+    if (this.readout) this.readout.reset();
+    if (this.normalizer) this.normalizer.reset();
+    if (this.ringBuffer) this.ringBuffer.reset();
+    if (this.residualStats) this.residualStats.reset();
+    if (this.metricsAccumulator) this.metricsAccumulator.reset();
+    this.sampleCount = 0;
+    this.rng = new RandomGenerator(this.config.seed);
+  }
+
+  /**
+   * Save model state to JSON string
+   */
   save(): string {
-    const obj: any = {
-      version: 3,
+    return SerializationHelper.serialize(this);
+  }
+
+  /**
+   * Load model state from JSON string
+   */
+  load(json: string): void {
+    SerializationHelper.deserialize(this, json);
+  }
+
+  /**
+   * Get serializable state (internal use)
+   */
+  getSerializableState(): object {
+    return {
       config: this.config,
       initialized: this.initialized,
       nFeatures: this.nFeatures,
       nTargets: this.nTargets,
-      zDim: this.zDim,
       sampleCount: this.sampleCount,
-      trainedSamples: this.trainedSamples,
-      scaledSpectralRadius: this.scaledSpectralRadius,
-      metrics: {
-        meanLoss: this.metrics.mean(),
-        expLoss: this.metrics.exponentialMean(),
-        recentLoss: this.metrics.recentMean(),
-      },
+      rngState: this.rng.getState(),
+      reservoir: this.reservoir ? this.reservoir.serialize() : null,
+      readout: this.readout ? this.readout.serialize() : null,
+      normalizer: this.normalizer ? this.normalizer.serialize() : null,
+      ringBuffer: this.ringBuffer ? this.ringBuffer.serialize() : null,
+      residualStats: this.residualStats ? this.residualStats.serialize() : null,
     };
-
-    if (this.initialized) {
-      obj.ring = this.ring!.toJSON();
-      obj.normalizer = {
-        mean: Array.from(this.normalizer!.acc.mean),
-        m2: Array.from(this.normalizer!.acc.m2),
-        std: Array.from(this.normalizer!.std),
-        minVals: Array.from(this.normalizer!.minVals),
-        maxVals: Array.from(this.normalizer!.maxVals),
-        count: this.normalizer!.acc.count,
-        eps: this.normalizer!.eps,
-        warmup: this.normalizer!.warmup,
-      };
-      obj.targetStats = {
-        mean: Array.from(this.targetStats!.acc.mean),
-        m2: Array.from(this.targetStats!.acc.m2),
-        std: Array.from(this.targetStats!.std),
-        count: this.targetStats!.acc.count,
-        eps: this.targetStats!.eps,
-        warmup: this.targetStats!.warmup,
-      };
-      obj.residualTracker = this.residualTracker!.toJSON();
-      obj.reservoirParams = {
-        reservoirSize: this.reservoirParams!.reservoirSize,
-        nFeatures: this.reservoirParams!.nFeatures,
-        Win: Array.from(this.reservoirParams!.Win),
-        W: Array.from(this.reservoirParams!.W),
-        b: Array.from(this.reservoirParams!.b),
-      };
-      obj.reservoirState = Array.from(this.reservoir!.state);
-      obj.readout = {
-        nTargets: this.readoutParams!.nTargets,
-        zDim: this.readoutParams!.zDim,
-        Wout: Array.from(this.readoutParams!.Wout),
-      };
-      obj.rls = {
-        zDim: this.rlsState!.zDim,
-        P: Array.from(this.rlsState!.P),
-      };
-    }
-
-    return JSON.stringify(obj);
   }
 
-  load(w: string): void {
-    const obj = JSON.parse(w);
-    const cfg = obj.config as ESNRegressionConfig;
+  /**
+   * Set serializable state (internal use)
+   */
+  setSerializableState(state: any): void {
+    this.config = { ...DEFAULT_CONFIG, ...state.config };
+    this.initialized = state.initialized;
+    this.nFeatures = state.nFeatures;
+    this.nTargets = state.nTargets;
+    this.sampleCount = state.sampleCount;
+    this.rng.setState(state.rngState);
 
-    const base = defaultConfig();
-    const merged = Object.assign({}, base, cfg || {});
-    (this as any).config = merged;
+    if (state.initialized && state.nFeatures > 0 && state.nTargets > 0) {
+      // Re-initialize components with correct dimensions
+      this.initialize(state.nFeatures, state.nTargets);
 
-    this.initialized = false;
-    this.nFeatures = obj.nFeatures | 0;
-    this.nTargets = obj.nTargets | 0;
-    this.zDim = obj.zDim | 0;
-    this.sampleCount = obj.sampleCount | 0;
-    this.trainedSamples = obj.trainedSamples | 0;
-    this.scaledSpectralRadius = typeof obj.scaledSpectralRadius === "number"
-      ? obj.scaledSpectralRadius
-      : this.config.spectralRadius;
-
-    this.rng = new RandomGenerator(this.config.seed);
-
-    if (obj.initialized && this.nFeatures > 0 && this.nTargets > 0) {
-      const dummyX: number[][] = [[...new Array(this.nFeatures).fill(0)]];
-      const dummyY: number[][] = [[...new Array(this.nTargets).fill(0)]];
-      this.ensureInitializedFromBatch(dummyX, dummyY);
-
-      this.ring = RingBuffer.fromJSON(obj.ring);
-
-      const norm = obj.normalizer;
-      const normalizer = this.normalizer!;
-      normalizer.acc.count = norm.count | 0;
-      SerializationHelper.fromNumberArray(
-        normalizer.acc.mean,
-        norm.mean as number[],
-      );
-      SerializationHelper.fromNumberArray(
-        normalizer.acc.m2,
-        norm.m2 as number[],
-      );
-      SerializationHelper.fromNumberArray(normalizer.std, norm.std as number[]);
-      if (norm.minVals) {
-        SerializationHelper.fromNumberArray(
-          normalizer.minVals,
-          norm.minVals as number[],
-        );
+      // Restore state
+      if (state.reservoir) this.reservoir!.deserialize(state.reservoir);
+      if (state.readout) this.readout!.deserialize(state.readout);
+      if (state.normalizer) this.normalizer!.deserialize(state.normalizer);
+      if (state.ringBuffer) this.ringBuffer!.deserialize(state.ringBuffer);
+      if (state.residualStats) {
+        this.residualStats!.deserialize(state.residualStats);
       }
-      if (norm.maxVals) {
-        SerializationHelper.fromNumberArray(
-          normalizer.maxVals,
-          norm.maxVals as number[],
-        );
-      }
-
-      if (obj.targetStats) {
-        const tstats = obj.targetStats;
-        const targetStats = this.targetStats!;
-        targetStats.acc.count = tstats.count | 0;
-        SerializationHelper.fromNumberArray(
-          targetStats.acc.mean,
-          tstats.mean as number[],
-        );
-        SerializationHelper.fromNumberArray(
-          targetStats.acc.m2,
-          tstats.m2 as number[],
-        );
-        SerializationHelper.fromNumberArray(
-          targetStats.std,
-          tstats.std as number[],
-        );
-      }
-
-      this.residualTracker = ResidualStatsTracker.fromJSON(obj.residualTracker);
-
-      const rp = obj.reservoirParams;
-      SerializationHelper.fromNumberArray(
-        this.reservoirParams!.Win,
-        rp.Win as number[],
-      );
-      SerializationHelper.fromNumberArray(
-        this.reservoirParams!.W,
-        rp.W as number[],
-      );
-      SerializationHelper.fromNumberArray(
-        this.reservoirParams!.b,
-        rp.b as number[],
-      );
-
-      const rs = obj.reservoirState as number[];
-      const rState = this.reservoir!.state;
-      for (let i = 0; i < rState.length; i++) rState[i] = rs[i];
-
-      const ro = obj.readout;
-      SerializationHelper.fromNumberArray(
-        this.readoutParams!.Wout,
-        ro.Wout as number[],
-      );
-
-      const rls = obj.rls;
-      SerializationHelper.fromNumberArray(this.rlsState!.P, rls.P as number[]);
-
-      this.metrics.reset();
-      if (obj.metrics) {
-        const meanLoss = typeof obj.metrics.meanLoss === "number"
-          ? obj.metrics.meanLoss
-          : 0.0;
-        this.metrics.add(meanLoss);
-      }
-
-      if (!this.predRes) {
-        this.predRes = this.allocatePredictionResult(
-          this.config.maxSequenceLength,
-          this.nTargets,
-        );
-      }
-
-      this.initialized = true;
-    } else {
-      this.reset();
     }
   }
 }
+
+// Export default
+export default ESNRegression;
