@@ -1265,8 +1265,22 @@ class RLSOptimizer {
 
     // denom = lambda + z'^T * Pz + l2
     let zPz = TensorOps.dot(this.tmpZ, 0, this.Pz, 0, zDim);
+
+    // Check for numerical instability in P (indicated by zPz being NaN or very large)
+    if (!isFiniteNum(zPz) || zPz > 1e15) {
+      // Reset P to initial state
+      this.P.fill(0);
+      const initVal = this.delta > 0 ? 1.0 / this.delta : 1.0;
+      for (let i = 0; i < zDim; i++) {
+        this.P[i * zDim + i] = initVal;
+      }
+      // Recompute Pz and zPz with fresh P
+      TensorOps.matVec(this.P, 0, zDim, zDim, this.tmpZ, 0, this.Pz, 0);
+      zPz = TensorOps.dot(this.tmpZ, 0, this.Pz, 0, zDim);
+    }
+
     let denom = this.lambda + zPz + this.l2;
-    if (denom < this.eps) denom = this.eps;
+    if (!isFiniteNum(denom) || denom < this.eps) denom = this.eps;
 
     // gain = Pz / denom
     const invDen = 1.0 / denom;
@@ -1307,6 +1321,11 @@ class RLSOptimizer {
         this.Wout[row + i] += this.gain[i] * err;
       }
     }
+    for (let i = 0; i < nT * zDim; i++) {
+      if (!isFiniteNum(this.Wout[i])) {
+        this.Wout[i] = 0;
+      }
+    }
 
     // zTP = z'^T * P
     for (let j = 0; j < zDim; j++) {
@@ -1339,12 +1358,34 @@ class RLSOptimizer {
       }
     }
 
-    // Add small regularization to diagonal periodically to prevent P from becoming singular
+    // Add regularization and check stability periodically
     this.updateCount++;
     if (this.updateCount % 100 === 0) {
-      const reg = this.eps * 10;
-      for (let i = 0; i < zDim; i++) {
-        this.P[i * zDim + i] += reg;
+      // Check if P has NaN/Inf or has grown too large
+      let maxAbsP = 0;
+      let hasNaN = false;
+      for (let i = 0; i < zDim * zDim; i++) {
+        if (!isFiniteNum(this.P[i])) {
+          hasNaN = true;
+          break;
+        }
+        const absVal = Math.abs(this.P[i]);
+        if (absVal > maxAbsP) maxAbsP = absVal;
+      }
+
+      if (hasNaN || maxAbsP > 1e10) {
+        // Reset P to initial state
+        this.P.fill(0);
+        const initVal = this.delta > 0 ? 1.0 / this.delta : 1.0;
+        for (let i = 0; i < zDim; i++) {
+          this.P[i * zDim + i] = initVal;
+        }
+      } else {
+        // Add small regularization to diagonal
+        const reg = this.eps * 10;
+        for (let i = 0; i < zDim; i++) {
+          this.P[i * zDim + i] += reg;
+        }
       }
     }
 
