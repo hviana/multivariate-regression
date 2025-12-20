@@ -2,7 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    >
     <title>ESN Regression Studio</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -24,7 +27,9 @@
               "fade-in": "fadeIn 0.2s ease-out",
               "slide-up": "slideUp 0.3s ease-out",
               "slide-in-right": "slideInRight 0.3s ease-out",
+              "slide-in-bottom": "slideInBottom 0.3s ease-out",
               "pulse-subtle": "pulseSubtle 2s ease-in-out infinite",
+              "spin-slow": "spin 1.5s linear infinite",
             },
           },
         },
@@ -52,11 +57,21 @@
       @keyframes slideInRight {
         from {
           opacity: 0;
-          transform: translateX(20px);
+          transform: translateX(100%);
         }
         to {
           opacity: 1;
           transform: translateX(0);
+        }
+      }
+      @keyframes slideInBottom {
+        from {
+          opacity: 0;
+          transform: translateY(100%);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
         }
       }
       @keyframes pulseSubtle {
@@ -67,20 +82,26 @@
           opacity: 0.7;
         }
       }
+
+      * {
+        -webkit-tap-highlight-color: transparent;
+      }
+
       ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
+        width: 6px;
+        height: 6px;
       }
       ::-webkit-scrollbar-track {
         background: transparent;
       }
       ::-webkit-scrollbar-thumb {
-        background: rgba(0, 0, 0, 0.2);
-        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.15);
+        border-radius: 3px;
       }
       .dark ::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.15);
       }
+
       .skeleton {
         background: linear-gradient(
           90deg,
@@ -108,9 +129,11 @@
           background-position: -200% 0;
         }
       }
+
       input[type="number"]::-webkit-inner-spin-button {
         opacity: 0.5;
       }
+
       .collapsible-content {
         max-height: 0;
         overflow: hidden;
@@ -119,33 +142,75 @@
       .collapsible-content.open {
         max-height: 2000px;
       }
+
       .toast-enter {
         animation: slideInRight 0.3s ease-out;
       }
+
       .focus-ring:focus {
         outline: none;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4);
       }
       .dark .focus-ring:focus {
-        box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.5);
+        box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.4);
+      }
+
+      .touch-target {
+        min-height: 44px;
+        min-width: 44px;
+      }
+
+      .glass {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(12px);
+      }
+      .dark .glass {
+        background: rgba(15, 23, 42, 0.8);
+      }
+
+      .gradient-border {
+        background: linear-gradient(
+          135deg,
+          rgba(59, 130, 246, 0.1),
+          rgba(139, 92, 246, 0.1)
+        );
+        border: 1px solid rgba(59, 130, 246, 0.2);
+      }
+      .dark .gradient-border {
+        background: linear-gradient(
+          135deg,
+          rgba(59, 130, 246, 0.05),
+          rgba(139, 92, 246, 0.05)
+        );
+        border: 1px solid rgba(59, 130, 246, 0.15);
+      }
+
+      @media (max-width: 640px) {
+        .mobile-full {
+          width: 100%;
+          max-width: 100%;
+        }
+        .mobile-stack {
+          flex-direction: column;
+        }
       }
     </style>
   </head>
   <body
-    class="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-sans min-h-screen transition-colors duration-200"
+    class="bg-gradient-to-br from-slate-50 via-slate-100 to-slate-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 text-slate-900 dark:text-slate-100 font-sans min-h-screen transition-colors duration-300"
   >
-    <div id="app" class="flex flex-col h-screen overflow-hidden">
+    <div id="app" class="flex flex-col h-screen h-[100dvh] overflow-hidden">
       <!-- Header -->
       <header
-        class="flex-shrink-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 py-3 shadow-sm"
+        class="flex-shrink-0 glass border-b border-slate-200/50 dark:border-slate-700/50 px-3 sm:px-4 py-2.5 sm:py-3 z-30"
       >
-        <div class="flex items-center justify-between max-w-full">
-          <div class="flex items-center gap-3">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2 sm:gap-3 min-w-0">
             <div
-              class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25"
+              class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/30 flex-shrink-0"
             >
               <svg
-                class="w-5 h-5 text-white"
+                class="w-4 h-4 sm:w-5 sm:h-5 text-white"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -158,40 +223,59 @@
                 />
               </svg>
             </div>
-            <div>
-              <h1 class="text-lg font-semibold tracking-tight">
-                ESN Regression Studio
+            <div class="min-w-0">
+              <h1
+                class="text-base sm:text-lg font-bold tracking-tight truncate"
+              >
+                ESN Studio
               </h1>
               <p
-                class="text-xs text-slate-500 dark:text-slate-400 hidden sm:block"
+                class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 hidden xs:block truncate"
               >
-                Online Multivariate Forecasting
+                Multivariate Forecasting
               </p>
             </div>
           </div>
 
-          <div class="flex items-center gap-2">
-            <!-- Model Status -->
+          <div class="flex items-center gap-1.5 sm:gap-2">
             <div
               id="model-status"
-              class="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-lg text-sm"
+              class="hidden sm:flex items-center gap-2 px-2.5 py-1.5 bg-slate-100/80 dark:bg-slate-700/80 rounded-lg text-xs sm:text-sm"
             >
               <span
-                class="w-2 h-2 rounded-full bg-slate-400"
+                class="w-2 h-2 rounded-full bg-slate-400 animate-pulse"
                 id="status-dot"
               ></span>
-              <span id="status-text">No Model</span>
+              <span id="status-text" class="font-medium">No Model</span>
             </div>
 
-            <!-- Config Chips -->
-            <div id="config-chips" class="hidden md:flex items-center gap-2">
-            </div>
+            <button
+              onclick="runPrediction()"
+              id="predict-btn-header"
+              class="hidden sm:flex touch-target items-center justify-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-lg text-sm font-medium transition-all shadow-md shadow-blue-500/25 focus-ring"
+              title="Predict (P)"
+            >
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                />
+              </svg>
+              <span class="hidden md:inline">Predict</span>
+            </button>
 
-            <!-- Quick Actions -->
             <button
               onclick="openModal('config-modal')"
-              class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors focus-ring"
+              class="touch-target p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors focus-ring"
               title="Configure (C)"
+              aria-label="Configure model"
             >
               <svg
                 class="w-5 h-5"
@@ -216,8 +300,9 @@
 
             <button
               onclick="toggleMainMenu()"
-              class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors focus-ring"
+              class="touch-target p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors focus-ring"
               title="Menu (M)"
+              aria-label="Open menu"
             >
               <svg
                 class="w-5 h-5"
@@ -236,8 +321,9 @@
 
             <button
               onclick="toggleTheme()"
-              class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors focus-ring"
+              class="touch-target p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors focus-ring"
               title="Toggle theme"
+              aria-label="Toggle dark mode"
             >
               <svg
                 class="w-5 h-5 dark:hidden"
@@ -271,73 +357,96 @@
       </header>
 
       <!-- Main Content -->
-      <div class="flex-1 flex overflow-hidden">
+      <div class="flex-1 flex flex-col lg:flex-row overflow-hidden">
         <!-- Main Area -->
-        <main class="flex-1 flex flex-col overflow-hidden p-4 gap-4">
+        <main
+          class="flex-1 flex flex-col overflow-hidden p-2 sm:p-4 gap-2 sm:gap-4"
+        >
           <!-- Visualization Tabs -->
-          <div class="flex items-center gap-2 overflow-x-auto pb-1">
+          <div
+            class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 -mx-2 px-2 sm:mx-0 sm:px-0 scrollbar-hide"
+          >
             <button
               onclick="setVisualizationMode('grid')"
-              class="viz-tab px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all"
+              class="viz-tab touch-target px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap transition-all flex-shrink-0"
               data-mode="grid"
             >
-              Small Multiples
+              <span class="hidden sm:inline">Small Multiples</span>
+              <span class="sm:hidden">Grid</span>
             </button>
             <button
               onclick="setVisualizationMode('focus')"
-              class="viz-tab px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all"
+              class="viz-tab touch-target px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap transition-all flex-shrink-0"
               data-mode="focus"
             >
-              Focus View
+              <span class="hidden sm:inline">Focus View</span>
+              <span class="sm:hidden">Focus</span>
             </button>
             <button
               onclick="setVisualizationMode('heatmap')"
-              class="viz-tab px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all"
+              class="viz-tab touch-target px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap transition-all flex-shrink-0"
               data-mode="heatmap"
             >
               Heatmap
             </button>
             <button
               onclick="setVisualizationMode('uncertainty')"
-              class="viz-tab px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all"
+              class="viz-tab touch-target px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap transition-all flex-shrink-0"
               data-mode="uncertainty"
             >
-              Uncertainty
+              <span class="hidden sm:inline">Uncertainty</span>
+              <span class="sm:hidden">CI</span>
             </button>
             <button
               onclick="setVisualizationMode('bar')"
-              class="viz-tab px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all"
+              class="viz-tab touch-target px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap transition-all flex-shrink-0"
               data-mode="bar"
             >
               Snapshot
             </button>
-            <div class="ml-auto flex items-center gap-2">
+
+            <div class="ml-auto flex items-center gap-2 flex-shrink-0">
               <button
-                onclick="runPrediction()"
-                id="predict-btn"
-                class="hidden px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors focus-ring"
-                title="Predict (P)"
+                onclick="toggleSidePanel()"
+                class="lg:hidden touch-target p-2 rounded-lg bg-slate-100 dark:bg-slate-700/50 hover:bg-slate-200 dark:hover:bg-slate-600/50 transition-colors"
+                aria-label="Toggle details panel"
               >
-                Predict
+                <svg
+                  class="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                  />
+                </svg>
               </button>
             </div>
           </div>
 
           <!-- Chart Container -->
           <div
-            class="overflow-scroll flex-1 bg-white dark:bg-slate-800 rounded-2xl shadow-lg shadow-slate-200/50 dark:shadow-slate-900/50 border border-slate-200/50 dark:border-slate-700/50 overflow-hidden relative"
+            class="flex-1 min-h-[250px] sm:min-h-[300px] bg-white dark:bg-slate-800/50 rounded-2xl shadow-xl shadow-slate-200/50 dark:shadow-slate-900/50 border border-slate-200/50 dark:border-slate-700/50 overflow-hidden relative"
           >
             <div id="chart-container" class="w-full h-full relative">
-              <canvas id="main-canvas" class="w-full h-full"></canvas>
+              <canvas
+                id="main-canvas"
+                class="w-full h-full touch-none"
+              ></canvas>
 
               <!-- Chart Controls -->
               <div
                 id="chart-controls"
-                class="absolute top-3 right-3 flex flex-col gap-1 hidden"
+                class="absolute top-2 sm:top-3 right-2 sm:right-3 flex flex-col gap-1 hidden z-10"
               >
                 <button
                   onclick="chartZoomIn()"
-                  class="p-2 bg-white dark:bg-slate-700 rounded-lg shadow-md hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
+                  class="touch-target p-2 bg-white/90 dark:bg-slate-700/90 rounded-lg shadow-lg hover:bg-white dark:hover:bg-slate-600 transition-colors backdrop-blur-sm"
+                  aria-label="Zoom in"
                 >
                   <svg
                     class="w-4 h-4"
@@ -355,7 +464,8 @@
                 </button>
                 <button
                   onclick="chartZoomOut()"
-                  class="p-2 bg-white dark:bg-slate-700 rounded-lg shadow-md hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
+                  class="touch-target p-2 bg-white/90 dark:bg-slate-700/90 rounded-lg shadow-lg hover:bg-white dark:hover:bg-slate-600 transition-colors backdrop-blur-sm"
+                  aria-label="Zoom out"
                 >
                   <svg
                     class="w-4 h-4"
@@ -373,7 +483,8 @@
                 </button>
                 <button
                   onclick="chartResetZoom()"
-                  class="p-2 bg-white dark:bg-slate-700 rounded-lg shadow-md hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
+                  class="touch-target p-2 bg-white/90 dark:bg-slate-700/90 rounded-lg shadow-lg hover:bg-white dark:hover:bg-slate-600 transition-colors backdrop-blur-sm"
+                  aria-label="Reset zoom"
                 >
                   <svg
                     class="w-4 h-4"
@@ -394,7 +505,7 @@
               <!-- Zoom Level Badge -->
               <div
                 id="zoom-badge"
-                class="absolute top-3 left-3 px-2 py-1 bg-white/90 dark:bg-slate-700/90 rounded text-xs font-medium hidden"
+                class="absolute top-2 sm:top-3 left-2 sm:left-3 px-2 py-1 bg-white/90 dark:bg-slate-700/90 rounded-lg text-xs font-semibold hidden backdrop-blur-sm shadow-md"
               >
                 100%
               </div>
@@ -402,23 +513,25 @@
               <!-- Empty State -->
               <div
                 id="empty-state"
-                class="absolute inset-0 flex items-center justify-center"
+                class="absolute inset-0 flex items-center justify-center p-4"
               >
-                <div class="text-center px-6 max-w-md">
-                  <div class="w-24 h-24 mx-auto mb-6 relative">
+                <div class="text-center px-4 sm:px-6 max-w-lg">
+                  <div
+                    class="w-20 h-20 sm:w-28 sm:h-28 mx-auto mb-4 sm:mb-6 relative"
+                  >
                     <div
-                      class="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-indigo-400/20 rounded-3xl rotate-6"
+                      class="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-3xl rotate-6 animate-pulse"
                     >
                     </div>
                     <div
-                      class="absolute inset-0 bg-gradient-to-br from-blue-500/30 to-indigo-500/30 rounded-3xl -rotate-6"
+                      class="absolute inset-0 bg-gradient-to-br from-blue-500/30 to-purple-500/30 rounded-3xl -rotate-6"
                     >
                     </div>
                     <div
-                      class="absolute inset-2 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center"
+                      class="absolute inset-2 sm:inset-3 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center shadow-inner"
                     >
                       <svg
-                        class="w-10 h-10 text-blue-500"
+                        class="w-8 h-8 sm:w-12 sm:h-12 text-blue-500"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -432,11 +545,14 @@
                       </svg>
                     </div>
                   </div>
-                  <h3 class="text-xl font-semibold mb-2" id="empty-title">
+                  <h3
+                    class="text-lg sm:text-xl font-bold mb-2"
+                    id="empty-title"
+                  >
                     Create a Model to Begin
                   </h3>
                   <p
-                    class="text-slate-500 dark:text-slate-400 mb-6"
+                    class="text-sm text-slate-500 dark:text-slate-400 mb-6"
                     id="empty-subtitle"
                   >
                     Configure your Echo State Network for multivariate
@@ -444,11 +560,11 @@
                   </p>
                   <div
                     id="onboarding-actions"
-                    class="flex flex-col sm:flex-row gap-3 justify-center"
+                    class="flex flex-col gap-3 sm:gap-2"
                   >
                     <button
                       onclick="applyPreset('start-here');createModel()"
-                      class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-colors focus-ring flex items-center justify-center gap-2"
+                      class="touch-target w-full sm:w-auto px-5 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-xl font-semibold transition-all shadow-lg shadow-blue-500/30 focus-ring flex items-center justify-center gap-2"
                     >
                       <svg
                         class="w-5 h-5"
@@ -465,44 +581,46 @@
                       </svg>
                       Start with Defaults
                     </button>
-                    <button
-                      onclick="openModal('load-modal')"
-                      class="px-5 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-xl font-medium transition-colors focus-ring flex items-center justify-center gap-2"
-                    >
-                      <svg
-                        class="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                    <div class="flex gap-2">
+                      <button
+                        onclick="openModal('load-modal')"
+                        class="touch-target flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-700/50 hover:bg-slate-200 dark:hover:bg-slate-600/50 rounded-xl font-medium transition-colors focus-ring flex items-center justify-center gap-2"
                       >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-                        />
-                      </svg>
-                      Load Model
-                    </button>
-                    <button
-                      onclick="runRandomTest()"
-                      class="px-5 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-xl font-medium transition-colors focus-ring flex items-center justify-center gap-2"
-                    >
-                      <svg
-                        class="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                        <svg
+                          class="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                          />
+                        </svg>
+                        <span class="hidden sm:inline">Load</span>
+                      </button>
+                      <button
+                        onclick="runRandomTest()"
+                        class="touch-target flex-1 px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-xl font-medium transition-all shadow-lg shadow-purple-500/25 focus-ring flex items-center justify-center gap-2"
                       >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
-                        />
-                      </svg>
-                      Try Demo
-                    </button>
+                        <svg
+                          class="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
+                          />
+                        </svg>
+                        Demo
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -510,33 +628,33 @@
               <!-- Loading State -->
               <div
                 id="loading-state"
-                class="z-[999] absolute inset-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm flex items-center justify-center hidden"
+                class="absolute inset-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md flex items-center justify-center hidden z-50"
               >
-                <div class="text-center">
+                <div class="text-center p-6 max-w-sm">
                   <div
-                    class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"
+                    class="w-14 h-14 border-4 border-blue-500 border-t-transparent rounded-full animate-spin-slow mx-auto mb-4"
                   >
                   </div>
-                  <p class="text-sm font-medium" id="loading-text">
+                  <p class="font-semibold text-lg mb-1" id="loading-text">
                     Processing...
                   </p>
                   <div id="progress-container" class="mt-4 hidden">
                     <div
-                      class="w-64 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden"
+                      class="w-full h-2.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden"
                     >
                       <div
                         id="progress-bar"
-                        class="h-full bg-blue-500 transition-all duration-200"
+                        class="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-300 rounded-full"
                         style="width: 0%"
                       >
                       </div>
                     </div>
-                    <p class="text-xs text-slate-500 mt-2" id="progress-text">
+                    <p class="text-sm text-slate-500 mt-2" id="progress-text">
                       0%
                     </p>
                     <button
                       onclick="cancelOperation()"
-                      class="mt-3 px-4 py-1.5 text-sm bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+                      class="mt-4 touch-target px-5 py-2 text-sm bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors font-medium"
                     >
                       Cancel
                     </button>
@@ -547,10 +665,10 @@
               <!-- Tooltip -->
               <div
                 id="chart-tooltip"
-                class="absolute pointer-events-none opacity-0 transition-opacity duration-100 z-50"
+                class="absolute pointer-events-none opacity-0 transition-opacity duration-150 z-40"
               >
                 <div
-                  class="bg-white dark:bg-slate-800 rounded-xl shadow-xl shadow-slate-900/20 dark:shadow-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 px-4 py-3 min-w-[180px]"
+                  class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl shadow-slate-900/20 dark:shadow-slate-900/60 border border-slate-200/80 dark:border-slate-700/80 px-4 py-3 min-w-[160px] max-w-[260px]"
                 >
                   <div id="tooltip-content"></div>
                 </div>
@@ -558,85 +676,35 @@
             </div>
           </div>
 
-          <!-- Dimension Selector (Focus View) -->
+          <!-- Bottom Controls (Mobile) -->
           <div
-            id="dimension-selector"
-            class="hidden bg-white dark:bg-slate-800 rounded-xl p-3 border border-slate-200/50 dark:border-slate-700/50"
+            class="sm:hidden flex items-center gap-2 p-2 bg-white/80 dark:bg-slate-800/80 rounded-xl backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50"
           >
-            <div class="flex items-center gap-3 overflow-x-auto pb-1">
-              <span
-                class="text-sm font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap"
-              >Target:</span>
-              <div id="dim-buttons" class="flex items-center gap-2"></div>
-            </div>
-          </div>
-
-          <!-- Stats Bar -->
-          <div
-            id="stats-bar"
-            class="hidden grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3"
-          >
-            <div
-              class="bg-white dark:bg-slate-800 rounded-xl p-3 border border-slate-200/50 dark:border-slate-700/50"
-            >
-              <p class="text-xs text-slate-500 dark:text-slate-400">Min</p>
-              <p class="text-lg font-semibold" id="stat-min">-</p>
-            </div>
-            <div
-              class="bg-white dark:bg-slate-800 rounded-xl p-3 border border-slate-200/50 dark:border-slate-700/50"
-            >
-              <p class="text-xs text-slate-500 dark:text-slate-400">Max</p>
-              <p class="text-lg font-semibold" id="stat-max">-</p>
-            </div>
-            <div
-              class="bg-white dark:bg-slate-800 rounded-xl p-3 border border-slate-200/50 dark:border-slate-700/50"
-            >
-              <p class="text-xs text-slate-500 dark:text-slate-400">Mean</p>
-              <p class="text-lg font-semibold" id="stat-mean">-</p>
-            </div>
-            <div
-              class="bg-white dark:bg-slate-800 rounded-xl p-3 border border-slate-200/50 dark:border-slate-700/50"
-            >
-              <p class="text-xs text-slate-500 dark:text-slate-400">Final</p>
-              <p class="text-lg font-semibold" id="stat-final">-</p>
-            </div>
-            <div
-              class="bg-white dark:bg-slate-800 rounded-xl p-3 border border-slate-200/50 dark:border-slate-700/50"
-            >
-              <p class="text-xs text-slate-500 dark:text-slate-400">Trend</p>
-              <p
-                class="text-lg font-semibold flex items-center gap-1"
-                id="stat-trend"
+            <div class="flex-1 flex items-center gap-2">
+              <span class="text-xs text-slate-500 whitespace-nowrap"
+              >Steps:</span>
+              <input
+                type="range"
+                id="future-steps-range-mobile"
+                min="1"
+                max="64"
+                value="10"
+                class="flex-1 h-2"
+                oninput="syncFutureSteps(this.value)"
               >
-                -
-              </p>
+              <span
+                class="text-xs font-semibold w-6 text-center"
+                id="steps-display-mobile"
+              >10</span>
             </div>
-            <div
-              class="bg-white dark:bg-slate-800 rounded-xl p-3 border border-slate-200/50 dark:border-slate-700/50"
-            >
-              <p class="text-xs text-slate-500 dark:text-slate-400">
-                Confidence
-              </p>
-              <p class="text-lg font-semibold" id="stat-confidence">-</p>
-            </div>
-          </div>
-        </main>
-
-        <!-- Side Panel -->
-        <aside
-          id="side-panel"
-          class="w-80 flex-shrink-0 bg-white dark:bg-slate-800 border-l border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden transition-all duration-300 hidden lg:flex"
-        >
-          <div
-            class="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700"
-          >
-            <h2 class="font-semibold">Details</h2>
             <button
-              onclick="toggleSidePanel()"
-              class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              onclick="runPrediction()"
+              id="predict-btn-mobile"
+              class="touch-target px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled
             >
               <svg
-                class="w-4 h-4"
+                class="w-5 h-5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -645,114 +713,270 @@
                   stroke-linecap="round"
                   stroke-linejoin="round"
                   stroke-width="2"
-                  d="M6 18L18 6M6 6l12 12"
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
                 />
               </svg>
             </button>
           </div>
 
-          <!-- Metrics -->
-          <div class="p-4 border-b border-slate-200 dark:border-slate-700">
-            <h3
-              class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3"
+          <!-- Dimension Selector -->
+          <div id="dimension-selector" class="hidden">
+            <div
+              class="bg-white/80 dark:bg-slate-800/80 rounded-xl p-2 sm:p-3 border border-slate-200/50 dark:border-slate-700/50 backdrop-blur-sm"
             >
-              Model Metrics
-            </h3>
-            <div class="space-y-3">
-              <div class="flex justify-between items-center">
-                <span class="text-sm">Samples Trained</span>
-                <span class="font-medium" id="metric-samples">0</span>
-              </div>
-              <div class="flex justify-between items-center">
-                <span class="text-sm">Avg Loss</span>
-                <span class="font-medium" id="metric-loss">-</span>
-              </div>
-              <div class="flex justify-between items-center">
-                <span class="text-sm">Last Gradient Norm</span>
-                <span class="font-medium" id="metric-gradient">-</span>
-              </div>
-              <div class="flex justify-between items-center">
-                <span class="text-sm">Last Sample Weight</span>
-                <span class="font-medium" id="metric-weight">-</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Prediction Controls -->
-          <div class="p-4 border-b border-slate-200 dark:border-slate-700">
-            <h3
-              class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3"
-            >
-              Prediction
-            </h3>
-            <div class="space-y-3">
-              <div>
-                <label class="text-sm mb-1 block">Future Steps</label>
-                <div class="flex items-center gap-2">
-                  <input
-                    type="range"
-                    id="future-steps-range"
-                    min="1"
-                    max="64"
-                    value="10"
-                    class="flex-1"
-                    oninput="syncFutureSteps(this.value)"
-                  >
-                  <input
-                    type="number"
-                    id="future-steps-input"
-                    min="1"
-                    max="64"
-                    value="10"
-                    class="w-16 px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded-lg text-sm focus-ring"
-                    oninput="syncFutureSteps(this.value)"
-                  >
+              <div
+                class="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-1 -mx-2 px-2"
+              >
+                <span
+                  class="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap flex-shrink-0"
+                >Target:</span>
+                <div
+                  id="dim-buttons"
+                  class="flex items-center gap-1.5 sm:gap-2"
+                >
                 </div>
               </div>
-              <button
-                onclick="runPrediction()"
-                id="predict-btn-side"
-                class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white rounded-lg font-medium transition-colors focus-ring disabled:cursor-not-allowed"
-                disabled
-              >
-                Run Prediction
-              </button>
             </div>
           </div>
 
-          <!-- Event Log -->
-          <div class="flex-1 flex flex-col overflow-hidden">
-            <div class="flex items-center gap-2 p-4 pb-2">
-              <h3
-                class="text-sm font-medium text-slate-500 dark:text-slate-400"
+          <!-- Stats Bar -->
+          <div id="stats-bar" class="hidden">
+            <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3">
+              <div
+                class="bg-white/80 dark:bg-slate-800/80 rounded-xl p-2.5 sm:p-3 border border-slate-200/50 dark:border-slate-700/50 backdrop-blur-sm"
               >
-                Event Log
-              </h3>
-              <select
-                id="log-filter"
-                class="ml-auto text-xs px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded-lg focus-ring"
-                onchange="filterLogs()"
+                <p
+                  class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide"
+                >
+                  Min
+                </p>
+                <p class="text-sm sm:text-lg font-bold truncate" id="stat-min">
+                  -
+                </p>
+              </div>
+              <div
+                class="bg-white/80 dark:bg-slate-800/80 rounded-xl p-2.5 sm:p-3 border border-slate-200/50 dark:border-slate-700/50 backdrop-blur-sm"
               >
-                <option value="all">All</option>
-                <option value="info">Info</option>
-                <option value="success">Success</option>
-                <option value="warning">Warning</option>
-                <option value="error">Error</option>
-              </select>
+                <p
+                  class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide"
+                >
+                  Max
+                </p>
+                <p class="text-sm sm:text-lg font-bold truncate" id="stat-max">
+                  -
+                </p>
+              </div>
+              <div
+                class="bg-white/80 dark:bg-slate-800/80 rounded-xl p-2.5 sm:p-3 border border-slate-200/50 dark:border-slate-700/50 backdrop-blur-sm"
+              >
+                <p
+                  class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide"
+                >
+                  Mean
+                </p>
+                <p class="text-sm sm:text-lg font-bold truncate" id="stat-mean">
+                  -
+                </p>
+              </div>
+              <div
+                class="bg-white/80 dark:bg-slate-800/80 rounded-xl p-2.5 sm:p-3 border border-slate-200/50 dark:border-slate-700/50 backdrop-blur-sm"
+              >
+                <p
+                  class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide"
+                >
+                  Final
+                </p>
+                <p
+                  class="text-sm sm:text-lg font-bold truncate"
+                  id="stat-final"
+                >
+                  -
+                </p>
+              </div>
+              <div
+                class="bg-white/80 dark:bg-slate-800/80 rounded-xl p-2.5 sm:p-3 border border-slate-200/50 dark:border-slate-700/50 backdrop-blur-sm"
+              >
+                <p
+                  class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide"
+                >
+                  Trend
+                </p>
+                <p
+                  class="text-sm sm:text-lg font-bold truncate flex items-center gap-1"
+                  id="stat-trend"
+                >
+                  -
+                </p>
+              </div>
+              <div
+                class="bg-white/80 dark:bg-slate-800/80 rounded-xl p-2.5 sm:p-3 border border-slate-200/50 dark:border-slate-700/50 backdrop-blur-sm"
+              >
+                <p
+                  class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide"
+                >
+                  Confidence
+                </p>
+                <p
+                  class="text-sm sm:text-lg font-bold truncate"
+                  id="stat-confidence"
+                >
+                  -
+                </p>
+              </div>
             </div>
-            <div class="px-4 pb-2">
-              <input
-                type="text"
-                id="log-search"
-                placeholder="Search..."
-                class="w-full px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-lg text-sm focus-ring"
-                oninput="filterLogs()"
-              >
-            </div>
+          </div>
+        </main>
+
+        <!-- Side Panel -->
+        <aside
+          id="side-panel"
+          class="fixed lg:relative inset-0 lg:inset-auto lg:w-80 z-40 lg:z-auto flex-shrink-0 hidden lg:flex flex-col"
+        >
+          <div
+            class="absolute inset-0 bg-black/50 lg:hidden"
+            onclick="toggleSidePanel()"
+          >
+          </div>
+          <div
+            class="absolute right-0 top-0 bottom-0 w-[85%] max-w-sm lg:relative lg:w-full bg-white dark:bg-slate-800 border-l border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden shadow-2xl lg:shadow-none animate-slide-in-right lg:animate-none"
+          >
             <div
-              id="event-log"
-              class="flex-1 overflow-y-auto px-4 pb-4 space-y-2"
+              class="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700"
             >
+              <h2 class="font-bold text-lg">Details</h2>
+              <button
+                onclick="toggleSidePanel()"
+                class="touch-target p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors lg:hidden"
+                aria-label="Close panel"
+              >
+                <svg
+                  class="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            <!-- Metrics -->
+            <div class="p-4 border-b border-slate-200 dark:border-slate-700">
+              <h3
+                class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3"
+              >
+                Model Metrics
+              </h3>
+              <div class="space-y-3">
+                <div class="flex justify-between items-center">
+                  <span class="text-sm">Samples Trained</span><span
+                    class="font-bold text-blue-600 dark:text-blue-400"
+                    id="metric-samples"
+                  >0</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-sm">Avg Loss</span><span
+                    class="font-semibold font-mono text-xs"
+                    id="metric-loss"
+                  >-</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-sm">Gradient Norm</span><span
+                    class="font-semibold font-mono text-xs"
+                    id="metric-gradient"
+                  >-</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-sm">Sample Weight</span><span
+                    class="font-semibold font-mono text-xs"
+                    id="metric-weight"
+                  >-</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Prediction Controls -->
+            <div class="p-4 border-b border-slate-200 dark:border-slate-700">
+              <h3
+                class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3"
+              >
+                Prediction
+              </h3>
+              <div class="space-y-3">
+                <div>
+                  <label class="text-sm font-medium mb-2 block"
+                  >Future Steps</label>
+                  <div class="flex items-center gap-3">
+                    <input
+                      type="range"
+                      id="future-steps-range"
+                      min="1"
+                      max="64"
+                      value="10"
+                      class="flex-1 h-2 accent-blue-500"
+                      oninput="syncFutureSteps(this.value)"
+                    >
+                    <input
+                      type="number"
+                      id="future-steps-input"
+                      min="1"
+                      max="64"
+                      value="10"
+                      class="w-16 px-2 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-lg text-sm text-center font-semibold focus-ring"
+                      oninput="syncFutureSteps(this.value)"
+                    >
+                  </div>
+                </div>
+                <button
+                  onclick="runPrediction()"
+                  id="predict-btn-side"
+                  class="touch-target w-full px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 disabled:from-slate-300 disabled:to-slate-400 dark:disabled:from-slate-600 dark:disabled:to-slate-700 text-white rounded-xl font-semibold transition-all shadow-md shadow-blue-500/25 focus-ring disabled:shadow-none disabled:cursor-not-allowed"
+                  disabled
+                >
+                  Run Prediction
+                </button>
+              </div>
+            </div>
+
+            <!-- Event Log -->
+            <div class="flex-1 flex flex-col overflow-hidden">
+              <div class="flex items-center gap-2 px-4 py-3">
+                <h3
+                  class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"
+                >
+                  Event Log
+                </h3>
+                <select
+                  id="log-filter"
+                  class="ml-auto text-xs px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded-lg focus-ring"
+                  onchange="filterLogs()"
+                >
+                  <option value="all">All</option>
+                  <option value="info">Info</option>
+                  <option value="success">Success</option>
+                  <option value="warning">Warning</option>
+                  <option value="error">Error</option>
+                </select>
+              </div>
+              <div class="px-4 pb-2">
+                <input
+                  type="text"
+                  id="log-search"
+                  placeholder="Search logs..."
+                  class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-sm focus-ring"
+                  oninput="filterLogs()"
+                >
+              </div>
+              <div
+                id="event-log"
+                class="flex-1 overflow-y-auto px-4 pb-4 space-y-2"
+              >
+              </div>
             </div>
           </div>
         </aside>
@@ -768,15 +992,16 @@
     </div>
     <div
       id="main-menu"
-      class="fixed top-0 right-0 w-80 h-full bg-white dark:bg-slate-800 shadow-2xl z-50 transform translate-x-full transition-transform duration-300"
+      class="fixed top-0 right-0 w-[85%] max-w-sm h-full bg-white dark:bg-slate-800 shadow-2xl z-50 transform translate-x-full transition-transform duration-300 ease-out"
     >
       <div
         class="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700"
       >
-        <h2 class="font-semibold">Menu</h2>
+        <h2 class="font-bold text-lg">Menu</h2>
         <button
           onclick="toggleMainMenu()"
-          class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors focus-ring"
+          class="touch-target p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors focus-ring"
+          aria-label="Close menu"
         >
           <svg
             class="w-5 h-5"
@@ -797,49 +1022,71 @@
         <!-- Model Section -->
         <div>
           <h3
-            class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2"
+            class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3"
           >
             Model
           </h3>
           <div class="space-y-1">
             <button
               onclick="openModal('config-modal');toggleMainMenu()"
-              class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-left focus-ring"
+              class="touch-target w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors text-left focus-ring"
             >
-              <svg
-                class="w-5 h-5 text-slate-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+              <div
+                class="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center"
               >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
-                />
-              </svg>
-              <span>Create & Configure</span>
-              <span class="ml-auto text-xs text-slate-400">C</span>
+                <svg
+                  class="w-5 h-5 text-blue-600 dark:text-blue-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+                  />
+                </svg>
+              </div>
+              <div class="flex-1">
+                <span class="font-medium">Create & Configure</span><p
+                  class="text-xs text-slate-500"
+                >
+                  Set up model parameters
+                </p>
+              </div>
+              <kbd
+                class="px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded text-xs font-mono"
+              >C</kbd>
             </button>
             <button
               onclick="openModal('load-modal');toggleMainMenu()"
-              class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-left focus-ring"
+              class="touch-target w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors text-left focus-ring"
             >
-              <svg
-                class="w-5 h-5 text-slate-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+              <div
+                class="w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center"
               >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
-                />
-              </svg>
-              <span>Save & Load</span>
+                <svg
+                  class="w-5 h-5 text-emerald-600 dark:text-emerald-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
+                  />
+                </svg>
+              </div>
+              <div class="flex-1">
+                <span class="font-medium">Save & Load</span><p
+                  class="text-xs text-slate-500"
+                >
+                  Persist your models
+                </p>
+              </div>
             </button>
           </div>
         </div>
@@ -847,49 +1094,71 @@
         <!-- Data Section -->
         <div>
           <h3
-            class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2"
+            class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3"
           >
             Data
           </h3>
           <div class="space-y-1">
             <button
               onclick="openModal('upload-modal');toggleMainMenu()"
-              class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-left focus-ring"
+              class="touch-target w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors text-left focus-ring"
             >
-              <svg
-                class="w-5 h-5 text-slate-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+              <div
+                class="w-9 h-9 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center"
               >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-                />
-              </svg>
-              <span>Upload Dataset</span>
-              <span class="ml-auto text-xs text-slate-400">U</span>
+                <svg
+                  class="w-5 h-5 text-purple-600 dark:text-purple-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                  />
+                </svg>
+              </div>
+              <div class="flex-1">
+                <span class="font-medium">Upload Dataset</span><p
+                  class="text-xs text-slate-500"
+                >
+                  Import training data
+                </p>
+              </div>
+              <kbd
+                class="px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded text-xs font-mono"
+              >U</kbd>
             </button>
             <button
               onclick="openModal('insert-modal');toggleMainMenu()"
-              class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-left focus-ring"
+              class="touch-target w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors text-left focus-ring"
             >
-              <svg
-                class="w-5 h-5 text-slate-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+              <div
+                class="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center"
               >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <span>Manual Insert</span>
+                <svg
+                  class="w-5 h-5 text-amber-600 dark:text-amber-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <div class="flex-1">
+                <span class="font-medium">Manual Insert</span><p
+                  class="text-xs text-slate-500"
+                >
+                  Add individual samples
+                </p>
+              </div>
             </button>
           </div>
         </div>
@@ -897,29 +1166,39 @@
         <!-- Test Section -->
         <div>
           <h3
-            class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2"
+            class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3"
           >
             Test
           </h3>
           <div class="space-y-1">
             <button
               onclick="openModal('random-test-modal');toggleMainMenu()"
-              class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-left focus-ring"
+              class="touch-target w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors text-left focus-ring"
             >
-              <svg
-                class="w-5 h-5 text-slate-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+              <div
+                class="w-9 h-9 rounded-lg bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center"
               >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                />
-              </svg>
-              <span>Random Test</span>
+                <svg
+                  class="w-5 h-5 text-pink-600 dark:text-pink-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                  />
+                </svg>
+              </div>
+              <div class="flex-1">
+                <span class="font-medium">Random Test</span><p
+                  class="text-xs text-slate-500"
+                >
+                  Generate synthetic data
+                </p>
+              </div>
             </button>
           </div>
         </div>
@@ -927,74 +1206,102 @@
         <!-- Advanced Section -->
         <div>
           <h3
-            class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2"
+            class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3"
           >
             Advanced
           </h3>
           <div class="space-y-1">
             <button
               onclick="openModal('settings-modal');toggleMainMenu()"
-              class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-left focus-ring"
+              class="touch-target w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors text-left focus-ring"
             >
-              <svg
-                class="w-5 h-5 text-slate-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+              <div
+                class="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center"
               >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                />
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-              </svg>
-              <span>Settings</span>
+                <svg
+                  class="w-5 h-5 text-slate-600 dark:text-slate-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                  />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                </svg>
+              </div>
+              <div class="flex-1">
+                <span class="font-medium">Settings</span><p
+                  class="text-xs text-slate-500"
+                >
+                  Module URL & preferences
+                </p>
+              </div>
             </button>
             <button
               onclick="showDataTable();toggleMainMenu()"
-              class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-left focus-ring"
+              class="touch-target w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors text-left focus-ring"
             >
-              <svg
-                class="w-5 h-5 text-slate-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+              <div
+                class="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center"
               >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                />
-              </svg>
-              <span>View Data Table</span>
+                <svg
+                  class="w-5 h-5 text-slate-600 dark:text-slate-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                  />
+                </svg>
+              </div>
+              <div class="flex-1">
+                <span class="font-medium">View Data Table</span><p
+                  class="text-xs text-slate-500"
+                >
+                  Raw prediction values
+                </p>
+              </div>
             </button>
             <button
               onclick="showKeyboardShortcuts();toggleMainMenu()"
-              class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-left focus-ring"
+              class="touch-target w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors text-left focus-ring"
             >
-              <svg
-                class="w-5 h-5 text-slate-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+              <div
+                class="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center"
               >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <span>Keyboard Shortcuts</span>
-              <span class="ml-auto text-xs text-slate-400">?</span>
+                <svg
+                  class="w-5 h-5 text-slate-600 dark:text-slate-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <div class="flex-1">
+                <span class="font-medium">Keyboard Shortcuts</span>
+              </div>
+              <kbd
+                class="px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded text-xs font-mono"
+              >?</kbd>
             </button>
           </div>
         </div>
@@ -1015,17 +1322,17 @@
       >
       </div>
       <div
-        class="absolute inset-4 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-3xl sm:max-h-[90vh] bg-white dark:bg-slate-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-fade-in"
+        class="absolute inset-0 sm:inset-4 sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-3xl sm:max-h-[90vh] sm:inset-auto bg-white dark:bg-slate-800 sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-slide-in-bottom sm:animate-fade-in"
       >
         <div
-          class="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700"
+          class="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200 dark:border-slate-700 flex-shrink-0"
         >
-          <h2 id="config-modal-title" class="text-xl font-semibold">
+          <h2 id="config-modal-title" class="text-lg sm:text-xl font-bold">
             Model Configuration
           </h2>
           <button
             onclick="closeModal('config-modal')"
-            class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors focus-ring"
+            class="touch-target p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors focus-ring"
             aria-label="Close"
           >
             <svg
@@ -1046,82 +1353,87 @@
 
         <!-- Presets -->
         <div
-          class="px-5 py-3 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700"
+          class="px-4 sm:px-5 py-3 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 flex-shrink-0"
         >
-          <div class="flex items-center gap-2 overflow-x-auto pb-1">
+          <div class="flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1">
             <span
-              class="text-sm font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap"
+              class="text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap flex-shrink-0"
             >Presets:</span>
             <button
               onclick="applyPreset('start-here')"
-              class="preset-btn px-3 py-1.5 text-sm rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors whitespace-nowrap"
+              class="preset-btn touch-target px-3 py-1.5 text-xs sm:text-sm rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors whitespace-nowrap font-medium flex-shrink-0"
             >
               Start Here
             </button>
             <button
               onclick="applyPreset('fast')"
-              class="preset-btn px-3 py-1.5 text-sm rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors whitespace-nowrap"
+              class="preset-btn touch-target px-3 py-1.5 text-xs sm:text-sm rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors whitespace-nowrap flex-shrink-0"
             >
-              Fast & Light
+              Fast
             </button>
             <button
               onclick="applyPreset('balanced')"
-              class="preset-btn px-3 py-1.5 text-sm rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors whitespace-nowrap"
+              class="preset-btn touch-target px-3 py-1.5 text-xs sm:text-sm rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors whitespace-nowrap flex-shrink-0"
             >
               Balanced
             </button>
             <button
               onclick="applyPreset('accurate')"
-              class="preset-btn px-3 py-1.5 text-sm rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors whitespace-nowrap"
+              class="preset-btn touch-target px-3 py-1.5 text-xs sm:text-sm rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors whitespace-nowrap flex-shrink-0"
             >
               Accurate
             </button>
             <button
               onclick="applyPreset('adaptive')"
-              class="preset-btn px-3 py-1.5 text-sm rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors whitespace-nowrap"
+              class="preset-btn touch-target px-3 py-1.5 text-xs sm:text-sm rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors whitespace-nowrap flex-shrink-0"
             >
               Adaptive
             </button>
             <button
               onclick="applyPreset('robust')"
-              class="preset-btn px-3 py-1.5 text-sm rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors whitespace-nowrap"
+              class="preset-btn touch-target px-3 py-1.5 text-xs sm:text-sm rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors whitespace-nowrap flex-shrink-0"
             >
-              Noisy & Robust
+              Robust
             </button>
           </div>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-5 space-y-4" id="config-sections">
+        <div
+          class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3 sm:space-y-4"
+          id="config-sections"
+        >
         </div>
 
         <div
-          class="p-5 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex flex-wrap items-center gap-3"
+          class="p-4 sm:p-5 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 sm:gap-3 flex-shrink-0"
         >
           <button
             onclick="resetConfigToDefaults()"
-            class="px-4 py-2 text-sm rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors focus-ring"
+            class="touch-target px-4 py-2.5 text-sm rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors focus-ring font-medium"
           >
-            Reset to Defaults
+            Reset Defaults
           </button>
           <button
             onclick="resetEverything()"
-            class="px-4 py-2 text-sm rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors focus-ring"
+            class="touch-target px-4 py-2.5 text-sm rounded-xl bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors focus-ring font-medium"
           >
-            Reset Everything
+            Reset All
           </button>
-          <div class="flex-1"></div>
-          <button
-            onclick="closeModal('config-modal')"
-            class="px-4 py-2 text-sm rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors focus-ring"
-          >
-            Cancel
-          </button>
-          <button
-            onclick="createModel()"
-            class="px-6 py-2 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors focus-ring"
-          >
-            Create Model
-          </button>
+          <div class="flex-1 hidden sm:block"></div>
+          <div class="flex gap-2 mt-2 sm:mt-0">
+            <button
+              onclick="closeModal('config-modal')"
+              class="touch-target flex-1 sm:flex-initial px-4 py-2.5 text-sm rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors focus-ring font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              onclick="createModel()"
+              class="touch-target flex-1 sm:flex-initial px-6 py-2.5 text-sm rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold transition-all shadow-lg shadow-blue-500/25 focus-ring"
+            >
+              Create Model
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -1139,15 +1451,15 @@
       >
       </div>
       <div
-        class="absolute inset-4 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-xl sm:max-h-[90vh] bg-white dark:bg-slate-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-fade-in"
+        class="absolute inset-0 sm:inset-4 sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-xl sm:max-h-[90vh] sm:inset-auto bg-white dark:bg-slate-800 sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-slide-in-bottom sm:animate-fade-in"
       >
         <div
-          class="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700"
+          class="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200 dark:border-slate-700 flex-shrink-0"
         >
-          <h2 class="text-xl font-semibold">Upload Dataset</h2>
+          <h2 class="text-lg sm:text-xl font-bold">Upload Dataset</h2>
           <button
             onclick="closeModal('upload-modal')"
-            class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors focus-ring"
+            class="touch-target p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors focus-ring"
             aria-label="Close"
           >
             <svg
@@ -1165,17 +1477,17 @@
             </svg>
           </button>
         </div>
-        <div class="flex-1 overflow-y-auto p-5 space-y-4">
-          <!-- Drop Zone -->
+        <div class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
           <div
             id="upload-dropzone"
-            class="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
+            class="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-2xl p-6 sm:p-8 text-center cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 transition-colors bg-slate-50/50 dark:bg-slate-900/30"
             ondragover="handleDragOver(event)"
+            ondragleave="handleDragLeave(event)"
             ondrop="handleDrop(event)"
             onclick="document.getElementById('file-input').click()"
           >
             <svg
-              class="w-12 h-12 mx-auto text-slate-400 mb-4"
+              class="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-slate-400 mb-3"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -1187,8 +1499,8 @@
                 d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
               />
             </svg>
-            <p class="font-medium mb-1">
-              Drop JSON file here or click to browse
+            <p class="font-semibold mb-1">
+              Drop JSON file here or tap to browse
             </p>
             <p class="text-sm text-slate-500 dark:text-slate-400">
               Supports .json files
@@ -1202,24 +1514,22 @@
             >
           </div>
 
-          <div class="text-center text-sm text-slate-500 dark:text-slate-400">
-            or
+          <div
+            class="text-center text-sm text-slate-500 dark:text-slate-400 font-medium"
+          >
+            or paste JSON directly
           </div>
 
-          <!-- JSON Input -->
           <div>
-            <label class="block text-sm font-medium mb-2"
-            >Paste JSON directly:</label>
             <textarea
               id="upload-json-input"
-              class="w-full h-40 px-4 py-3 bg-slate-100 dark:bg-slate-700 rounded-xl text-sm font-mono resize-none focus-ring"
+              class="w-full h-32 sm:h-40 px-4 py-3 bg-slate-100 dark:bg-slate-700 rounded-xl text-sm font-mono resize-none focus-ring"
               placeholder='{"xCoordinates": [[1,2],[3,4]], "yCoordinates": [[5],[6]]}'
             ></textarea>
           </div>
 
-          <!-- Format Example -->
           <details class="bg-slate-50 dark:bg-slate-900/50 rounded-xl">
-            <summary class="px-4 py-3 cursor-pointer text-sm font-medium">
+            <summary class="px-4 py-3 cursor-pointer text-sm font-semibold">
               View format example
             </summary>
             <div class="px-4 pb-4">
@@ -1228,32 +1538,29 @@
               >
 <code>{
   "xCoordinates": [
-    [1.0, 2.0, 3.0],  // Sample 1: 3 features
-    [1.1, 2.1, 3.1],  // Sample 2
-    [1.2, 2.2, 3.2]   // Sample 3
+    [1.0, 2.0, 3.0],
+    [1.1, 2.1, 3.1]
   ],
   "yCoordinates": [
-    [4.0, 5.0],       // Sample 1: 2 targets
-    [4.1, 5.1],       // Sample 2
-    [4.2, 5.2]        // Sample 3
+    [4.0, 5.0],
+    [4.1, 5.1]
   ]
 }</code></pre>
               <button
                 onclick="copyFormatExample()"
-                class="mt-2 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                class="mt-2 text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium"
               >
                 Copy example
               </button>
             </div>
           </details>
 
-          <!-- Validation Preview -->
           <div
             id="upload-preview"
             class="hidden bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4"
           >
             <h4
-              class="font-medium text-emerald-700 dark:text-emerald-300 mb-3 flex items-center gap-2"
+              class="font-semibold text-emerald-700 dark:text-emerald-300 mb-3 flex items-center gap-2"
             >
               <svg
                 class="w-5 h-5"
@@ -1274,13 +1581,12 @@
             </div>
           </div>
 
-          <!-- Error Display -->
           <div
             id="upload-error"
             class="hidden bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4"
           >
             <h4
-              class="font-medium text-red-700 dark:text-red-300 mb-2 flex items-center gap-2"
+              class="font-semibold text-red-700 dark:text-red-300 mb-2 flex items-center gap-2"
             >
               <svg
                 class="w-5 h-5"
@@ -1305,24 +1611,24 @@
           </div>
         </div>
         <div
-          class="p-5 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-3"
+          class="p-4 sm:p-5 border-t border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row gap-2 sm:justify-end flex-shrink-0"
         >
           <button
             onclick="closeModal('upload-modal')"
-            class="px-4 py-2 text-sm rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors focus-ring"
+            class="touch-target px-4 py-2.5 text-sm rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors focus-ring font-medium"
           >
             Cancel
           </button>
           <button
             onclick="validateAndPreviewUpload()"
-            class="px-4 py-2 text-sm rounded-lg bg-slate-600 hover:bg-slate-700 text-white transition-colors focus-ring"
+            class="touch-target px-4 py-2.5 text-sm rounded-xl bg-slate-600 hover:bg-slate-700 text-white transition-colors focus-ring font-medium"
           >
             Validate
           </button>
           <button
             onclick="applyUploadedData()"
             id="apply-upload-btn"
-            class="px-6 py-2 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors focus-ring disabled:opacity-50 disabled:cursor-not-allowed"
+            class="touch-target px-6 py-2.5 text-sm rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold transition-all shadow-lg shadow-blue-500/25 focus-ring disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
             disabled
           >
             Apply & Train
@@ -1344,15 +1650,15 @@
       >
       </div>
       <div
-        class="absolute inset-4 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-lg sm:max-h-[90vh] bg-white dark:bg-slate-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-fade-in"
+        class="absolute inset-0 sm:inset-4 sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-lg sm:max-h-[90vh] sm:inset-auto bg-white dark:bg-slate-800 sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-slide-in-bottom sm:animate-fade-in"
       >
         <div
-          class="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700"
+          class="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200 dark:border-slate-700 flex-shrink-0"
         >
-          <h2 class="text-xl font-semibold">Manual Insert</h2>
+          <h2 class="text-lg sm:text-xl font-bold">Manual Insert</h2>
           <button
             onclick="closeModal('insert-modal')"
-            class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors focus-ring"
+            class="touch-target p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors focus-ring"
             aria-label="Close"
           >
             <svg
@@ -1370,40 +1676,40 @@
             </svg>
           </button>
         </div>
-        <div class="flex-1 overflow-y-auto p-5 space-y-4">
+        <div class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
           <p class="text-sm text-slate-500 dark:text-slate-400">
             Add a single sample or small batch to the training data.
           </p>
           <div>
             <div class="flex items-center justify-between mb-2">
-              <label class="text-sm font-medium">Sample JSON:</label>
+              <label class="text-sm font-semibold">Sample JSON:</label>
               <button
                 onclick="generateInsertTemplate()"
-                class="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                class="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium"
               >
                 Generate Template
               </button>
             </div>
             <textarea
               id="insert-json-input"
-              class="w-full h-48 px-4 py-3 bg-slate-100 dark:bg-slate-700 rounded-xl text-sm font-mono resize-none focus-ring"
+              class="w-full h-40 sm:h-48 px-4 py-3 bg-slate-100 dark:bg-slate-700 rounded-xl text-sm font-mono resize-none focus-ring"
               placeholder='{"xCoordinates": [[...]], "yCoordinates": [[...]]}'
             ></textarea>
           </div>
           <div id="insert-validation" class="text-sm"></div>
         </div>
         <div
-          class="p-5 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-3"
+          class="p-4 sm:p-5 border-t border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row gap-2 sm:justify-end flex-shrink-0"
         >
           <button
             onclick="closeModal('insert-modal')"
-            class="px-4 py-2 text-sm rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors focus-ring"
+            class="touch-target px-4 py-2.5 text-sm rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors focus-ring font-medium"
           >
             Cancel
           </button>
           <button
             onclick="applyManualInsert()"
-            class="px-6 py-2 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors focus-ring"
+            class="touch-target px-6 py-2.5 text-sm rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold transition-all shadow-lg shadow-blue-500/25 focus-ring"
           >
             Insert & Train
           </button>
@@ -1424,15 +1730,15 @@
       >
       </div>
       <div
-        class="absolute inset-4 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-lg sm:max-h-[90vh] bg-white dark:bg-slate-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-fade-in"
+        class="absolute inset-0 sm:inset-4 sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-lg sm:max-h-[90vh] sm:inset-auto bg-white dark:bg-slate-800 sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-slide-in-bottom sm:animate-fade-in"
       >
         <div
-          class="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700"
+          class="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200 dark:border-slate-700 flex-shrink-0"
         >
-          <h2 class="text-xl font-semibold">Save & Load Model</h2>
+          <h2 class="text-lg sm:text-xl font-bold">Save & Load Model</h2>
           <button
             onclick="closeModal('load-modal')"
-            class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors focus-ring"
+            class="touch-target p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors focus-ring"
             aria-label="Close"
           >
             <svg
@@ -1450,17 +1756,16 @@
             </svg>
           </button>
         </div>
-        <div class="flex-1 overflow-y-auto p-5 space-y-6">
-          <!-- Save Section -->
+        <div class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-6">
           <div class="space-y-3">
-            <h3 class="font-medium">Save Model</h3>
+            <h3 class="font-semibold">Save Model</h3>
             <div class="flex gap-2">
               <button
                 onclick="downloadModel()"
-                class="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg text-sm font-medium transition-colors focus-ring flex items-center justify-center gap-2"
+                class="touch-target flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-xl text-sm font-medium transition-colors focus-ring flex items-center justify-center gap-2"
               >
                 <svg
-                  class="w-4 h-4"
+                  class="w-5 h-5"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -1472,14 +1777,14 @@
                     d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                   />
                 </svg>
-                Download File
+                <span class="hidden sm:inline">Download</span>
               </button>
               <button
                 onclick="saveToLocalStorage()"
-                class="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg text-sm font-medium transition-colors focus-ring flex items-center justify-center gap-2"
+                class="touch-target flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-xl text-sm font-medium transition-colors focus-ring flex items-center justify-center gap-2"
               >
                 <svg
-                  class="w-4 h-4"
+                  class="w-5 h-5"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -1491,20 +1796,19 @@
                     d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
                   />
                 </svg>
-                Save to Browser
+                <span class="hidden sm:inline">Browser</span>
               </button>
             </div>
           </div>
 
-          <!-- Load Section -->
           <div class="space-y-3">
-            <h3 class="font-medium">Load Model</h3>
+            <h3 class="font-semibold">Load Model</h3>
             <div
-              class="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-6 text-center cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
+              class="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-5 text-center cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
               onclick="document.getElementById('load-file-input').click()"
             >
               <svg
-                class="w-10 h-10 mx-auto text-slate-400 mb-2"
+                class="w-9 h-9 mx-auto text-slate-400 mb-2"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -1516,7 +1820,7 @@
                   d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
                 />
               </svg>
-              <p class="text-sm font-medium">Click to load from file</p>
+              <p class="text-sm font-medium">Tap to load from file</p>
               <input
                 type="file"
                 id="load-file-input"
@@ -1525,15 +1829,13 @@
                 onchange="loadModelFromFile(event)"
               >
             </div>
-
-            <!-- Saved Models List -->
             <div id="saved-models-list" class="space-y-2"></div>
           </div>
 
           <div class="pt-3 border-t border-slate-200 dark:border-slate-700">
             <button
               onclick="clearLocalStorageModels()"
-              class="text-sm text-red-600 dark:text-red-400 hover:underline"
+              class="text-sm text-red-600 dark:text-red-400 hover:underline font-medium"
             >
               Clear all saved models
             </button>
@@ -1555,15 +1857,15 @@
       >
       </div>
       <div
-        class="absolute inset-4 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-md sm:max-h-[90vh] bg-white dark:bg-slate-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-fade-in"
+        class="absolute inset-0 sm:inset-4 sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-md sm:max-h-[90vh] sm:inset-auto bg-white dark:bg-slate-800 sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-slide-in-bottom sm:animate-fade-in"
       >
         <div
-          class="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700"
+          class="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200 dark:border-slate-700 flex-shrink-0"
         >
-          <h2 class="text-xl font-semibold">Random Test</h2>
+          <h2 class="text-lg sm:text-xl font-bold">Random Test</h2>
           <button
             onclick="closeModal('random-test-modal')"
-            class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors focus-ring"
+            class="touch-target p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors focus-ring"
             aria-label="Close"
           >
             <svg
@@ -1581,85 +1883,84 @@
             </svg>
           </button>
         </div>
-        <div class="flex-1 overflow-y-auto p-5 space-y-4">
+        <div class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
           <p class="text-sm text-slate-500 dark:text-slate-400">
-            Generate synthetic data to test the model's capabilities.
+            Generate synthetic data to test model capabilities.
           </p>
-
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-2 gap-3 sm:gap-4">
             <div>
-              <label class="block text-sm font-medium mb-1">Seed</label>
-              <input
+              <label class="block text-xs sm:text-sm font-semibold mb-1.5"
+              >Seed</label><input
                 type="number"
                 id="test-seed"
                 value="42"
-                class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-sm focus-ring"
+                class="touch-target w-full px-3 py-2.5 bg-slate-100 dark:bg-slate-700 rounded-xl text-sm focus-ring"
               >
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">Features</label>
-              <input
+              <label class="block text-xs sm:text-sm font-semibold mb-1.5"
+              >Features</label><input
                 type="number"
                 id="test-features"
                 value="5"
                 min="1"
                 max="50"
-                class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-sm focus-ring"
+                class="touch-target w-full px-3 py-2.5 bg-slate-100 dark:bg-slate-700 rounded-xl text-sm focus-ring"
               >
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">Targets</label>
-              <input
+              <label class="block text-xs sm:text-sm font-semibold mb-1.5"
+              >Targets</label><input
                 type="number"
                 id="test-targets"
                 value="3"
                 min="1"
                 max="20"
-                class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-sm focus-ring"
+                class="touch-target w-full px-3 py-2.5 bg-slate-100 dark:bg-slate-700 rounded-xl text-sm focus-ring"
               >
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">Samples</label>
-              <input
+              <label class="block text-xs sm:text-sm font-semibold mb-1.5"
+              >Samples</label><input
                 type="number"
                 id="test-samples"
                 value="200"
                 min="10"
                 max="5000"
-                class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-sm focus-ring"
+                class="touch-target w-full px-3 py-2.5 bg-slate-100 dark:bg-slate-700 rounded-xl text-sm focus-ring"
               >
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">Noise Level</label>
-              <input
+              <label class="block text-xs sm:text-sm font-semibold mb-1.5"
+              >Noise</label><input
                 type="number"
                 id="test-noise"
                 value="0.1"
                 min="0"
                 max="1"
                 step="0.05"
-                class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-sm focus-ring"
+                class="touch-target w-full px-3 py-2.5 bg-slate-100 dark:bg-slate-700 rounded-xl text-sm focus-ring"
               >
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">Outlier Rate</label>
-              <input
+              <label class="block text-xs sm:text-sm font-semibold mb-1.5"
+              >Outliers</label><input
                 type="number"
                 id="test-outliers"
                 value="0.02"
                 min="0"
                 max="0.2"
                 step="0.01"
-                class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-sm focus-ring"
+                class="touch-target w-full px-3 py-2.5 bg-slate-100 dark:bg-slate-700 rounded-xl text-sm focus-ring"
               >
             </div>
           </div>
-
           <div>
-            <label class="block text-sm font-medium mb-1">Difficulty</label>
+            <label class="block text-xs sm:text-sm font-semibold mb-1.5"
+            >Difficulty</label>
             <select
               id="test-difficulty"
-              class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-sm focus-ring"
+              class="touch-target w-full px-3 py-2.5 bg-slate-100 dark:bg-slate-700 rounded-xl text-sm focus-ring"
             >
               <option value="easy">Easy (Linear + Noise)</option>
               <option value="medium" selected>Medium (Nonlinear)</option>
@@ -1668,19 +1969,19 @@
           </div>
         </div>
         <div
-          class="p-5 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-3"
+          class="p-4 sm:p-5 border-t border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row gap-2 sm:justify-end flex-shrink-0"
         >
           <button
             onclick="closeModal('random-test-modal')"
-            class="px-4 py-2 text-sm rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors focus-ring"
+            class="touch-target px-4 py-2.5 text-sm rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors focus-ring font-medium"
           >
             Cancel
           </button>
           <button
             onclick="runRandomTest();closeModal('random-test-modal')"
-            class="px-6 py-2 text-sm rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-medium transition-colors focus-ring"
+            class="touch-target px-6 py-2.5 text-sm rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold transition-all shadow-lg shadow-purple-500/25 focus-ring"
           >
-            Generate & Train & Predict
+            Generate & Run
           </button>
         </div>
       </div>
@@ -1699,15 +2000,15 @@
       >
       </div>
       <div
-        class="absolute inset-4 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-fade-in"
+        class="absolute inset-0 sm:inset-4 sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-md sm:inset-auto bg-white dark:bg-slate-800 sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-slide-in-bottom sm:animate-fade-in"
       >
         <div
-          class="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700"
+          class="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200 dark:border-slate-700 flex-shrink-0"
         >
-          <h2 class="text-xl font-semibold">Settings</h2>
+          <h2 class="text-lg sm:text-xl font-bold">Settings</h2>
           <button
             onclick="closeModal('settings-modal')"
-            class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors focus-ring"
+            class="touch-target p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors focus-ring"
             aria-label="Close"
           >
             <svg
@@ -1725,32 +2026,30 @@
             </svg>
           </button>
         </div>
-        <div class="flex-1 overflow-y-auto p-5 space-y-4">
+        <div class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
           <div>
-            <label class="block text-sm font-medium mb-2"
+            <label class="block text-sm font-semibold mb-2"
             >ESNRegression Module URL</label>
             <input
               type="text"
               id="module-url-input"
               value="https://cdn.esm.sh/jsr/@hviana/multivariate-regression"
-              class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-sm font-mono focus-ring"
+              class="w-full px-3 py-2.5 bg-slate-100 dark:bg-slate-700 rounded-xl text-xs sm:text-sm font-mono focus-ring"
             >
-            <p class="text-xs text-slate-500 mt-1">
+            <p class="text-xs text-slate-500 mt-1.5">
               Change if the default URL is unavailable
             </p>
           </div>
           <button
             onclick="reinitializeWorker()"
-            class="w-full px-4 py-2 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-lg text-sm font-medium hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors focus-ring"
+            class="touch-target w-full px-4 py-2.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-xl text-sm font-semibold hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors focus-ring"
           >
             Reinitialize Worker
           </button>
-
           <hr class="border-slate-200 dark:border-slate-700">
-
           <button
             onclick="clearAllPreferences()"
-            class="w-full px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg text-sm font-medium hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors focus-ring"
+            class="touch-target w-full px-4 py-2.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl text-sm font-semibold hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors focus-ring"
           >
             Clear All Preferences
           </button>
@@ -1771,15 +2070,15 @@
       >
       </div>
       <div
-        class="absolute inset-4 sm:inset-8 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-fade-in"
+        class="absolute inset-2 sm:inset-4 md:inset-8 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-fade-in"
       >
         <div
-          class="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700"
+          class="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200 dark:border-slate-700 flex-shrink-0"
         >
-          <h2 class="text-xl font-semibold">Prediction Data Table</h2>
+          <h2 class="text-lg sm:text-xl font-bold">Prediction Data Table</h2>
           <button
             onclick="closeModal('data-table-modal')"
-            class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors focus-ring"
+            class="touch-target p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors focus-ring"
             aria-label="Close"
           >
             <svg
@@ -1797,8 +2096,8 @@
             </svg>
           </button>
         </div>
-        <div class="flex-1 overflow-auto p-5">
-          <table class="w-full text-sm">
+        <div class="flex-1 overflow-auto p-4 sm:p-5">
+          <table class="w-full text-xs sm:text-sm">
             <thead
               id="data-table-head"
               class="bg-slate-100 dark:bg-slate-700 sticky top-0"
@@ -1826,12 +2125,12 @@
         class="absolute inset-4 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-sm bg-white dark:bg-slate-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-fade-in"
       >
         <div
-          class="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700"
+          class="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200 dark:border-slate-700 flex-shrink-0"
         >
-          <h2 class="text-xl font-semibold">Keyboard Shortcuts</h2>
+          <h2 class="text-lg sm:text-xl font-bold">Keyboard Shortcuts</h2>
           <button
             onclick="closeModal('shortcuts-modal')"
-            class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors focus-ring"
+            class="touch-target p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors focus-ring"
             aria-label="Close"
           >
             <svg
@@ -1849,35 +2148,35 @@
             </svg>
           </button>
         </div>
-        <div class="p-5 space-y-3">
-          <div class="flex justify-between">
-            <span>Open Menu</span><kbd
-              class="px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded text-xs font-mono"
+        <div class="p-4 sm:p-5 space-y-3">
+          <div class="flex justify-between items-center">
+            <span class="text-sm">Open Menu</span><kbd
+              class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 rounded-lg text-xs font-mono font-semibold"
             >M</kbd>
           </div>
-          <div class="flex justify-between">
-            <span>Configure Model</span><kbd
-              class="px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded text-xs font-mono"
+          <div class="flex justify-between items-center">
+            <span class="text-sm">Configure Model</span><kbd
+              class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 rounded-lg text-xs font-mono font-semibold"
             >C</kbd>
           </div>
-          <div class="flex justify-between">
-            <span>Upload Data</span><kbd
-              class="px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded text-xs font-mono"
+          <div class="flex justify-between items-center">
+            <span class="text-sm">Upload Data</span><kbd
+              class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 rounded-lg text-xs font-mono font-semibold"
             >U</kbd>
           </div>
-          <div class="flex justify-between">
-            <span>Run Prediction</span><kbd
-              class="px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded text-xs font-mono"
+          <div class="flex justify-between items-center">
+            <span class="text-sm">Run Prediction</span><kbd
+              class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 rounded-lg text-xs font-mono font-semibold"
             >P</kbd>
           </div>
-          <div class="flex justify-between">
-            <span>Close Modal</span><kbd
-              class="px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded text-xs font-mono"
+          <div class="flex justify-between items-center">
+            <span class="text-sm">Close Modal</span><kbd
+              class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 rounded-lg text-xs font-mono font-semibold"
             >Esc</kbd>
           </div>
-          <div class="flex justify-between">
-            <span>Show Shortcuts</span><kbd
-              class="px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded text-xs font-mono"
+          <div class="flex justify-between items-center">
+            <span class="text-sm">Show Shortcuts</span><kbd
+              class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 rounded-lg text-xs font-mono font-semibold"
             >?</kbd>
           </div>
         </div>
@@ -1887,7 +2186,7 @@
     <!-- Toast Container -->
     <div
       id="toast-container"
-      class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"
+      class="fixed bottom-20 sm:bottom-4 left-4 right-4 sm:left-auto sm:right-4 z-50 flex flex-col gap-2 sm:w-80"
       aria-live="polite"
     >
     </div>
@@ -1980,12 +2279,11 @@
             {
               key: "maxSequenceLength",
               type: "number",
-              label: "Max Sequence Length",
+              label: "Max Sequence",
               min: 8,
               max: 512,
               step: 8,
-              desc:
-                "Maximum temporal context window and prediction horizon limit",
+              desc: "Maximum context window",
             },
             {
               key: "reservoirSize",
@@ -1994,7 +2292,7 @@
               min: 16,
               max: 2048,
               step: 16,
-              desc: "Number of neurons in the reservoir hidden layer",
+              desc: "Neurons in reservoir",
             },
             {
               key: "spectralRadius",
@@ -2003,7 +2301,7 @@
               min: 0.1,
               max: 1.5,
               step: 0.01,
-              desc: "Controls memory length (0.8-0.99 typical)",
+              desc: "Memory length control",
             },
             {
               key: "leakRate",
@@ -2012,8 +2310,7 @@
               min: 0.01,
               max: 1.0,
               step: 0.01,
-              desc:
-                "Temporal smoothing (1=fast updates, 0=more smoothing)",
+              desc: "Temporal smoothing",
             },
             {
               key: "inputScale",
@@ -2022,7 +2319,7 @@
               min: 0.01,
               max: 10.0,
               step: 0.1,
-              desc: "Scaling factor for input",
+              desc: "Input scaling factor",
             },
             {
               key: "biasScale",
@@ -2031,7 +2328,7 @@
               min: 0.0,
               max: 1.0,
               step: 0.01,
-              desc: "Scaling for random bias values",
+              desc: "Bias scaling",
             },
             {
               key: "reservoirSparsity",
@@ -2040,7 +2337,7 @@
               min: 0.0,
               max: 0.99,
               step: 0.01,
-              desc: "Proportion of zero connections",
+              desc: "Zero connections",
             },
             {
               key: "inputSparsity",
@@ -2049,14 +2346,14 @@
               min: 0.0,
               max: 0.99,
               step: 0.01,
-              desc: "Sparsity of input connections",
+              desc: "Input sparsity",
             },
             {
               key: "activation",
               type: "select",
               label: "Activation",
               options: ["tanh", "relu"],
-              desc: "Non-linear activation function",
+              desc: "Activation function",
             },
           ],
         },
@@ -2068,13 +2365,13 @@
               key: "useInputInReadout",
               type: "boolean",
               label: "Use Input in Readout",
-              desc: "Append input to reservoir state for output",
+              desc: "Append input to state",
             },
             {
               key: "useBiasInReadout",
               type: "boolean",
               label: "Use Bias in Readout",
-              desc: "Include bias term in readout",
+              desc: "Include bias term",
             },
           ],
         },
@@ -2085,9 +2382,9 @@
             {
               key: "readoutTraining",
               type: "fixed",
-              label: "Training Algorithm",
+              label: "Algorithm",
               value: "rls",
-              desc: "Recursive Least Squares",
+              desc: "RLS training",
             },
             {
               key: "rlsLambda",
@@ -2096,7 +2393,7 @@
               min: 0.9,
               max: 0.9999,
               step: 0.001,
-              desc: "Forgetting factor (lower=faster adaptation)",
+              desc: "Forgetting factor",
             },
             {
               key: "rlsDelta",
@@ -2105,7 +2402,7 @@
               min: 0.01,
               max: 100.0,
               step: 0.1,
-              desc: "Initial P matrix diagonal value",
+              desc: "Initial P diagonal",
             },
             {
               key: "epsilon",
@@ -2114,7 +2411,7 @@
               min: 1e-12,
               max: 1e-4,
               step: 1e-9,
-              desc: "Numerical stability constant",
+              desc: "Numerical stability",
             },
             {
               key: "l2Lambda",
@@ -2123,16 +2420,16 @@
               min: 0.0,
               max: 0.1,
               step: 0.0001,
-              desc: "L2 regularization strength",
+              desc: "L2 regularization",
             },
             {
               key: "gradientClipNorm",
               type: "number",
-              label: "Gradient Clip Norm",
+              label: "Gradient Clip",
               min: 0.0,
               max: 10.0,
               step: 0.1,
-              desc: "Maximum norm for updates",
+              desc: "Max update norm",
             },
           ],
         },
@@ -2143,7 +2440,7 @@
             {
               key: "normalizationEpsilon",
               type: "number",
-              label: "Normalization Epsilon",
+              label: "Norm Epsilon",
               min: 1e-12,
               max: 1e-4,
               step: 1e-9,
@@ -2152,11 +2449,11 @@
             {
               key: "normalizationWarmup",
               type: "number",
-              label: "Normalization Warmup",
+              label: "Norm Warmup",
               min: 1,
               max: 100,
               step: 1,
-              desc: "Samples before normalization activates",
+              desc: "Warmup samples",
             },
           ],
         },
@@ -2167,20 +2464,20 @@
             {
               key: "outlierThreshold",
               type: "number",
-              label: "Outlier Threshold",
+              label: "Threshold",
               min: 1.0,
               max: 5.0,
               step: 0.1,
-              desc: "Z-score threshold for outliers",
+              desc: "Z-score threshold",
             },
             {
               key: "outlierMinWeight",
               type: "number",
-              label: "Outlier Min Weight",
+              label: "Min Weight",
               min: 0.0,
               max: 1.0,
               step: 0.01,
-              desc: "Minimum weight for outliers",
+              desc: "Outlier min weight",
             },
           ],
         },
@@ -2191,20 +2488,20 @@
             {
               key: "residualWindowSize",
               type: "number",
-              label: "Residual Window Size",
+              label: "Window Size",
               min: 10,
               max: 500,
               step: 10,
-              desc: "Recent residuals for uncertainty",
+              desc: "Residual window",
             },
             {
               key: "uncertaintyMultiplier",
               type: "number",
-              label: "Uncertainty Multiplier",
+              label: "CI Multiplier",
               min: 1.0,
               max: 3.5,
               step: 0.01,
-              desc: "CI width multiplier (1.96=95%)",
+              desc: "1.96 = 95% CI",
             },
           ],
         },
@@ -2215,11 +2512,11 @@
             {
               key: "weightInitScale",
               type: "number",
-              label: "Weight Init Scale",
+              label: "Weight Scale",
               min: 0.01,
               max: 1.0,
               step: 0.01,
-              desc: "Initial weight scale factor",
+              desc: "Initial weight scale",
             },
             {
               key: "seed",
@@ -2228,20 +2525,20 @@
               min: 0,
               max: 999999,
               step: 1,
-              desc: "Random seed for reproducibility",
+              desc: "Random seed",
             },
             {
               key: "verbose",
               type: "boolean",
               label: "Verbose",
-              desc: "Enable detailed logging",
+              desc: "Detailed logging",
             },
             {
               key: "rollforwardMode",
               type: "select",
-              label: "Rollforward Mode",
+              label: "Rollforward",
               options: ["holdLastX", "autoregressive"],
-              desc: "Multi-step prediction strategy",
+              desc: "Prediction strategy",
             },
           ],
         },
@@ -2275,12 +2572,13 @@
         },
         hover: { active: false, x: 0, y: 0, dataIndex: -1 },
         animation: { active: false, startTime: 0, duration: 0 },
+        sidePanelOpen: false,
       };
 
       let worker = null;
       let canvas, ctx;
       let resizeObserver;
-      let animationFrameId;
+      let touchStartY = 0;
 
       function initApp() {
         loadPreferences();
@@ -2371,13 +2669,13 @@ async function loadModule(url) {
       if (!ESNRegression) throw new Error('ESNRegression not found');
       return { success: true };
     } catch (e2) {
-      return { success: false, error: 'Failed to load ESNRegression module: ' + e1.message + ' | Fallback: ' + e2.message };
+      return { success: false, error: 'Failed to load ESNRegression: ' + e1.message };
     }
   }
 }
 
 function emitProgress(requestId, processed, total, stage) {
-  self.postMessage({ type: 'progress', requestId, processed, total, percent: Math.round(processed/total*100), stage });
+  self.postMessage({ type: 'progress', requestId, payload: { processed, total, percent: Math.round(processed/total*100), stage } });
 }
 
 self.onmessage = async function(e) {
@@ -2427,7 +2725,7 @@ self.onmessage = async function(e) {
         }
         lastResult = model.fitOnline({ xCoordinates: [xCoordinates[i]], yCoordinates: [yCoordinates[i]] });
         if (total > 10 && i % Math.max(1, Math.floor(total/50)) === 0) {
-          emitProgress(requestId, i+1, total, 'Training samples');
+          emitProgress(requestId, i+1, total, 'Training');
         }
       }
       const summary = model.getModelSummary();
@@ -2477,9 +2775,8 @@ self.onmessage = async function(e) {
     }
     
     else if (type === 'getSummary') {
-      if (!model) {
-        result = { exists: false };
-      } else {
+      if (!model) result = { exists: false };
+      else {
         const summary = model.getModelSummary();
         result = { exists: true, summary };
       }
@@ -2496,7 +2793,6 @@ self.onmessage = async function(e) {
   }
 };
 `;
-
         const blob = new Blob([workerCode], {
           type: "application/javascript",
         });
@@ -2508,11 +2804,13 @@ self.onmessage = async function(e) {
           const { requestId, type, payload } = e.data;
 
           if (type === "progress") {
-            updateProgress(
-              payload.processed,
-              payload.total,
-              payload.stage,
-            );
+            if (payload) {
+              updateProgress(
+                payload.processed,
+                payload.total,
+                payload.stage,
+              );
+            }
             return;
           }
 
@@ -2525,13 +2823,13 @@ self.onmessage = async function(e) {
               pending.resolve({ cancelled: true, ...payload });
             } else pending.resolve(payload);
           }
-
           if (state.pendingRequests.size === 0) hideLoading();
         };
 
         worker.onerror = (e) => {
           console.error("Worker error:", e);
           showToast("error", "Worker error: " + e.message);
+          hideLoading();
         };
 
         workerRequest("init", { moduleUrl: getModuleUrl() })
@@ -2542,7 +2840,7 @@ self.onmessage = async function(e) {
             log("error", "Worker", err.message);
             showToast(
               "error",
-              "Failed to load ESNRegression module. Check Settings.",
+              "Failed to load module. Check Settings.",
             );
           });
       }
@@ -2571,6 +2869,7 @@ self.onmessage = async function(e) {
             payload: { requestId: state.currentRequestId },
           });
           log("warning", "Operation", "Cancelled by user");
+          hideLoading();
         }
       }
 
@@ -2586,6 +2885,15 @@ self.onmessage = async function(e) {
 
         canvas.addEventListener("mousemove", handleCanvasHover);
         canvas.addEventListener("mouseleave", handleCanvasLeave);
+        canvas.addEventListener("touchstart", handleTouchStart, {
+          passive: true,
+        });
+        canvas.addEventListener("touchmove", handleTouchMove, {
+          passive: true,
+        });
+        canvas.addEventListener("touchend", handleTouchEnd, {
+          passive: true,
+        });
         canvas.addEventListener("wheel", handleCanvasWheel, {
           passive: false,
         });
@@ -2607,72 +2915,67 @@ self.onmessage = async function(e) {
       function initConfigSections() {
         const container = document.getElementById("config-sections");
         container.innerHTML = CONFIG_SECTIONS.map((section) => `
-    <div class="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
-      <button onclick="toggleSection('${section.id}')" class="w-full flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors text-left">
-        <span class="font-medium">${section.title}</span>
-        <svg class="w-5 h-5 transform transition-transform section-chevron-${section.id}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-      </button>
-      <div class="collapsible-content open section-content-${section.id}">
-        <div class="p-4 space-y-4">
-          ${section.params.map((p) => renderConfigParam(p)).join("")}
+        <div class="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+          <button onclick="toggleSection('${section.id}')" class="w-full flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors text-left">
+            <span class="font-semibold text-sm">${section.title}</span>
+            <svg class="w-5 h-5 transform transition-transform section-chevron-${section.id}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div class="collapsible-content open section-content-${section.id}">
+            <div class="p-4 space-y-4">${
+          section.params.map((p) => renderConfigParam(p)).join("")
+        }</div>
+          </div>
         </div>
-      </div>
-    </div>
-  `).join("");
-
+      `).join("");
         updateConfigValues();
       }
 
       function renderConfigParam(p) {
         const value = state.config[p.key];
         if (p.type === "number") {
-          return `
-      <div class="space-y-1">
-        <div class="flex items-center justify-between">
-          <label class="text-sm font-medium">${p.label}</label>
-          <input type="number" id="cfg-${p.key}" value="${value}" min="${p.min}" max="${p.max}" step="${p.step}" class="w-24 px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded text-sm text-right focus-ring" onchange="updateConfigValue('${p.key}', this.value)">
-        </div>
-        <p class="text-xs text-slate-500 dark:text-slate-400">${p.desc}</p>
-      </div>`;
-        } else if (p.type === "boolean") {
-          return `
-      <div class="flex items-center justify-between">
-        <div>
-          <label class="text-sm font-medium">${p.label}</label>
+          return `<div class="space-y-1.5">
+          <div class="flex items-center justify-between gap-2">
+            <label class="text-sm font-medium">${p.label}</label>
+            <input type="number" id="cfg-${p.key}" value="${value}" min="${p.min}" max="${p.max}" step="${p.step}" class="w-20 sm:w-24 px-2 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-lg text-sm text-right focus-ring font-mono" onchange="updateConfigValue('${p.key}', this.value)">
+          </div>
           <p class="text-xs text-slate-500 dark:text-slate-400">${p.desc}</p>
-        </div>
-        <button onclick="toggleConfigBool('${p.key}')" class="relative w-11 h-6 rounded-full transition-colors ${
-            value ? "bg-blue-600" : "bg-slate-300 dark:bg-slate-600"
+        </div>`;
+        } else if (p.type === "boolean") {
+          return `<div class="flex items-center justify-between gap-4">
+          <div class="flex-1 min-w-0">
+            <label class="text-sm font-medium">${p.label}</label>
+            <p class="text-xs text-slate-500 dark:text-slate-400">${p.desc}</p>
+          </div>
+          <button onclick="toggleConfigBool('${p.key}')" class="relative w-12 h-7 rounded-full transition-colors flex-shrink-0 ${
+            value ? "bg-blue-500" : "bg-slate-300 dark:bg-slate-600"
           }" id="cfg-${p.key}-btn">
-          <span class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+            <span class="absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${
             value ? "translate-x-5" : ""
           }"></span>
-        </button>
-      </div>`;
+          </button>
+        </div>`;
         } else if (p.type === "select") {
-          return `
-      <div class="space-y-1">
-        <label class="text-sm font-medium">${p.label}</label>
-        <select id="cfg-${p.key}" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-sm focus-ring" onchange="updateConfigValue('${p.key}', this.value)">
-          ${
+          return `<div class="space-y-1.5">
+          <label class="text-sm font-medium">${p.label}</label>
+          <select id="cfg-${p.key}" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-sm focus-ring" onchange="updateConfigValue('${p.key}', this.value)">
+            ${
             p.options.map((o) =>
               `<option value="${o}" ${
                 value === o ? "selected" : ""
               }>${o}</option>`
             ).join("")
           }
-        </select>
-        <p class="text-xs text-slate-500 dark:text-slate-400">${p.desc}</p>
-      </div>`;
-        } else if (p.type === "fixed") {
-          return `
-      <div class="flex items-center justify-between">
-        <div>
-          <label class="text-sm font-medium">${p.label}</label>
+          </select>
           <p class="text-xs text-slate-500 dark:text-slate-400">${p.desc}</p>
-        </div>
-        <span class="px-3 py-1 bg-slate-200 dark:bg-slate-600 rounded text-sm font-mono">${p.value}</span>
-      </div>`;
+        </div>`;
+        } else if (p.type === "fixed") {
+          return `<div class="flex items-center justify-between">
+          <div>
+            <label class="text-sm font-medium">${p.label}</label>
+            <p class="text-xs text-slate-500 dark:text-slate-400">${p.desc}</p>
+          </div>
+          <span class="px-3 py-1 bg-slate-200 dark:bg-slate-600 rounded-lg text-sm font-mono">${p.value}</span>
+        </div>`;
         }
         return "";
       }
@@ -2705,26 +3008,22 @@ self.onmessage = async function(e) {
       function updateConfigValues() {
         CONFIG_SECTIONS.flatMap((s) => s.params).forEach((p) => {
           if (p.type === "boolean") {
-            // Handle boolean toggles separately - they use -btn suffix
             const btn = document.getElementById(`cfg-${p.key}-btn`);
             if (btn) {
               btn.className =
-                `relative w-11 h-6 rounded-full transition-colors ${
+                `relative w-12 h-7 rounded-full transition-colors flex-shrink-0 ${
                   state.config[p.key]
-                    ? "bg-blue-600"
+                    ? "bg-blue-500"
                     : "bg-slate-300 dark:bg-slate-600"
                 }`;
               btn.querySelector("span").className =
-                `absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                `absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${
                   state.config[p.key] ? "translate-x-5" : ""
                 }`;
             }
           } else {
-            // Handle other input types (number, select)
             const el = document.getElementById(`cfg-${p.key}`);
-            if (el) {
-              el.value = state.config[p.key];
-            }
+            if (el) el.value = state.config[p.key];
           }
         });
       }
@@ -2742,11 +3041,7 @@ self.onmessage = async function(e) {
       }
 
       function resetEverything() {
-        if (
-          !confirm(
-            "This will clear the model, all data, and all settings. Continue?",
-          )
-        ) return;
+        if (!confirm("Clear model, data, and settings?")) return;
         state = {
           ...state,
           config: { ...DEFAULT_CONFIG },
@@ -2768,15 +3063,13 @@ self.onmessage = async function(e) {
         updateUI();
         renderChart();
         log("warning", "Reset", "All data cleared");
-        showToast("warning", "All data has been cleared");
+        showToast("warning", "All data cleared");
       }
 
       async function createModel() {
         showLoading("Creating model...");
         try {
-          const result = await workerRequest("createModel", {
-            config: state.config,
-          });
+          await workerRequest("createModel", { config: state.config });
           state.modelExists = true;
           state.sampleCount = 0;
           state.predictions = null;
@@ -2784,11 +3077,11 @@ self.onmessage = async function(e) {
           updateUI();
           renderChart();
           closeModal("config-modal");
-          log("success", "Model", "Model created successfully");
+          log("success", "Model", "Model created");
           showToast("success", "Model created");
         } catch (err) {
           log("error", "Model", err.message);
-          showToast("error", "Failed to create model: " + err.message);
+          showToast("error", "Failed: " + err.message);
         }
       }
 
@@ -2796,7 +3089,8 @@ self.onmessage = async function(e) {
         document.addEventListener("keydown", (e) => {
           if (
             e.target.tagName === "INPUT" ||
-            e.target.tagName === "TEXTAREA"
+            e.target.tagName === "TEXTAREA" ||
+            e.target.tagName === "SELECT"
           ) return;
           if (e.key === "m" || e.key === "M") toggleMainMenu();
           else if (e.key === "c" || e.key === "C") {
@@ -2809,7 +3103,6 @@ self.onmessage = async function(e) {
           else if (e.key === "Escape") closeAllModals();
           else if (e.key === "?") openModal("shortcuts-modal");
         });
-
         setVisualizationMode(state.vizMode);
       }
 
@@ -2817,7 +3110,6 @@ self.onmessage = async function(e) {
         const menu = document.getElementById("main-menu");
         const overlay = document.getElementById("main-menu-overlay");
         const isOpen = !menu.classList.contains("translate-x-full");
-
         if (isOpen) {
           menu.classList.add("translate-x-full");
           overlay.classList.add("hidden");
@@ -2829,17 +3121,27 @@ self.onmessage = async function(e) {
 
       function toggleSidePanel() {
         const panel = document.getElementById("side-panel");
-        panel.classList.toggle("hidden");
+        state.sidePanelOpen = !state.sidePanelOpen;
+        if (state.sidePanelOpen) {
+          panel.classList.remove("hidden");
+          panel.classList.add("flex");
+        } else {
+          panel.classList.add("hidden");
+          panel.classList.remove("flex");
+        }
       }
 
       function openModal(id) {
         document.getElementById(id).classList.remove("hidden");
-        document.getElementById(id).querySelector("button")?.focus();
+        document.body.style.overflow = "hidden";
         if (id === "load-modal") updateSavedModelsList();
       }
 
       function closeModal(id) {
         document.getElementById(id).classList.add("hidden");
+        if (!document.querySelector('[id$="-modal"]:not(.hidden)')) {
+          document.body.style.overflow = "";
+        }
       }
 
       function closeAllModals() {
@@ -2857,6 +3159,7 @@ self.onmessage = async function(e) {
         if (!menu.classList.contains("translate-x-full")) {
           toggleMainMenu();
         }
+        document.body.style.overflow = "";
       }
 
       function showLoading(text = "Processing...") {
@@ -2895,14 +3198,14 @@ self.onmessage = async function(e) {
         };
         const toast = document.createElement("div");
         toast.className =
-          `toast-enter px-4 py-3 rounded-xl shadow-lg text-white flex items-center gap-3 ${
+          `toast-enter px-4 py-3 rounded-xl shadow-2xl text-white flex items-center gap-3 ${
             colors[type]
           }`;
-        toast.innerHTML = `
-    <span>${message}</span>
-    <button onclick="this.parentElement.remove()" class="p-1 hover:bg-white/20 rounded">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-    </button>`;
+        toast.innerHTML =
+          `<span class="flex-1 text-sm font-medium">${message}</span>
+        <button onclick="this.parentElement.remove()" class="p-1 hover:bg-white/20 rounded-lg flex-shrink-0">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>`;
         container.appendChild(toast);
         setTimeout(
           () => toast.remove(),
@@ -2922,7 +3225,6 @@ self.onmessage = async function(e) {
         const filter = document.getElementById("log-filter").value;
         const search = document.getElementById("log-search").value
           .toLowerCase();
-
         const filtered = state.logs.filter((l) => {
           if (filter !== "all" && l.type !== filter) return false;
           if (
@@ -2931,7 +3233,6 @@ self.onmessage = async function(e) {
           ) return false;
           return true;
         });
-
         container.innerHTML = filtered.slice(0, 50).map((l) => {
           const colors = {
             info: "text-blue-500",
@@ -2939,16 +3240,15 @@ self.onmessage = async function(e) {
             warning: "text-amber-500",
             error: "text-red-500",
           };
-          return `
-      <div class="text-xs p-2 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
-        <div class="flex items-center gap-2 mb-1">
-          <span class="${
+          return `<div class="text-xs p-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="${
             colors[l.type]
-          } font-medium">${l.category}</span>
-          <span class="text-slate-400">${l.time.toLocaleTimeString()}</span>
-        </div>
-        <p class="text-slate-600 dark:text-slate-300">${l.message}</p>
-      </div>`;
+          } font-semibold">${l.category}</span>
+            <span class="text-slate-400">${l.time.toLocaleTimeString()}</span>
+          </div>
+          <p class="text-slate-600 dark:text-slate-300">${l.message}</p>
+        </div>`;
         }).join("");
       }
 
@@ -2961,23 +3261,35 @@ self.onmessage = async function(e) {
         const statusText = document.getElementById("status-text");
         const emptyState = document.getElementById("empty-state");
         const chartControls = document.getElementById("chart-controls");
-        const predictBtn = document.getElementById("predict-btn");
+        const predictBtnHeader = document.getElementById(
+          "predict-btn-header",
+        );
         const predictBtnSide = document.getElementById(
           "predict-btn-side",
+        );
+        const predictBtnMobile = document.getElementById(
+          "predict-btn-mobile",
         );
 
         if (state.modelExists) {
           statusDot.className = "w-2 h-2 rounded-full bg-emerald-500";
           statusText.textContent = `${state.sampleCount} samples`;
           emptyState.classList.add("hidden");
-          predictBtn.classList.remove("hidden");
-          predictBtnSide.disabled = false;
+          if (predictBtnHeader) {
+            predictBtnHeader.classList.remove("hidden");
+          }
+          if (predictBtnSide) predictBtnSide.disabled = false;
+          if (predictBtnMobile) predictBtnMobile.disabled = false;
         } else {
-          statusDot.className = "w-2 h-2 rounded-full bg-slate-400";
+          statusDot.className =
+            "w-2 h-2 rounded-full bg-slate-400 animate-pulse";
           statusText.textContent = "No Model";
           if (!state.predictions) emptyState.classList.remove("hidden");
-          predictBtn.classList.add("hidden");
-          predictBtnSide.disabled = true;
+          if (predictBtnHeader) {
+            predictBtnHeader.classList.add("hidden");
+          }
+          if (predictBtnSide) predictBtnSide.disabled = true;
+          if (predictBtnMobile) predictBtnMobile.disabled = true;
         }
 
         chartControls.classList.toggle("hidden", !state.predictions);
@@ -3004,8 +3316,14 @@ self.onmessage = async function(e) {
 
       function updateFutureStepsMax() {
         const max = state.config.maxSequenceLength;
-        document.getElementById("future-steps-range").max = max;
-        document.getElementById("future-steps-input").max = max;
+        [
+          "future-steps-range",
+          "future-steps-input",
+          "future-steps-range-mobile",
+        ].forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) el.max = max;
+        });
       }
 
       function syncFutureSteps(val) {
@@ -3013,28 +3331,31 @@ self.onmessage = async function(e) {
           1,
           Math.min(parseInt(val) || 1, state.config.maxSequenceLength),
         );
-        document.getElementById("future-steps-range").value = v;
-        document.getElementById("future-steps-input").value = v;
+        [
+          "future-steps-range",
+          "future-steps-input",
+          "future-steps-range-mobile",
+        ].forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) el.value = v;
+        });
+        const display = document.getElementById("steps-display-mobile");
+        if (display) display.textContent = v;
       }
 
       function setVisualizationMode(mode) {
         state.vizMode = mode;
         document.querySelectorAll(".viz-tab").forEach((btn) => {
-          btn.classList.toggle(
-            "bg-blue-600",
-            btn.dataset.mode === mode,
-          );
-          btn.classList.toggle("text-white", btn.dataset.mode === mode);
-          btn.classList.toggle(
-            "bg-slate-100",
-            btn.dataset.mode !== mode,
-          );
-          btn.classList.toggle(
-            "dark:bg-slate-700",
-            btn.dataset.mode !== mode,
-          );
+          const isActive = btn.dataset.mode === mode;
+          btn.classList.toggle("bg-gradient-to-r", isActive);
+          btn.classList.toggle("from-blue-500", isActive);
+          btn.classList.toggle("to-indigo-600", isActive);
+          btn.classList.toggle("text-white", isActive);
+          btn.classList.toggle("shadow-lg", isActive);
+          btn.classList.toggle("shadow-blue-500/25", isActive);
+          btn.classList.toggle("bg-slate-100", !isActive);
+          btn.classList.toggle("dark:bg-slate-700/50", !isActive);
         });
-
         document.getElementById("dimension-selector").classList.toggle(
           "hidden",
           mode !== "focus",
@@ -3043,7 +3364,6 @@ self.onmessage = async function(e) {
           "hidden",
           mode !== "focus",
         );
-
         savePreferences();
         renderChart();
       }
@@ -3054,20 +3374,19 @@ self.onmessage = async function(e) {
           container.innerHTML = "";
           return;
         }
-
         container.innerHTML = Array.from(
           { length: state.nTargets },
           (_, i) => `
-    <button onclick="selectDimension(${i})" class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+        <button onclick="selectDimension(${i})" class="touch-target px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all flex-shrink-0 ${
             state.selectedDim === i
-              ? "text-white"
+              ? "text-white shadow-md"
               : "bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600"
           }" style="${
             state.selectedDim === i ? "background:" + getColor(i) : ""
           }">
-      Target ${i + 1}
-    </button>
-  `,
+          T${i + 1}
+        </button>
+      `,
         ).join("");
       }
 
@@ -3080,7 +3399,6 @@ self.onmessage = async function(e) {
 
       function updateStatsBar() {
         if (!state.predictions || state.vizMode !== "focus") return;
-
         const dim = state.selectedDim;
         const preds = state.predictions.predictions.map((p) => p[dim]);
         const min = Math.min(...preds);
@@ -3102,13 +3420,14 @@ self.onmessage = async function(e) {
         );
         document.getElementById("stat-final").textContent =
           formatNumber(final);
-        document.getElementById("stat-trend").innerHTML = `${
-          trend >= 0 ? "↑" : "↓"
-        } <span class="${
-          trend >= 0 ? "text-emerald-500" : "text-red-500"
-        }">${formatNumber(Math.abs(trend))}</span>`;
+        document.getElementById("stat-trend").innerHTML =
+          `<span class="${
+            trend >= 0 ? "text-emerald-500" : "text-red-500"
+          }">${trend >= 0 ? "↑" : "↓"} ${
+            formatNumber(Math.abs(trend))
+          }</span>`;
         document.getElementById("stat-confidence").textContent = `${
-          (state.predictions.confidence * 100).toFixed(1)
+          (state.predictions.confidence * 100).toFixed(0)
         }%`;
       }
 
@@ -3120,12 +3439,11 @@ self.onmessage = async function(e) {
         if (Math.abs(n) < 0.01 || Math.abs(n) >= 10000) {
           return n.toExponential(2);
         }
-        return n.toFixed(Math.abs(n) < 1 ? 4 : 2);
+        return n.toFixed(Math.abs(n) < 1 ? 3 : 2);
       }
 
       function renderChart() {
         if (!canvas || !ctx) return;
-
         const dpr = window.devicePixelRatio || 1;
         const w = canvas.width / dpr;
         const h = canvas.height / dpr;
@@ -3159,7 +3477,13 @@ self.onmessage = async function(e) {
       }
 
       function renderFocusView(w, h, isDark) {
-        const margin = { left: 65, right: 24, top: 24, bottom: 45 };
+        const isMobile = w < 400;
+        const margin = {
+          left: isMobile ? 45 : 65,
+          right: isMobile ? 15 : 24,
+          top: 24,
+          bottom: isMobile ? 35 : 45,
+        };
         const plotW = w - margin.left - margin.right;
         const plotH = h - margin.top - margin.bottom;
 
@@ -3175,8 +3499,6 @@ self.onmessage = async function(e) {
         );
 
         const totalPoints = allPreds.length;
-
-        // === ZOOM LOGIC: Calculate visible range ===
         const visibleCount = Math.max(
           2,
           Math.ceil(totalPoints / state.zoom.level),
@@ -3191,14 +3513,12 @@ self.onmessage = async function(e) {
           totalPoints,
         );
 
-        // Store for hover calculations
         state.zoom.visibleStart = startIndex;
         state.zoom.visibleCount = endIndex - startIndex;
 
         const preds = allPreds.slice(startIndex, endIndex);
         const lowers = allLowers.slice(startIndex, endIndex);
         const uppers = allUppers.slice(startIndex, endIndex);
-        // === END ZOOM LOGIC ===
 
         const allVals = [...preds, ...lowers, ...uppers];
         let minY = Math.min(...allVals);
@@ -3219,7 +3539,7 @@ self.onmessage = async function(e) {
         ctx.setLineDash([4, 4]);
         ctx.lineWidth = 1;
 
-        const yTicks = niceScale(minY, maxY, 6);
+        const yTicks = niceScale(minY, maxY, 5);
         yTicks.forEach((tick) => {
           const y = yScale(tick);
           ctx.beginPath();
@@ -3227,13 +3547,13 @@ self.onmessage = async function(e) {
           ctx.lineTo(w - margin.right, y);
           ctx.stroke();
         });
-
         ctx.setLineDash([]);
 
         // Axes
         ctx.strokeStyle = isDark
-          ? "rgba(255,255,255,0.12)"
-          : "rgba(0,0,0,0.12)";
+          ? "rgba(255,255,255,0.15)"
+          : "rgba(0,0,0,0.15)";
+        ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(margin.left, margin.top);
         ctx.lineTo(margin.left, h - margin.bottom);
@@ -3242,24 +3562,27 @@ self.onmessage = async function(e) {
 
         // Y-axis labels
         ctx.fillStyle = isDark ? "#94A3B8" : "#64748B";
-        ctx.font = "500 11px system-ui";
+        ctx.font = `500 ${isMobile ? 9 : 11}px system-ui`;
         ctx.textAlign = "right";
         yTicks.forEach((tick) => {
           ctx.fillText(
             formatNumber(tick),
-            margin.left - 8,
+            margin.left - 6,
             yScale(tick) + 4,
           );
         });
 
-        // X-axis labels (adjusted for zoom offset)
+        // X-axis labels
         ctx.textAlign = "center";
-        const xStep = Math.max(1, Math.ceil(preds.length / 8));
+        const xStep = Math.max(
+          1,
+          Math.ceil(preds.length / (isMobile ? 5 : 8)),
+        );
         for (let i = 0; i < preds.length; i += xStep) {
           ctx.fillText(
             startIndex + i + 1,
             xScale(i),
-            h - margin.bottom + 20,
+            h - margin.bottom + (isMobile ? 14 : 18),
           );
         }
 
@@ -3282,8 +3605,8 @@ self.onmessage = async function(e) {
           0,
           h - margin.bottom,
         );
-        gradient.addColorStop(0, color + (isDark ? "1F" : "14"));
-        gradient.addColorStop(1, color + (isDark ? "0A" : "05"));
+        gradient.addColorStop(0, color + (isDark ? "20" : "15"));
+        gradient.addColorStop(1, color + (isDark ? "08" : "05"));
         ctx.fillStyle = gradient;
         ctx.fill();
 
@@ -3292,44 +3615,46 @@ self.onmessage = async function(e) {
         ctx.setLineDash([4, 4]);
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(xScale(0), yScale(uppers[0]));
-        for (let i = 1; i < preds.length; i++) {
-          ctx.lineTo(xScale(i), yScale(uppers[i]));
+        for (let i = 0; i < preds.length; i++) {
+          if (i === 0) ctx.moveTo(xScale(i), yScale(uppers[i]));
+          else ctx.lineTo(xScale(i), yScale(uppers[i]));
         }
         ctx.stroke();
         ctx.beginPath();
-        ctx.moveTo(xScale(0), yScale(lowers[0]));
-        for (let i = 1; i < preds.length; i++) {
-          ctx.lineTo(xScale(i), yScale(lowers[i]));
+        for (let i = 0; i < preds.length; i++) {
+          if (i === 0) ctx.moveTo(xScale(i), yScale(lowers[i]));
+          else ctx.lineTo(xScale(i), yScale(lowers[i]));
         }
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // Glow effect
+        // Line with glow
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
-        [8, 4, 2.5].forEach((lw, idx) => {
-          ctx.strokeStyle = color + ["1A", "33", "FF"][idx];
-          ctx.lineWidth = lw;
-          ctx.beginPath();
-          ctx.moveTo(xScale(0), yScale(preds[0]));
-          for (let i = 1; i < preds.length; i++) {
-            const x0 = xScale(i - 1), y0 = yScale(preds[i - 1]);
-            const x1 = xScale(i), y1 = yScale(preds[i]);
-            const cpx = (x0 + x1) / 2;
-            ctx.quadraticCurveTo(
-              cpx,
-              y0,
-              (cpx + x1) / 2,
-              (y0 + y1) / 2,
+        [[8, "1A"], [4, "33"], [isMobile ? 2 : 2.5, "FF"]].forEach(
+          ([lw, alpha]) => {
+            ctx.strokeStyle = color + alpha;
+            ctx.lineWidth = lw;
+            ctx.beginPath();
+            ctx.moveTo(xScale(0), yScale(preds[0]));
+            for (let i = 1; i < preds.length; i++) {
+              const x0 = xScale(i - 1), y0 = yScale(preds[i - 1]);
+              const x1 = xScale(i), y1 = yScale(preds[i]);
+              const cpx = (x0 + x1) / 2;
+              ctx.quadraticCurveTo(
+                cpx,
+                y0,
+                (cpx + x1) / 2,
+                (y0 + y1) / 2,
+              );
+            }
+            ctx.lineTo(
+              xScale(preds.length - 1),
+              yScale(preds[preds.length - 1]),
             );
-          }
-          ctx.lineTo(
-            xScale(preds.length - 1),
-            yScale(preds[preds.length - 1]),
-          );
-          ctx.stroke();
-        });
+            ctx.stroke();
+          },
+        );
 
         // Hover
         if (state.hover.active && state.hover.dataIndex >= 0) {
@@ -3339,7 +3664,6 @@ self.onmessage = async function(e) {
             const hy = yScale(preds[localIdx]);
             const actualIdx = startIndex + localIdx;
 
-            // Crosshair
             ctx.strokeStyle = isDark
               ? "rgba(255,255,255,0.3)"
               : "rgba(0,0,0,0.2)";
@@ -3355,22 +3679,20 @@ self.onmessage = async function(e) {
             ctx.stroke();
             ctx.setLineDash([]);
 
-            // Point highlight
-            ctx.strokeStyle = color + "33";
+            ctx.strokeStyle = color + "40";
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.arc(hx, hy, 6, 0, Math.PI * 2);
+            ctx.arc(hx, hy, 8, 0, Math.PI * 2);
             ctx.stroke();
 
             ctx.fillStyle = color;
             ctx.beginPath();
-            ctx.arc(hx, hy, 4, 0, Math.PI * 2);
+            ctx.arc(hx, hy, 5, 0, Math.PI * 2);
             ctx.fill();
             ctx.strokeStyle = "#fff";
             ctx.lineWidth = 2;
             ctx.stroke();
 
-            // Tooltip (use actualIdx for display)
             updateTooltip(
               hx,
               hy,
@@ -3387,21 +3709,34 @@ self.onmessage = async function(e) {
       }
 
       function renderGridView(w, h, isDark) {
-        const cols = w < 640 ? 2 : w < 1024 ? 3 : w < 1400 ? 4 : 5;
-        const rows = Math.ceil(state.nTargets / cols);
-        const cellW = Math.floor((w - 20) / cols);
-        const cellH = Math.min(110, Math.floor((h - 20) / rows));
-        const gap = 10;
+        const isMobile = w < 500;
+        const cols = w < 400
+          ? 2
+          : w < 640
+          ? 2
+          : w < 1024
+          ? 3
+          : w < 1400
+          ? 4
+          : 5;
+        const gap = isMobile ? 6 : 10;
+        const cellW = Math.floor(
+          (w - gap * 2 - gap * (cols - 1)) / cols,
+        );
+        const cellH = Math.min(
+          isMobile ? 80 : 110,
+          Math.floor((h - gap * 2) / Math.ceil(state.nTargets / cols)) -
+            gap,
+        );
 
         for (let d = 0; d < state.nTargets; d++) {
           const col = d % cols;
           const row = Math.floor(d / cols);
-          const x = 10 + col * (cellW + gap);
-          const y = 10 + row * (cellH + gap);
+          const x = gap + col * (cellW + gap);
+          const y = gap + row * (cellH + gap);
 
           if (y + cellH > h) continue;
 
-          // Cell background
           ctx.fillStyle = isDark ? "#1E293B" : "#F8FAFC";
           ctx.beginPath();
           ctx.roundRect(x, y, cellW, cellH, 8);
@@ -3411,9 +3746,9 @@ self.onmessage = async function(e) {
           const lowers = state.predictions.lowerBounds.map((p) => p[d]);
           const uppers = state.predictions.upperBounds.map((p) => p[d]);
 
-          const margin = 8;
+          const margin = 6;
           const pW = cellW - margin * 2;
-          const pH = cellH - 30;
+          const pH = cellH - 24;
 
           const allVals = [...preds, ...lowers, ...uppers];
           let minY = Math.min(...allVals);
@@ -3425,11 +3760,10 @@ self.onmessage = async function(e) {
           const xs = (i) =>
             x + margin + (i / (preds.length - 1 || 1)) * pW;
           const ys = (v) =>
-            y + 20 + pH - ((v - minY) / (maxY - minY)) * pH;
+            y + 18 + pH - ((v - minY) / (maxY - minY)) * pH;
 
           const color = getColor(d);
 
-          // Band
           ctx.fillStyle = color + "1A";
           ctx.beginPath();
           ctx.moveTo(xs(0), ys(uppers[0]));
@@ -3442,7 +3776,6 @@ self.onmessage = async function(e) {
           ctx.closePath();
           ctx.fill();
 
-          // Line
           ctx.strokeStyle = color;
           ctx.lineWidth = 1.5;
           ctx.lineCap = "round";
@@ -3453,41 +3786,43 @@ self.onmessage = async function(e) {
           }
           ctx.stroke();
 
-          // Label
           ctx.fillStyle = isDark ? "#94A3B8" : "#64748B";
-          ctx.font = "500 10px system-ui";
+          ctx.font = "600 9px system-ui";
           ctx.textAlign = "left";
-          ctx.fillText(`T${d + 1}`, x + 6, y + 14);
+          ctx.fillText(`T${d + 1}`, x + 5, y + 12);
 
-          // Value
           ctx.textAlign = "right";
           ctx.fillStyle = color;
           ctx.fillText(
             formatNumber(preds[preds.length - 1]),
-            x + cellW - 6,
-            y + 14,
+            x + cellW - 5,
+            y + 12,
           );
         }
       }
 
       function renderHeatmapView(w, h, isDark) {
-        const margin = { left: 60, right: 40, top: 24, bottom: 30 };
+        const isMobile = w < 400;
+        const margin = {
+          left: isMobile ? 40 : 60,
+          right: isMobile ? 30 : 40,
+          top: 24,
+          bottom: 30,
+        };
         const plotW = w - margin.left - margin.right;
         const plotH = h - margin.top - margin.bottom;
 
         const steps = state.predictions.predictions.length;
         const dims = state.nTargets;
 
-        const cellW = Math.max(10, plotW / steps);
-        const cellH = Math.max(10, plotH / dims);
+        const cellW = Math.max(8, plotW / steps);
+        const cellH = Math.max(8, plotH / dims);
 
-        // Find range
         const allVals = state.predictions.predictions.flat();
         const minVal = Math.min(...allVals);
         const maxVal = Math.max(...allVals);
         const range = maxVal - minVal || 1;
 
-        // Draw cells
         for (let d = 0; d < dims; d++) {
           for (let s = 0; s < steps; s++) {
             const val = state.predictions.predictions[s][d];
@@ -3496,7 +3831,6 @@ self.onmessage = async function(e) {
             const cx = margin.left + s * cellW;
             const cy = margin.top + d * cellH;
 
-            // Color scale
             const r = Math.round(59 + (239 - 59) * norm);
             const g = Math.round(130 + (68 - 130) * norm);
             const b = Math.round(246 + (68 - 246) * norm);
@@ -3505,67 +3839,42 @@ self.onmessage = async function(e) {
           }
         }
 
-        // Y-axis labels
         ctx.fillStyle = isDark ? "#94A3B8" : "#64748B";
-        ctx.font = "500 10px system-ui";
+        ctx.font = `500 ${isMobile ? 8 : 10}px system-ui`;
         ctx.textAlign = "right";
         for (let d = 0; d < dims; d++) {
           ctx.fillText(
             `T${d + 1}`,
-            margin.left - 8,
-            margin.top + d * cellH + cellH / 2 + 4,
+            margin.left - 5,
+            margin.top + d * cellH + cellH / 2 + 3,
           );
         }
 
-        // X-axis labels
         ctx.textAlign = "center";
-        const xStep = Math.max(1, Math.ceil(steps / 10));
+        const xStep = Math.max(
+          1,
+          Math.ceil(steps / (isMobile ? 6 : 10)),
+        );
         for (let s = 0; s < steps; s += xStep) {
           ctx.fillText(
             s + 1,
             margin.left + s * cellW + cellW / 2,
-            h - margin.bottom + 16,
+            h - margin.bottom + 14,
           );
         }
-
-        // Legend
-        const legendW = 20;
-        const legendH = plotH;
-        const legendX = w - margin.right + 10;
-        const legendY = margin.top;
-
-        const grad = ctx.createLinearGradient(
-          0,
-          legendY,
-          0,
-          legendY + legendH,
-        );
-        grad.addColorStop(0, "rgb(239,68,68)");
-        grad.addColorStop(0.5, "rgb(59,130,246)");
-        grad.addColorStop(1, "rgb(59,130,246)");
-        ctx.fillStyle = grad;
-        ctx.fillRect(legendX, legendY, legendW, legendH);
-
-        ctx.textAlign = "left";
-        ctx.fillStyle = isDark ? "#94A3B8" : "#64748B";
-        ctx.fillText(
-          formatNumber(maxVal),
-          legendX + legendW + 4,
-          legendY + 10,
-        );
-        ctx.fillText(
-          formatNumber(minVal),
-          legendX + legendW + 4,
-          legendY + legendH,
-        );
       }
 
       function renderUncertaintyView(w, h, isDark) {
-        const margin = { left: 65, right: 100, top: 40, bottom: 45 };
+        const isMobile = w < 400;
+        const margin = {
+          left: isMobile ? 45 : 65,
+          right: isMobile ? 60 : 100,
+          top: 40,
+          bottom: 45,
+        };
         const plotW = w - margin.left - margin.right;
         const plotH = h - margin.top - margin.bottom;
 
-        // Calculate uncertainty per step (avg across dims)
         const uncertainties = state.predictions.predictions.map(
           (_, i) => {
             let sum = 0;
@@ -3586,7 +3895,6 @@ self.onmessage = async function(e) {
         const yScale = (v) =>
           margin.top + plotH - ((v - minU) / range) * plotH;
 
-        // Area
         ctx.beginPath();
         ctx.moveTo(xScale(0), yScale(minU));
         for (let i = 0; i < uncertainties.length; i++) {
@@ -3607,9 +3915,9 @@ self.onmessage = async function(e) {
         ctx.fillStyle = grad;
         ctx.fill();
 
-        // Line
         ctx.strokeStyle = "#F59E0B";
         ctx.lineWidth = 2;
+        ctx.lineCap = "round";
         ctx.beginPath();
         ctx.moveTo(xScale(0), yScale(uncertainties[0]));
         for (let i = 1; i < uncertainties.length; i++) {
@@ -3617,40 +3925,30 @@ self.onmessage = async function(e) {
         }
         ctx.stroke();
 
-        // Axes
         ctx.fillStyle = isDark ? "#94A3B8" : "#64748B";
-        ctx.font = "500 11px system-ui";
+        ctx.font = `500 ${isMobile ? 9 : 11}px system-ui`;
         ctx.textAlign = "right";
         ctx.fillText(
           formatNumber(maxU),
-          margin.left - 8,
+          margin.left - 6,
           margin.top + 4,
         );
         ctx.fillText(
           formatNumber(minU),
-          margin.left - 8,
+          margin.left - 6,
           h - margin.bottom,
         );
 
-        ctx.textAlign = "center";
-        for (
-          let i = 0;
-          i < uncertainties.length;
-          i += Math.max(1, Math.ceil(uncertainties.length / 8))
-        ) {
-          ctx.fillText(i + 1, xScale(i), h - margin.bottom + 20);
-        }
-
         // Confidence gauge
         const conf = state.predictions.confidence;
-        const gaugeX = w - 70;
-        const gaugeY = margin.top + 40;
-        const gaugeR = 35;
+        const gaugeX = w - (isMobile ? 35 : 55);
+        const gaugeY = margin.top + 30;
+        const gaugeR = isMobile ? 25 : 35;
 
         ctx.beginPath();
         ctx.arc(gaugeX, gaugeY, gaugeR, Math.PI, 2 * Math.PI);
         ctx.strokeStyle = isDark ? "#374151" : "#E5E7EB";
-        ctx.lineWidth = 8;
+        ctx.lineWidth = 6;
         ctx.stroke();
 
         const confColor = conf > 0.8
@@ -3670,17 +3968,27 @@ self.onmessage = async function(e) {
         ctx.stroke();
 
         ctx.fillStyle = isDark ? "#F1F5F9" : "#1E293B";
-        ctx.font = "bold 16px system-ui";
+        ctx.font = `bold ${isMobile ? 12 : 16}px system-ui`;
         ctx.textAlign = "center";
-        ctx.fillText(`${(conf * 100).toFixed(0)}%`, gaugeX, gaugeY + 6);
+        ctx.fillText(`${(conf * 100).toFixed(0)}%`, gaugeX, gaugeY + 5);
 
-        ctx.font = "500 10px system-ui";
+        ctx.font = `500 ${isMobile ? 8 : 10}px system-ui`;
         ctx.fillStyle = isDark ? "#94A3B8" : "#64748B";
-        ctx.fillText("Confidence", gaugeX, gaugeY + 25);
+        ctx.fillText(
+          "Confidence",
+          gaugeX,
+          gaugeY + (isMobile ? 18 : 22),
+        );
       }
 
       function renderBarView(w, h, isDark) {
-        const margin = { left: 80, right: 24, top: 24, bottom: 40 };
+        const isMobile = w < 400;
+        const margin = {
+          left: isMobile ? 50 : 80,
+          right: 24,
+          top: 24,
+          bottom: 40,
+        };
         const plotW = w - margin.left - margin.right;
         const plotH = h - margin.top - margin.bottom;
 
@@ -3696,57 +4004,55 @@ self.onmessage = async function(e) {
         const minVal = Math.min(...lowers, 0);
         const range = maxVal - minVal || 1;
 
-        const barH = Math.min(30, plotH / state.nTargets - 4);
+        const barH = Math.min(
+          isMobile ? 20 : 28,
+          plotH / state.nTargets - 3,
+        );
 
         for (let d = 0; d < state.nTargets; d++) {
-          const y = margin.top + d * (barH + 4);
+          const y = margin.top + d * (barH + 3);
           const val = preds[d];
           const lower = lowers[d];
           const upper = uppers[d];
 
-          const barW = ((val - minVal) / range) * plotW;
+          const barW = Math.max(4, ((val - minVal) / range) * plotW);
           const errorStart = ((lower - minVal) / range) * plotW;
           const errorEnd = ((upper - minVal) / range) * plotW;
 
           const color = getColor(d);
 
-          // Bar
           ctx.fillStyle = color;
           ctx.beginPath();
           ctx.roundRect(margin.left, y, barW, barH, 4);
           ctx.fill();
 
-          // Error bar
           ctx.strokeStyle = isDark ? "#94A3B8" : "#64748B";
           ctx.lineWidth = 1.5;
           const ey = y + barH / 2;
           ctx.beginPath();
           ctx.moveTo(margin.left + errorStart, ey);
           ctx.lineTo(margin.left + errorEnd, ey);
-          ctx.moveTo(margin.left + errorStart, ey - 4);
-          ctx.lineTo(margin.left + errorStart, ey + 4);
-          ctx.moveTo(margin.left + errorEnd, ey - 4);
-          ctx.lineTo(margin.left + errorEnd, ey + 4);
+          ctx.moveTo(margin.left + errorStart, ey - 3);
+          ctx.lineTo(margin.left + errorStart, ey + 3);
+          ctx.moveTo(margin.left + errorEnd, ey - 3);
+          ctx.lineTo(margin.left + errorEnd, ey + 3);
           ctx.stroke();
 
-          // Label
           ctx.fillStyle = isDark ? "#94A3B8" : "#64748B";
-          ctx.font = "500 11px system-ui";
+          ctx.font = `500 ${isMobile ? 9 : 11}px system-ui`;
           ctx.textAlign = "right";
-          ctx.fillText(`T${d + 1}`, margin.left - 8, y + barH / 2 + 4);
+          ctx.fillText(`T${d + 1}`, margin.left - 6, y + barH / 2 + 4);
 
-          // Value
           ctx.textAlign = "left";
           ctx.fillText(
             formatNumber(val),
-            margin.left + barW + 8,
+            margin.left + barW + 6,
             y + barH / 2 + 4,
           );
         }
 
-        // Step indicator
         ctx.fillStyle = isDark ? "#F1F5F9" : "#1E293B";
-        ctx.font = "bold 14px system-ui";
+        ctx.font = "bold 12px system-ui";
         ctx.textAlign = "center";
         ctx.fillText(`Step ${step + 1}`, w / 2, h - 10);
       }
@@ -3766,29 +4072,30 @@ self.onmessage = async function(e) {
         const content = document.getElementById("tooltip-content");
 
         content.innerHTML = `
-    <div class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider">Step</div>
-    <div class="text-lg font-bold mb-2">${idx + 1}</div>
-    <hr class="border-slate-200 dark:border-slate-700 my-2">
-    <div class="flex items-center gap-2 mb-1">
-      <span class="w-2 h-2 rounded-full" style="background:${
+        <div class="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Step</div>
+        <div class="text-xl font-bold mb-2">${idx + 1}</div>
+        <hr class="border-slate-200 dark:border-slate-700 my-2">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:${
           getColor(dim)
         }"></span>
-      <span class="text-sm">Target ${dim + 1}</span>
-      <span class="ml-auto font-medium">${formatNumber(pred)}</span>
-    </div>
-    <div class="text-xs text-slate-500 dark:text-slate-400">
-      Bounds: ${formatNumber(lower)} – ${formatNumber(upper)}
-    </div>
-    <div class="text-xs text-slate-500 dark:text-slate-400">
-      Spread: ${formatNumber(upper - lower)}
-    </div>
-  `;
+          <span class="text-sm font-medium">Target ${dim + 1}</span>
+          <span class="ml-auto font-bold">${formatNumber(pred)}</span>
+        </div>
+        <div class="text-[11px] text-slate-500 dark:text-slate-400 space-y-0.5">
+          <div>Bounds: ${formatNumber(lower)} – ${
+          formatNumber(upper)
+        }</div>
+          <div>Spread: ${formatNumber(upper - lower)}</div>
+        </div>
+      `;
 
         let tx = x + 16;
         let ty = y - 20;
 
-        if (tx + 200 > canvasW) tx = x - 200;
+        if (tx + 180 > canvasW) tx = x - 180;
         if (ty < 10) ty = y + 20;
+        if (tx < 10) tx = 10;
 
         tooltip.style.left = tx + "px";
         tooltip.style.top = ty + "px";
@@ -3804,11 +4111,12 @@ self.onmessage = async function(e) {
 
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        const dpr = window.devicePixelRatio || 1;
-        const w = canvas.width / dpr;
-        const margin = { left: 65, right: 24 };
+        const w = rect.width;
+        const isMobile = w < 400;
+        const margin = {
+          left: isMobile ? 45 : 65,
+          right: isMobile ? 15 : 24,
+        };
         const plotW = w - margin.left - margin.right;
 
         if (x < margin.left || x > w - margin.right) {
@@ -3818,7 +4126,6 @@ self.onmessage = async function(e) {
           return;
         }
 
-        // Use visible count from zoom state
         const visibleCount = state.zoom.visibleCount ||
           state.predictions.predictions.length;
         const localIdx = Math.round(
@@ -3828,7 +4135,7 @@ self.onmessage = async function(e) {
         state.hover = {
           active: true,
           x,
-          y,
+          y: e.clientY - rect.top,
           dataIndex: Math.max(0, Math.min(visibleCount - 1, localIdx)),
         };
         canvas.style.cursor = "crosshair";
@@ -3842,30 +4149,71 @@ self.onmessage = async function(e) {
         renderChart();
       }
 
+      function handleTouchStart(e) {
+        if (e.touches.length === 1) {
+          touchStartY = e.touches[0].clientY;
+          handleCanvasHover({
+            clientX: e.touches[0].clientX,
+            clientY: e.touches[0].clientY,
+          });
+        }
+      }
+
+      function handleTouchMove(e) {
+        if (e.touches.length === 1) {
+          handleCanvasHover({
+            clientX: e.touches[0].clientX,
+            clientY: e.touches[0].clientY,
+          });
+        }
+      }
+
+      function handleTouchEnd() {
+        setTimeout(() => {
+          state.hover.active = false;
+          hideTooltip();
+          renderChart();
+        }, 1500);
+      }
+
       function handleCanvasWheel(e) {
         if (!e.ctrlKey && !e.metaKey) return;
         e.preventDefault();
+        if (e.deltaY < 0) chartZoomIn();
+        else chartZoomOut();
       }
 
       function handleCanvasClick(e) {
-        if (state.vizMode === "grid") {
+        if (state.vizMode === "grid" && state.predictions) {
           const rect = canvas.getBoundingClientRect();
           const x = e.clientX - rect.left;
           const y = e.clientY - rect.top;
-          const dpr = window.devicePixelRatio || 1;
-          const w = canvas.width / dpr;
-          const h = canvas.height / dpr;
+          const w = rect.width;
+          const h = rect.height;
 
-          const cols = w < 640 ? 2 : w < 1024 ? 3 : w < 1400 ? 4 : 5;
-          const cellW = Math.floor((w - 20) / cols);
-          const cellH = Math.min(
-            110,
-            Math.floor((h - 20) / Math.ceil(state.nTargets / cols)),
+          const isMobile = w < 500;
+          const cols = w < 400
+            ? 2
+            : w < 640
+            ? 2
+            : w < 1024
+            ? 3
+            : w < 1400
+            ? 4
+            : 5;
+          const gap = isMobile ? 6 : 10;
+          const cellW = Math.floor(
+            (w - gap * 2 - gap * (cols - 1)) / cols,
           );
-          const gap = 10;
+          const cellH = Math.min(
+            isMobile ? 80 : 110,
+            Math.floor(
+              (h - gap * 2) / Math.ceil(state.nTargets / cols),
+            ) - gap,
+          );
 
-          const col = Math.floor((x - 10) / (cellW + gap));
-          const row = Math.floor((y - 10) / (cellH + gap));
+          const col = Math.floor((x - gap) / (cellW + gap));
+          const row = Math.floor((y - gap) / (cellH + gap));
           const idx = row * cols + col;
 
           if (idx >= 0 && idx < state.nTargets) {
@@ -3929,18 +4277,15 @@ self.onmessage = async function(e) {
 
       function validateDataset(data) {
         const errors = [];
-
         if (!data || typeof data !== "object") {
           return { valid: false, errors: ["Invalid JSON format"] };
         }
-
         if (!Array.isArray(data.xCoordinates)) {
-          errors.push("Missing or invalid xCoordinates array");
+          errors.push("Missing xCoordinates array");
         }
         if (!Array.isArray(data.yCoordinates)) {
-          errors.push("Missing or invalid yCoordinates array");
+          errors.push("Missing yCoordinates array");
         }
-
         if (errors.length) return { valid: false, errors };
 
         const xLen = data.xCoordinates.length;
@@ -3949,70 +4294,38 @@ self.onmessage = async function(e) {
         if (xLen === 0) errors.push("xCoordinates is empty");
         if (yLen === 0) errors.push("yCoordinates is empty");
         if (xLen !== yLen) {
-          errors.push(
-            `Length mismatch: xCoordinates has ${xLen} samples, yCoordinates has ${yLen}`,
-          );
+          errors.push(`Length mismatch: x=${xLen}, y=${yLen}`);
         }
-
         if (errors.length) return { valid: false, errors };
 
         let nFeatures = null, nTargets = null;
 
-        for (let i = 0; i < xLen; i++) {
+        for (let i = 0; i < Math.min(xLen, 20); i++) {
           if (!Array.isArray(data.xCoordinates[i])) {
-            errors.push(`xCoordinates[${i}] is not an array`);
+            errors.push(`x[${i}] not array`);
             continue;
           }
           if (!Array.isArray(data.yCoordinates[i])) {
-            errors.push(`yCoordinates[${i}] is not an array`);
+            errors.push(`y[${i}] not array`);
             continue;
           }
-
           if (nFeatures === null) {
             nFeatures = data.xCoordinates[i].length;
           }
           if (nTargets === null) nTargets = data.yCoordinates[i].length;
-
           if (data.xCoordinates[i].length !== nFeatures) {
-            errors.push(
-              `xCoordinates[${i}] has ${
-                data.xCoordinates[i].length
-              } features, expected ${nFeatures}`,
-            );
+            errors.push(`x[${i}] dimension mismatch`);
           }
           if (data.yCoordinates[i].length !== nTargets) {
-            errors.push(
-              `yCoordinates[${i}] has ${
-                data.yCoordinates[i].length
-              } targets, expected ${nTargets}`,
-            );
+            errors.push(`y[${i}] dimension mismatch`);
           }
-
-          for (let j = 0; j < data.xCoordinates[i].length; j++) {
-            const v = data.xCoordinates[i][j];
-            if (typeof v !== "number" || !isFinite(v)) {
-              errors.push(
-                `xCoordinates[${i}][${j}] is not a valid number`,
-              );
-            }
-          }
-          for (let j = 0; j < data.yCoordinates[i].length; j++) {
-            const v = data.yCoordinates[i][j];
-            if (typeof v !== "number" || !isFinite(v)) {
-              errors.push(
-                `yCoordinates[${i}][${j}] is not a valid number`,
-              );
-            }
-          }
-
-          if (errors.length > 10) {
-            errors.push("... and more errors");
+          if (errors.length > 5) {
+            errors.push("...more errors");
             break;
           }
         }
 
         if (errors.length) return { valid: false, errors };
-
         return { valid: true, nFeatures, nTargets, sampleCount: xLen };
       }
 
@@ -4021,6 +4334,17 @@ self.onmessage = async function(e) {
         e.currentTarget.classList.add(
           "border-blue-400",
           "dark:border-blue-500",
+          "bg-blue-50",
+          "dark:bg-blue-900/20",
+        );
+      }
+
+      function handleDragLeave(e) {
+        e.currentTarget.classList.remove(
+          "border-blue-400",
+          "dark:border-blue-500",
+          "bg-blue-50",
+          "dark:bg-blue-900/20",
         );
       }
 
@@ -4029,6 +4353,8 @@ self.onmessage = async function(e) {
         e.currentTarget.classList.remove(
           "border-blue-400",
           "dark:border-blue-500",
+          "bg-blue-50",
+          "dark:bg-blue-900/20",
         );
         const file = e.dataTransfer.files[0];
         if (file) readFile(file);
@@ -4084,11 +4410,11 @@ self.onmessage = async function(e) {
 
         preview.classList.remove("hidden");
         document.getElementById("preview-stats").innerHTML = `
-    <div><span class="text-slate-500">Features:</span> ${result.nFeatures}</div>
-    <div><span class="text-slate-500">Targets:</span> ${result.nTargets}</div>
-    <div><span class="text-slate-500">Samples:</span> ${result.sampleCount}</div>
-    <div><span class="text-slate-500">Dimensions:</span> OK ✓</div>
-  `;
+        <div><span class="text-slate-500">Features:</span> <strong>${result.nFeatures}</strong></div>
+        <div><span class="text-slate-500">Targets:</span> <strong>${result.nTargets}</strong></div>
+        <div><span class="text-slate-500">Samples:</span> <strong>${result.sampleCount}</strong></div>
+        <div><span class="text-slate-500">Status:</span> <strong class="text-emerald-600">OK ✓</strong></div>
+      `;
 
         state.uploadedData = data;
         applyBtn.disabled = false;
@@ -4096,7 +4422,6 @@ self.onmessage = async function(e) {
 
       async function applyUploadedData() {
         if (!state.uploadedData) return;
-
         if (!state.modelExists) {
           showToast("warning", "Create a model first");
           return;
@@ -4109,7 +4434,6 @@ self.onmessage = async function(e) {
             "train",
             state.uploadedData,
           );
-
           if (result.cancelled) {
             log("warning", "Training", "Cancelled");
             return;
@@ -4136,7 +4460,6 @@ self.onmessage = async function(e) {
             `Trained on ${result.samplesProcessed} samples`,
           );
 
-          // Auto-predict
           await runPrediction();
         } catch (err) {
           log("error", "Training", err.message);
@@ -4145,20 +4468,10 @@ self.onmessage = async function(e) {
       }
 
       function copyFormatExample() {
-        const example = `{
-  "xCoordinates": [
-    [1.0, 2.0, 3.0],
-    [1.1, 2.1, 3.1],
-    [1.2, 2.2, 3.2]
-  ],
-  "yCoordinates": [
-    [4.0, 5.0],
-    [4.1, 5.1],
-    [4.2, 5.2]
-  ]
-}`;
+        const example =
+          `{"xCoordinates": [[1.0, 2.0, 3.0], [1.1, 2.1, 3.1]], "yCoordinates": [[4.0, 5.0], [4.1, 5.1]]}`;
         navigator.clipboard.writeText(example);
-        showToast("success", "Example copied to clipboard");
+        showToast("success", "Copied to clipboard");
       }
 
       function generateInsertTemplate() {
@@ -4175,7 +4488,6 @@ self.onmessage = async function(e) {
       async function applyManualInsert() {
         const input = document.getElementById("insert-json-input").value
           .trim();
-
         if (!state.modelExists) {
           showToast("warning", "Create a model first");
           return;
@@ -4227,7 +4539,6 @@ self.onmessage = async function(e) {
         const steps = parseInt(
           document.getElementById("future-steps-input").value,
         ) || 10;
-
         showLoading("Running prediction...");
 
         try {
@@ -4302,7 +4613,7 @@ self.onmessage = async function(e) {
         }
 
         const name = prompt(
-          "Enter a name for this model:",
+          "Model name:",
           `Model ${new Date().toLocaleString()}`,
         );
         if (!name) return;
@@ -4322,7 +4633,7 @@ self.onmessage = async function(e) {
             JSON.stringify(saved),
           );
           log("success", "Save", `Saved as "${name}"`);
-          showToast("success", `Model saved as "${name}"`);
+          showToast("success", `Saved as "${name}"`);
           updateSavedModelsList();
         } catch (err) {
           log("error", "Save", err.message);
@@ -4345,16 +4656,15 @@ self.onmessage = async function(e) {
 
         container.innerHTML = names.map((name) => {
           const model = saved[name];
-          return `
-      <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
-        <div>
-          <p class="font-medium text-sm">${name}</p>
-          <p class="text-xs text-slate-500">${
+          return `<div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
+          <div class="min-w-0 flex-1">
+            <p class="font-semibold text-sm truncate">${name}</p>
+            <p class="text-xs text-slate-500">${
             model.meta?.nFeatures || "?"
           } features, ${model.meta?.nTargets || "?"} targets</p>
-        </div>
-        <button onclick="loadFromLocalStorage('${name}')" class="px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-sm hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors">Load</button>
-      </div>`;
+          </div>
+          <button onclick="loadFromLocalStorage('${name}')" class="touch-target ml-2 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-semibold hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors flex-shrink-0">Load</button>
+        </div>`;
         }).join("");
       }
 
@@ -4363,7 +4673,6 @@ self.onmessage = async function(e) {
           localStorage.getItem("esn-saved-models") || "{}",
         );
         const model = saved[name];
-
         if (!model) {
           showToast("error", "Model not found");
           return;
@@ -4399,7 +4708,6 @@ self.onmessage = async function(e) {
         const reader = new FileReader();
         reader.onload = async (ev) => {
           showLoading("Loading model...");
-
           try {
             let data;
             try {
@@ -4472,7 +4780,6 @@ self.onmessage = async function(e) {
         const xCoordinates = [];
         const yCoordinates = [];
 
-        // Generate weights for synthetic function
         const weights = Array.from(
           { length: nTargets },
           () =>
@@ -4480,10 +4787,10 @@ self.onmessage = async function(e) {
         );
 
         for (let i = 0; i < nSamples; i++) {
-          const x = Array.from({ length: nFeatures }, (_, j) => {
-            const base = Math.sin(i * 0.1 + j) + rand() * 0.5;
-            return base;
-          });
+          const x = Array.from(
+            { length: nFeatures },
+            (_, j) => Math.sin(i * 0.1 + j) + rand() * 0.5,
+          );
 
           const y = Array.from({ length: nTargets }, (_, t) => {
             let val = 0;
@@ -4498,11 +4805,9 @@ self.onmessage = async function(e) {
               }
             }
             val += (rand() - 0.5) * noise * 2;
-
             if (rand() < outlierRate) {
               val += (rand() > 0.5 ? 1 : -1) * (3 + rand() * 2);
             }
-
             return val;
           });
 
@@ -4510,7 +4815,6 @@ self.onmessage = async function(e) {
           yCoordinates.push(y);
         }
 
-        // Create model with appropriate preset
         applyPreset("balanced");
 
         showLoading("Running demo...");
@@ -4523,7 +4827,6 @@ self.onmessage = async function(e) {
             xCoordinates,
             yCoordinates,
           });
-
           if (trainResult.cancelled) return;
 
           state.sampleCount = trainResult.summary.sampleCount;
@@ -4537,7 +4840,6 @@ self.onmessage = async function(e) {
 
           updateUI();
 
-          // Run prediction
           const steps = Math.min(20, state.config.maxSequenceLength);
           const predResult = await workerRequest("predict", {
             futureSteps: steps,
@@ -4559,12 +4861,9 @@ self.onmessage = async function(e) {
           log(
             "success",
             "Demo",
-            `Generated ${nSamples} samples, trained model, predicted ${steps} steps`,
+            `Generated ${nSamples} samples, trained, predicted ${steps} steps`,
           );
-          showToast(
-            "success",
-            "Demo complete! Explore the predictions.",
-          );
+          showToast("success", "Demo complete!");
         } catch (err) {
           log("error", "Demo", err.message);
           showToast("error", "Demo failed: " + err.message);
@@ -4584,21 +4883,21 @@ self.onmessage = async function(e) {
           "Step",
           ...Array.from(
             { length: state.nTargets },
-            (_, i) => `Pred T${i + 1}`,
+            (_, i) => `P${i + 1}`,
           ),
           ...Array.from(
             { length: state.nTargets },
-            (_, i) => `Lower T${i + 1}`,
+            (_, i) => `L${i + 1}`,
           ),
           ...Array.from(
             { length: state.nTargets },
-            (_, i) => `Upper T${i + 1}`,
+            (_, i) => `U${i + 1}`,
           ),
         ];
 
         head.innerHTML = `<tr>${
           headers.map((h) =>
-            `<th class="px-3 py-2 text-left">${h}</th>`
+            `<th class="px-2 sm:px-3 py-2 text-left text-xs">${h}</th>`
           ).join("")
         }</tr>`;
 
@@ -4613,9 +4912,9 @@ self.onmessage = async function(e) {
               ...uppers.map(formatNumber),
             ];
             return `<tr class="border-t border-slate-200 dark:border-slate-700">${
-              cells.map((c) => `<td class="px-3 py-2">${c}</td>`).join(
-                "",
-              )
+              cells.map((c) =>
+                `<td class="px-2 sm:px-3 py-1.5 text-xs font-mono">${c}</td>`
+              ).join("")
             }</tr>`;
           },
         ).join("");
@@ -4641,7 +4940,6 @@ self.onmessage = async function(e) {
         };
       }
 
-      // Initialize
       document.addEventListener("DOMContentLoaded", initApp);
     </script>
   </body>
