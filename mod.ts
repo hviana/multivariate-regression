@@ -11,33 +11,33 @@
 // ============================================================================
 
 export interface ESNRegressionConfig {
-  maxSequenceLength: number; // Default: 64
-  reservoirSize: number; // Default: 256
-  spectralRadius: number; // Default: 0.9
-  leakRate: number; // Default: 0.3
-  inputScale: number; // Default: 1.0
-  biasScale: number; // Default: 0.1
-  reservoirSparsity: number; // Default: 0.9
-  inputSparsity: number; // Default: 0.0
-  activation: "tanh" | "relu"; // Default: "tanh"
-  useInputInReadout: boolean; // Default: true
-  useBiasInReadout: boolean; // Default: true
-  readoutTraining: "rls"; // Default: "rls"
-  rlsLambda: number; // Default: 0.999
-  rlsDelta: number; // Default: 1.0
-  epsilon: number; // Default: 1e-8
-  l2Lambda: number; // Default: 0.0001
-  gradientClipNorm: number; // Default: 1.0
-  normalizationEpsilon: number; // Default: 1e-8
-  normalizationWarmup: number; // Default: 10
-  outlierThreshold: number; // Default: 3.0
-  outlierMinWeight: number; // Default: 0.1
-  residualWindowSize: number; // Default: 100
-  uncertaintyMultiplier: number; // Default: 1.96
-  weightInitScale: number; // Default: 0.1
-  seed: number; // Default: 42
-  verbose: boolean; // Default: false
-  rollforwardMode: "holdLastX" | "autoregressive"; // Default: "holdLastX"
+  maxSequenceLength: number;
+  reservoirSize: number;
+  spectralRadius: number;
+  leakRate: number;
+  inputScale: number;
+  biasScale: number;
+  reservoirSparsity: number;
+  inputSparsity: number;
+  activation: "tanh" | "relu";
+  useInputInReadout: boolean;
+  useBiasInReadout: boolean;
+  readoutTraining: "rls";
+  rlsLambda: number;
+  rlsDelta: number;
+  epsilon: number;
+  l2Lambda: number;
+  gradientClipNorm: number;
+  normalizationEpsilon: number;
+  normalizationWarmup: number;
+  outlierThreshold: number;
+  outlierMinWeight: number;
+  residualWindowSize: number;
+  uncertaintyMultiplier: number;
+  weightInitScale: number;
+  seed: number;
+  verbose: boolean;
+  rollforwardMode: "holdLastX" | "autoregressive";
 }
 
 export interface FitResult {
@@ -78,7 +78,7 @@ export interface NormalizationStats {
 }
 
 // ============================================================================
-// DEFAULT CONFIGURATION (MUST NOT CHANGE DEFAULT VALUES)
+// DEFAULT CONFIGURATION
 // ============================================================================
 
 const DEFAULT_CONFIG: ESNRegressionConfig = {
@@ -112,21 +112,23 @@ const DEFAULT_CONFIG: ESNRegressionConfig = {
 };
 
 // ============================================================================
-// SMALL UTILS (no allocations in hot paths)
+// UTILITY FUNCTIONS
 // ============================================================================
 
 function clamp01(x: number): number {
-  if (x < 0) return 0;
-  if (x > 1) return 1;
-  return x;
+  return x < 0 ? 0 : x > 1 ? 1 : x;
 }
 
-function isFiniteNumber(x: number): boolean {
+function isFiniteNum(x: number): boolean {
   return Number.isFinite(x);
 }
 
+function safeVal(x: number, fallback: number = 0): number {
+  return isFiniteNum(x) ? x : fallback;
+}
+
 // ============================================================================
-// 1. MEMORY INFRA: TensorShape, TensorView, BufferPool, TensorArena, TensorOps
+// 1. MEMORY INFRA
 // ============================================================================
 
 class TensorShape {
@@ -139,15 +141,12 @@ class TensorShape {
     let size = 1;
     for (let i = 0; i < dims.length; i++) {
       const v = dims[i] | 0;
-      if (v <= 0) {
-        throw new Error("TensorShape: dims must be positive integers");
-      }
+      if (v <= 0) throw new Error("TensorShape: dims must be positive");
       dd[i] = v;
       size *= v;
     }
     this.dims = Object.freeze(dd);
     this.size = size;
-
     const strides = new Array<number>(dims.length);
     let stride = 1;
     for (let i = dims.length - 1; i >= 0; i--) {
@@ -155,14 +154,6 @@ class TensorShape {
       stride *= dd[i];
     }
     this.strides = Object.freeze(strides);
-  }
-
-  index(indices: number[]): number {
-    let idx = 0;
-    for (let i = 0; i < indices.length; i++) {
-      idx += (indices[i] | 0) * (this.strides[i] | 0);
-    }
-    return idx;
   }
 }
 
@@ -180,23 +171,21 @@ class TensorView {
   getFlat(i: number): number {
     return this.data[this.offset + (i | 0)];
   }
+
   setFlat(i: number, v: number): void {
     this.data[this.offset + (i | 0)] = v;
   }
 
   fill(v: number): void {
-    const start = this.offset;
-    const end = start + this.shape.size;
-    for (let i = start; i < end; i++) this.data[i] = v;
+    const end = this.offset + this.shape.size;
+    for (let i = this.offset; i < end; i++) this.data[i] = v;
   }
 
   copyFrom(src: TensorView): void {
     const n = this.shape.size;
-    const a = this.data;
-    const b = src.data;
-    let ia = this.offset;
-    let ib = src.offset;
-    for (let i = 0; i < n; i++) a[ia++] = b[ib++];
+    for (let i = 0; i < n; i++) {
+      this.data[this.offset + i] = src.data[src.offset + i];
+    }
   }
 }
 
@@ -253,9 +242,9 @@ class TensorOps {
     dstOff: number,
     n: number,
   ): void {
-    let i0 = srcOff | 0;
-    let o0 = dstOff | 0;
-    for (let i = 0; i < (n | 0); i++) dst[o0++] = src[i0++];
+    for (let i = 0; i < (n | 0); i++) {
+      dst[(dstOff + i) | 0] = src[(srcOff + i) | 0];
+    }
   }
 
   static vecFill(
@@ -264,8 +253,7 @@ class TensorOps {
     v: number,
     n: number,
   ): void {
-    let o0 = dstOff | 0;
-    for (let i = 0; i < (n | 0); i++) dst[o0++] = v;
+    for (let i = 0; i < (n | 0); i++) dst[(dstOff + i) | 0] = v;
   }
 
   static dot(
@@ -276,25 +264,21 @@ class TensorOps {
     n: number,
   ): number {
     let sum = 0;
-    let ia = aOff | 0;
-    let ib = bOff | 0;
-    for (let i = 0; i < (n | 0); i++) sum += a[ia++] * b[ib++];
+    for (let i = 0; i < (n | 0); i++) {
+      sum += a[(aOff + i) | 0] * b[(bOff + i) | 0];
+    }
     return sum;
   }
 
   static norm2(a: Float64Array, aOff: number, n: number): number {
     let sum = 0;
-    let ia = aOff | 0;
     for (let i = 0; i < (n | 0); i++) {
-      const v = a[ia++];
+      const v = a[(aOff + i) | 0];
       sum += v * v;
     }
     return Math.sqrt(sum);
   }
 
-  /**
-   * Dense mat-vec: y = A*x, A row-major [rows x cols]
-   */
   static matVec(
     A: Float64Array,
     aOff: number,
@@ -305,20 +289,15 @@ class TensorOps {
     y: Float64Array,
     yOff: number,
   ): void {
-    const r = rows | 0;
-    const c = cols | 0;
+    const r = rows | 0, c = cols | 0;
     for (let i = 0; i < r; i++) {
       let sum = 0;
-      let aIdx = (aOff + i * c) | 0;
-      let xIdx = xOff | 0;
-      for (let j = 0; j < c; j++) sum += A[aIdx++] * x[xIdx++];
+      const rowStart = (aOff + i * c) | 0;
+      for (let j = 0; j < c; j++) sum += A[rowStart + j] * x[(xOff + j) | 0];
       y[(yOff + i) | 0] = sum;
     }
   }
 
-  /**
-   * Sparse mat-vec using 0/1 mask: y = A*x, A row-major [rows x cols]
-   */
   static sparseMatVec(
     A: Float64Array,
     aOff: number,
@@ -331,16 +310,13 @@ class TensorOps {
     y: Float64Array,
     yOff: number,
   ): void {
-    const r = rows | 0;
-    const c = cols | 0;
+    const r = rows | 0, c = cols | 0;
     for (let i = 0; i < r; i++) {
       let sum = 0;
-      let aIdx = (aOff + i * c) | 0;
-      let mIdx = (mOff + i * c) | 0;
-      let xIdxBase = xOff | 0;
+      const rowStart = (aOff + i * c) | 0;
+      const maskStart = (mOff + i * c) | 0;
       for (let j = 0; j < c; j++) {
-        if (mask[mIdx++]) sum += A[aIdx] * x[xIdxBase + j];
-        aIdx++;
+        if (mask[maskStart + j]) sum += A[rowStart + j] * x[(xOff + j) | 0];
       }
       y[(yOff + i) | 0] = sum;
     }
@@ -348,8 +324,7 @@ class TensorOps {
 }
 
 // ============================================================================
-// 2. NUMERICS: ActivationOps, RandomGenerator, WelfordAccumulator, Normalizer,
-//    LossFunction, MetricsAccumulator
+// 2. NUMERICS
 // ============================================================================
 
 class ActivationOps {
@@ -357,13 +332,20 @@ class ActivationOps {
     if (act === "tanh") return Math.tanh(x);
     return x > 0 ? x : 0;
   }
+
+  static derivative(act: "tanh" | "relu", y: number): number {
+    if (act === "tanh") return 1 - y * y;
+    return y > 0 ? 1 : 0;
+  }
 }
 
 class RandomGenerator {
   private state: number;
+
   constructor(seed: number) {
     this.state = (seed >>> 0) || 1;
   }
+
   nextU32(): number {
     let x = this.state;
     x ^= x << 13;
@@ -372,21 +354,26 @@ class RandomGenerator {
     this.state = x >>> 0;
     return this.state;
   }
+
   uniform(): number {
     return this.nextU32() / 4294967296;
   }
+
   normal(mean: number = 0, std: number = 1): number {
-    const u1 = this.uniform();
+    const u1 = this.uniform() + 1e-12;
     const u2 = this.uniform();
-    const z = Math.sqrt(-2 * Math.log(u1 + 1e-12)) * Math.cos(2 * Math.PI * u2);
+    const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
     return mean + std * z;
   }
+
   bernoulli(p: number): boolean {
     return this.uniform() < p;
   }
+
   getState(): number {
     return this.state;
   }
+
   setState(s: number): void {
     this.state = (s >>> 0) || 1;
   }
@@ -398,6 +385,7 @@ class WelfordAccumulator {
   m2: number = 0;
 
   update(x: number): void {
+    if (!isFiniteNum(x)) return;
     this.count++;
     const d = x - this.mean;
     this.mean += d / this.count;
@@ -406,8 +394,7 @@ class WelfordAccumulator {
   }
 
   variance(): number {
-    if (this.count < 2) return 0;
-    return this.m2 / (this.count - 1);
+    return this.count < 2 ? 0 : Math.max(0, this.m2 / (this.count - 1));
   }
 
   std(): number {
@@ -428,59 +415,80 @@ class WelfordNormalizer {
   private m2s: Float64Array;
   private eps: number;
   private warmup: number;
+  private cachedStds: Float64Array;
+  private stdsDirty: boolean = true;
 
   constructor(nFeatures: number, eps: number, warmup: number) {
     this.nFeatures = nFeatures | 0;
     this.counts = new Float64Array(this.nFeatures);
     this.means = new Float64Array(this.nFeatures);
     this.m2s = new Float64Array(this.nFeatures);
+    this.cachedStds = new Float64Array(this.nFeatures);
     this.eps = eps;
     this.warmup = warmup | 0;
   }
 
   update(x: Float64Array, xOff: number): void {
-    let idx = xOff | 0;
     for (let j = 0; j < this.nFeatures; j++) {
-      const v = x[idx++];
-      const c = (this.counts[j] += 1);
+      const v = x[(xOff + j) | 0];
+      if (!isFiniteNum(v)) continue;
+      const c = ++this.counts[j];
       const d = v - this.means[j];
       this.means[j] += d / c;
       const d2 = v - this.means[j];
       this.m2s[j] += d * d2;
     }
+    this.stdsDirty = true;
   }
 
-  /**
-   * x_norm[j] = (x[j] - mean[j]) / max(std[j], eps)
-   */
+  private updateCachedStds(): void {
+    if (!this.stdsDirty) return;
+    for (let j = 0; j < this.nFeatures; j++) {
+      const c = this.counts[j];
+      const varr = c > 1 ? Math.max(0, this.m2s[j] / (c - 1)) : 0;
+      this.cachedStds[j] = Math.sqrt(varr);
+    }
+    this.stdsDirty = false;
+  }
+
   normalize(
     x: Float64Array,
     xOff: number,
     out: Float64Array,
     outOff: number,
   ): void {
-    let xi = xOff | 0;
-    let oi = outOff | 0;
-    const eps = this.eps;
+    this.updateCachedStds();
     for (let j = 0; j < this.nFeatures; j++) {
-      const c = this.counts[j];
       const mean = this.means[j];
-      const varr = c > 1 ? this.m2s[j] / (c - 1) : 0;
-      const std = Math.sqrt(varr);
-      const denom = std > eps ? std : eps;
-      const v = (x[xi++] - mean) / denom;
-      out[oi++] = isFiniteNumber(v) ? v : 0;
+      const std = this.cachedStds[j];
+      const denom = std > this.eps ? std : this.eps;
+      const v = (x[(xOff + j) | 0] - mean) / denom;
+      out[(outOff + j) | 0] = safeVal(v);
+    }
+  }
+
+  denormalize(
+    xNorm: Float64Array,
+    xNormOff: number,
+    out: Float64Array,
+    outOff: number,
+  ): void {
+    this.updateCachedStds();
+    for (let j = 0; j < this.nFeatures; j++) {
+      const mean = this.means[j];
+      const std = this.cachedStds[j];
+      const denom = std > this.eps ? std : this.eps;
+      const v = xNorm[(xNormOff + j) | 0] * denom + mean;
+      out[(outOff + j) | 0] = safeVal(v);
     }
   }
 
   isActive(): boolean {
-    if (this.nFeatures === 0) return false;
-    return this.counts[0] >= this.warmup;
+    return this.nFeatures > 0 && this.counts[0] >= this.warmup;
   }
 
   getCount(): number {
-    if (this.nFeatures === 0) return 0;
-    return this.counts[0];
+    return this.nFeatures > 0 ? this.counts[0] : 0;
   }
 
   getMeans(): number[] {
@@ -488,19 +496,16 @@ class WelfordNormalizer {
   }
 
   getStds(): number[] {
-    const out = new Array<number>(this.nFeatures);
-    for (let j = 0; j < this.nFeatures; j++) {
-      const c = this.counts[j];
-      const varr = c > 1 ? this.m2s[j] / (c - 1) : 0;
-      out[j] = Math.sqrt(varr);
-    }
-    return out;
+    this.updateCachedStds();
+    return Array.from(this.cachedStds);
   }
 
   reset(): void {
     this.counts.fill(0);
     this.means.fill(0);
     this.m2s.fill(0);
+    this.cachedStds.fill(0);
+    this.stdsDirty = true;
   }
 
   serialize(): { counts: number[]; means: number[]; m2s: number[] } {
@@ -517,6 +522,7 @@ class WelfordNormalizer {
       this.means[i] = d.means[i] || 0;
       this.m2s[i] = d.m2s[i] || 0;
     }
+    this.stdsDirty = true;
   }
 }
 
@@ -529,13 +535,11 @@ class LossFunction {
     n: number,
   ): number {
     let sum = 0;
-    let ip = pOff | 0;
-    let iy = yOff | 0;
     for (let i = 0; i < (n | 0); i++) {
-      const d = pred[ip++] - y[iy++];
+      const d = pred[(pOff + i) | 0] - y[(yOff + i) | 0];
       sum += d * d;
     }
-    return sum / (n | 0);
+    return sum / Math.max(1, n | 0);
   }
 
   static residuals(
@@ -547,10 +551,9 @@ class LossFunction {
     oOff: number,
     n: number,
   ): void {
-    let ip = pOff | 0;
-    let iy = yOff | 0;
-    let io = oOff | 0;
-    for (let i = 0; i < (n | 0); i++) out[io++] = pred[ip++] - y[iy++];
+    for (let i = 0; i < (n | 0); i++) {
+      out[(oOff + i) | 0] = pred[(pOff + i) | 0] - y[(yOff + i) | 0];
+    }
   }
 }
 
@@ -568,8 +571,8 @@ class MetricsAccumulator {
   }
 
   update(loss: number, grad: number, w: number): void {
-    this.lossSum += loss;
-    this.gradSum += grad;
+    if (isFiniteNum(loss)) this.lossSum += loss;
+    if (isFiniteNum(grad)) this.gradSum += grad;
     this.count++;
     this.lastWeight = w;
   }
@@ -588,7 +591,7 @@ class MetricsAccumulator {
 }
 
 // ============================================================================
-// 6. TRAINING UTILITIES: RingBuffer, ResidualStatsTracker, OutlierDownweighter
+// 6. TRAINING UTILITIES
 // ============================================================================
 
 class RingBuffer {
@@ -607,12 +610,12 @@ class RingBuffer {
   push(row: number[] | Float64Array, rowOff: number = 0): void {
     const base = (this.head * this.nFeat) | 0;
     if (row instanceof Float64Array) {
-      let ri = rowOff | 0;
-      for (let j = 0; j < this.nFeat; j++) this.buf[base + j] = row[ri++];
+      for (let j = 0; j < this.nFeat; j++) {
+        this.buf[base + j] = row[(rowOff + j) | 0];
+      }
     } else {
       for (let j = 0; j < this.nFeat; j++) this.buf[base + j] = row[j];
     }
-
     this.head = (this.head + 1) % this.cap;
     if (this.count < this.cap) this.count++;
   }
@@ -620,8 +623,19 @@ class RingBuffer {
   getLatest(out: Float64Array, outOff: number): boolean {
     if (this.count === 0) return false;
     const idx = (((this.head - 1 + this.cap) % this.cap) * this.nFeat) | 0;
-    let oi = outOff | 0;
-    for (let j = 0; j < this.nFeat; j++) out[oi++] = this.buf[idx + j];
+    for (let j = 0; j < this.nFeat; j++) {
+      out[(outOff + j) | 0] = this.buf[idx + j];
+    }
+    return true;
+  }
+
+  getAtOffset(offset: number, out: Float64Array, outOff: number): boolean {
+    if (offset < 0 || offset >= this.count) return false;
+    const idx =
+      (((this.head - 1 - offset + this.cap * 2) % this.cap) * this.nFeat) | 0;
+    for (let j = 0; j < this.nFeat; j++) {
+      out[(outOff + j) | 0] = this.buf[idx + j];
+    }
     return true;
   }
 
@@ -644,8 +658,7 @@ class RingBuffer {
   }
 
   deserialize(d: { buffer: number[]; head: number; count: number }): void {
-    const b = d.buffer;
-    for (let i = 0; i < this.buf.length; i++) this.buf[i] = b[i] || 0;
+    for (let i = 0; i < this.buf.length; i++) this.buf[i] = d.buffer[i] || 0;
     this.head = d.head | 0;
     this.count = d.count | 0;
   }
@@ -654,7 +667,7 @@ class RingBuffer {
 class ResidualStatsTracker {
   private win: number;
   private nT: number;
-  private buf: Float64Array; // [nTargets * win]
+  private buf: Float64Array;
   private head: Int32Array;
   private count: Int32Array;
   private sum: Float64Array;
@@ -671,19 +684,19 @@ class ResidualStatsTracker {
   }
 
   update(residuals: Float64Array, off: number): void {
-    let ri = off | 0;
     for (let t = 0; t < this.nT; t++) {
-      const r = residuals[ri++];
+      const r = residuals[(off + t) | 0];
+      if (!isFiniteNum(r)) continue;
       const h = this.head[t] | 0;
       const base = (t * this.win) | 0;
       const idx = base + h;
 
-      if (this.count[t] === this.win) {
+      if (this.count[t] >= this.win) {
         const old = this.buf[idx];
         this.sum[t] -= old;
         this.sumSq[t] -= old * old;
       } else {
-        this.count[t] = (this.count[t] + 1) | 0;
+        this.count[t]++;
       }
 
       this.buf[idx] = r;
@@ -695,15 +708,24 @@ class ResidualStatsTracker {
 
   getStd(t: number): number {
     const n = this.count[t] | 0;
-    if (n < 2) return 0;
+    if (n < 2) return 1.0;
     const mean = this.sum[t] / n;
-    const varr = this.sumSq[t] / n - mean * mean;
-    return Math.sqrt(varr > 0 ? varr : 0);
+    const varr = Math.max(0, this.sumSq[t] / n - mean * mean);
+    const std = Math.sqrt(varr);
+    return std > 1e-12 ? std : 1e-12;
+  }
+
+  getMean(t: number): number {
+    const n = this.count[t] | 0;
+    return n > 0 ? this.sum[t] / n : 0;
   }
 
   getStds(out: Float64Array, off: number): void {
-    let oi = off | 0;
-    for (let t = 0; t < this.nT; t++) out[oi++] = this.getStd(t);
+    for (let t = 0; t < this.nT; t++) out[(off + t) | 0] = this.getStd(t);
+  }
+
+  getTotalCount(): number {
+    return this.nT > 0 ? this.count[0] : 0;
   }
 
   reset(): void {
@@ -730,17 +752,14 @@ class ResidualStatsTracker {
     };
   }
 
-  deserialize(
-    d: {
-      buffers: number[];
-      heads: number[];
-      counts: number[];
-      sums: number[];
-      sumSqs: number[];
-    },
-  ): void {
-    const bb = d.buffers;
-    for (let i = 0; i < this.buf.length; i++) this.buf[i] = bb[i] || 0;
+  deserialize(d: {
+    buffers: number[];
+    heads: number[];
+    counts: number[];
+    sums: number[];
+    sumSqs: number[];
+  }): void {
+    for (let i = 0; i < this.buf.length; i++) this.buf[i] = d.buffers[i] || 0;
     for (let i = 0; i < this.nT; i++) {
       this.head[i] = d.heads[i] | 0;
       this.count[i] = d.counts[i] | 0;
@@ -767,25 +786,21 @@ class OutlierDownweighter {
     nTargets: number,
   ): number {
     let maxZ = 0;
-    let ir = rOff | 0;
-    let is = sOff | 0;
     for (let t = 0; t < (nTargets | 0); t++) {
-      const std = stds[is++];
+      const std = stds[(sOff + t) | 0];
       if (std > 1e-12) {
-        const z = Math.abs(residuals[ir]) / std;
+        const z = Math.abs(residuals[(rOff + t) | 0]) / std;
         if (z > maxZ) maxZ = z;
       }
-      ir++;
     }
     if (maxZ <= this.thr) return 1.0;
-    const excess = maxZ - this.thr;
-    const w = 1.0 / (1.0 + excess);
-    return w < this.minW ? this.minW : w;
+    const w = 1.0 / (1.0 + (maxZ - this.thr) * (maxZ - this.thr));
+    return Math.max(this.minW, w);
   }
 }
 
 // ============================================================================
-// 4. RESERVOIR: ReservoirInitMask, SpectralRadiusScaler, ESNReservoirParams, ESNReservoir
+// 4. RESERVOIR
 // ============================================================================
 
 class ReservoirInitMask {
@@ -816,13 +831,8 @@ class ReservoirInitMask {
 }
 
 class SpectralRadiusScaler {
-  // fixed iteration count for determinism and speed
-  private static readonly ITERS = 60;
+  private static readonly ITERS = 100;
 
-  /**
-   * Power iteration estimate for |lambda_max|
-   * Uses deterministic initial vector derived from indices (not RNG-consuming).
-   */
   static estimate(
     W: Float64Array,
     wOff: number,
@@ -836,20 +846,20 @@ class SpectralRadiusScaler {
     const vOff = scratchOff | 0;
     const uOff = (scratchOff + n) | 0;
 
-    // deterministic non-zero init
+    // Deterministic initial vector
+    let initNorm = 0;
     for (let i = 0; i < n; i++) {
-      const x = ((i * 2654435761) >>> 0) / 4294967296; // [0,1)
-      scratch[vOff + i] = x - 0.5;
-      scratch[uOff + i] = 0;
+      const x = (((i * 2654435761 + 1) >>> 0) % 1000) / 1000.0 - 0.5;
+      scratch[vOff + i] = x;
+      initNorm += x * x;
     }
+    initNorm = Math.sqrt(initNorm);
+    if (initNorm < 1e-12) initNorm = 1;
+    for (let i = 0; i < n; i++) scratch[vOff + i] /= initNorm;
 
-    let vNorm = TensorOps.norm2(scratch, vOff, n);
-    if (vNorm < 1e-12) vNorm = 1;
-    const inv0 = 1 / vNorm;
-    for (let i = 0; i < n; i++) scratch[vOff + i] *= inv0;
-
-    let est = 0;
+    let prevEst = 0;
     for (let it = 0; it < SpectralRadiusScaler.ITERS; it++) {
+      // u = W * v
       TensorOps.sparseMatVec(
         W,
         wOff,
@@ -864,15 +874,23 @@ class SpectralRadiusScaler {
       );
 
       const uNorm = TensorOps.norm2(scratch, uOff, n);
-      if (uNorm < 1e-12) return 0;
+      if (uNorm < 1e-14) return 0;
 
-      // Rayleigh quotient approx: v^T u (v normalized)
-      est = TensorOps.dot(scratch, vOff, scratch, uOff, n);
+      // Rayleigh quotient
+      const est = Math.abs(TensorOps.dot(scratch, vOff, scratch, uOff, n));
 
+      // Early convergence check
+      if (it > 10 && Math.abs(est - prevEst) < 1e-10 * Math.max(1, est)) {
+        return est;
+      }
+      prevEst = est;
+
+      // Normalize
       const inv = 1 / uNorm;
       for (let i = 0; i < n; i++) scratch[vOff + i] = scratch[uOff + i] * inv;
     }
-    return Math.abs(est);
+
+    return prevEst;
   }
 
   static scale(
@@ -882,11 +900,10 @@ class SpectralRadiusScaler {
     currentRadius: number,
     targetRadius: number,
   ): void {
-    if (currentRadius <= 1e-12) return;
+    if (currentRadius < 1e-12) return;
     const s = targetRadius / currentRadius;
-    const n = (size | 0) * (size | 0);
-    let idx = wOff | 0;
-    for (let i = 0; i < n; i++) W[idx++] *= s;
+    const len = (size | 0) * (size | 0);
+    for (let i = 0; i < len; i++) W[(wOff + i) | 0] *= s;
   }
 }
 
@@ -912,13 +929,12 @@ class ESNReservoir {
   private WMask: Uint8Array;
 
   private state: Float64Array;
-
-  // scratch (shared across live + predict scratch updates; safe in single-thread usage)
   private tmpPre: Float64Array;
   private tmpIn: Float64Array;
   private tmpRec: Float64Array;
 
   private estimatedRadius: number = 0;
+  private actualSpectralRadius: number;
 
   constructor(
     reservoirSize: number,
@@ -931,6 +947,7 @@ class ESNReservoir {
     this.leak = config.leakRate;
     this.act = config.activation;
     this.inputScale = config.inputScale;
+    this.actualSpectralRadius = config.spectralRadius;
 
     this.Win = new Float64Array(this.rs * this.nf);
     this.W = new Float64Array(this.rs * this.rs);
@@ -948,27 +965,35 @@ class ESNReservoir {
       rng,
     );
 
-    // init Win
+    // Initialize Win with uniform distribution scaled by input weight scale
     const wScale = config.weightInitScale;
     for (let i = 0; i < this.Win.length; i++) {
-      this.Win[i] = this.WinMask[i] ? rng.normal(0, wScale) : 0;
+      if (this.WinMask[i]) {
+        this.Win[i] = rng.normal(0, wScale);
+      }
     }
 
-    // init W, and force diagonal = 0 for stability
+    // Initialize W with uniform distribution
     for (let i = 0; i < this.W.length; i++) {
-      this.W[i] = this.WMask[i] ? rng.normal(0, wScale) : 0;
+      if (this.WMask[i]) {
+        this.W[i] = rng.normal(0, wScale);
+      }
     }
+
+    // Force diagonal to zero for stability
     for (let i = 0; i < this.rs; i++) {
-      const d = (i * this.rs + i) | 0;
+      const d = i * this.rs + i;
       this.W[d] = 0;
       this.WMask[d] = 0;
     }
 
-    // bias
+    // Initialize bias
     const bScale = config.biasScale;
-    for (let i = 0; i < this.rs; i++) this.b[i] = rng.normal(0, bScale);
+    for (let i = 0; i < this.rs; i++) {
+      this.b[i] = rng.normal(0, bScale);
+    }
 
-    // spectral radius scale (deterministic estimate; does not consume RNG)
+    // Scale to target spectral radius
     const scratch = new Float64Array(this.rs * 2);
     this.estimatedRadius = SpectralRadiusScaler.estimate(
       this.W,
@@ -979,32 +1004,27 @@ class ESNReservoir {
       scratch,
       0,
     );
-    SpectralRadiusScaler.scale(
-      this.W,
-      0,
-      this.rs,
-      this.estimatedRadius,
-      config.spectralRadius,
-    );
 
-    // state and scratch
+    if (this.estimatedRadius > 1e-12) {
+      SpectralRadiusScaler.scale(
+        this.W,
+        0,
+        this.rs,
+        this.estimatedRadius,
+        config.spectralRadius,
+      );
+    }
+
     this.state = new Float64Array(this.rs);
     this.tmpPre = new Float64Array(this.rs);
     this.tmpIn = new Float64Array(this.rs);
     this.tmpRec = new Float64Array(this.rs);
   }
 
-  /**
-   * r_t = (1-leak)*r_{t-1} + leak*act( Win*(inputScale*x) + W*r_{t-1} + b )
-   */
   update(xNorm: Float64Array, xOff: number): void {
     this.stepStateInPlace(this.state, xNorm, xOff);
   }
 
-  /**
-   * Allocation-free state step for an arbitrary state vector (used by predict scratch roll-forward).
-   * NOTE: uses internal scratch buffers, but does not touch the live ring buffer.
-   */
   stepStateInPlace(
     state: Float64Array,
     xNorm: Float64Array,
@@ -1017,16 +1037,13 @@ class ESNReservoir {
     const oneMinus = 1 - leak;
 
     // tmpIn = Win * (inScale * x)
-    let winIdx = 0;
-    let mIdx = 0;
     for (let i = 0; i < rs; i++) {
       let sum = 0;
-      const xBase = xOff | 0;
+      const rowStart = i * nf;
       for (let j = 0; j < nf; j++) {
-        if (this.WinMask[mIdx++]) {
-          sum += this.Win[winIdx] * (inScale * xNorm[xBase + j]);
+        if (this.WinMask[rowStart + j]) {
+          sum += this.Win[rowStart + j] * (inScale * xNorm[(xOff + j) | 0]);
         }
-        winIdx++;
       }
       this.tmpIn[i] = sum;
     }
@@ -1045,17 +1062,18 @@ class ESNReservoir {
       0,
     );
 
-    // tmpPre = act(tmpIn + tmpRec + b)
+    // pre-activation and activation
     for (let i = 0; i < rs; i++) {
       const pre = this.tmpIn[i] + this.tmpRec[i] + this.b[i];
-      const a = ActivationOps.apply(this.act, pre);
-      this.tmpPre[i] = isFiniteNumber(a) ? a : 0;
+      const clampedPre = Math.max(-20, Math.min(20, pre)); // Prevent overflow in tanh
+      const a = ActivationOps.apply(this.act, clampedPre);
+      this.tmpPre[i] = safeVal(a);
     }
 
-    // leaky integration
+    // Leaky integration
     for (let i = 0; i < rs; i++) {
       const v = oneMinus * state[i] + leak * this.tmpPre[i];
-      state[i] = isFiniteNumber(v) ? v : 0;
+      state[i] = safeVal(v);
     }
   }
 
@@ -1109,35 +1127,31 @@ class ESNReservoir {
     };
   }
 
-  deserialize(
-    d: {
-      state: number[];
-      Win: number[];
-      W: number[];
-      b: number[];
-      WinMask: number[];
-      WMask: number[];
-      estimatedRadius?: number;
-    },
-  ): void {
+  deserialize(d: {
+    state: number[];
+    Win: number[];
+    W: number[];
+    b: number[];
+    WinMask: number[];
+    WMask: number[];
+    estimatedRadius?: number;
+  }): void {
     for (let i = 0; i < this.state.length; i++) this.state[i] = d.state[i] || 0;
     for (let i = 0; i < this.Win.length; i++) this.Win[i] = d.Win[i] || 0;
     for (let i = 0; i < this.W.length; i++) this.W[i] = d.W[i] || 0;
     for (let i = 0; i < this.b.length; i++) this.b[i] = d.b[i] || 0;
     for (let i = 0; i < this.WinMask.length; i++) {
-      this.WinMask[i] = (d.WinMask[i] || 0) as any;
+      this.WinMask[i] = (d.WinMask[i] || 0) as number;
     }
     for (let i = 0; i < this.WMask.length; i++) {
-      this.WMask[i] = (d.WMask[i] || 0) as any;
+      this.WMask[i] = (d.WMask[i] || 0) as number;
     }
-    this.estimatedRadius = typeof d.estimatedRadius === "number"
-      ? d.estimatedRadius
-      : 0;
+    this.estimatedRadius = d.estimatedRadius ?? 0;
   }
 }
 
 // ============================================================================
-// 3. READOUT TRAINING: RLSState, RLSOptimizer (shared P), + LinearReadout
+// 3. READOUT TRAINING
 // ============================================================================
 
 export interface ReadoutConfig {
@@ -1146,14 +1160,14 @@ export interface ReadoutConfig {
 }
 
 export interface ReadoutParams {
-  Wout: Float64Array; // [nTargets x zDim]
+  Wout: Float64Array;
 }
 
 export interface RLSState {
-  P: Float64Array; // [zDim x zDim]
-  gain: Float64Array; // [zDim]
-  Pz: Float64Array; // [zDim]
-  zTP: Float64Array; // [zDim]
+  P: Float64Array;
+  gain: Float64Array;
+  Pz: Float64Array;
+  zTP: Float64Array;
 }
 
 class RLSOptimizer {
@@ -1165,12 +1179,14 @@ class RLSOptimizer {
   private eps: number;
   private clip: number;
 
-  private P: Float64Array; // [zDim x zDim]
+  private P: Float64Array;
   private gain: Float64Array;
   private Pz: Float64Array;
   private zTP: Float64Array;
+  private tmpZ: Float64Array;
 
-  private Wout: Float64Array; // [nTargets x zDim]
+  private Wout: Float64Array;
+  private updateCount: number = 0;
 
   constructor(zDim: number, nTargets: number, config: ESNRegressionConfig) {
     this.zDim = zDim | 0;
@@ -1185,6 +1201,7 @@ class RLSOptimizer {
     this.gain = new Float64Array(this.zDim);
     this.Pz = new Float64Array(this.zDim);
     this.zTP = new Float64Array(this.zDim);
+    this.tmpZ = new Float64Array(this.zDim);
     this.Wout = new Float64Array(this.nTargets * this.zDim);
 
     this.reset();
@@ -1192,20 +1209,19 @@ class RLSOptimizer {
 
   reset(): void {
     this.P.fill(0);
-    const d = this.delta;
-    // Use ridge-style initialization: P0 = (1/delta) * I (delta is scale of prior covariance).
-    const diag = d > 0 ? 1.0 / d : 1.0;
-    for (let i = 0; i < this.zDim; i++) this.P[i * this.zDim + i] = diag;
+    // Initialize P = I / delta (standard RLS initialization)
+    const initVal = this.delta > 0 ? 1.0 / this.delta : 1.0;
+    for (let i = 0; i < this.zDim; i++) {
+      this.P[i * this.zDim + i] = initVal;
+    }
     this.Wout.fill(0);
+    this.updateCount = 0;
   }
 
   getParams(): ReadoutParams {
     return { Wout: this.Wout };
   }
 
-  /**
-   * Predict y_hat = Wout * z
-   */
   predict(
     z: Float64Array,
     zOff: number,
@@ -1224,20 +1240,6 @@ class RLSOptimizer {
     );
   }
 
-  /**
-   * Weighted RLS update with shared P and gain across output dims.
-   * Implements sample weight w via z' = sqrt(w)*z and y' = sqrt(w)*y.
-   *
-   * Pz = P * z'
-   * denom = lambda + z'^T * P * z'
-   * k = Pz / denom
-   * e = y' - Wout*z'
-   * Wout += e * k^T  (for each target row)
-   * P = (P - k*(z'^T P)) / lambda
-   *
-   * Includes deterministic gradient clipping on error RMS before applying updates.
-   * L2 regularization applied as stable shrink: Wout *= 1/(1+l2) per update.
-   */
   update(
     z: Float64Array,
     zOff: number,
@@ -1248,130 +1250,119 @@ class RLSOptimizer {
     const zDim = this.zDim;
     const nT = this.nTargets;
 
-    // sqrt-weighted z'
-    const w = weight > 0 ? weight : 0;
-    const wS = w > 0 ? Math.sqrt(w) : 0;
+    const w = Math.max(0, weight);
+    if (w < 1e-12) return 0;
 
-    // Compute Pz = P * z'  (z' = wS * z)
-    // Avoid allocating z'; scale during multiply: Pz = P*(wS*z) = wS*(P*z)
-    TensorOps.matVec(this.P, 0, zDim, zDim, z, zOff, this.Pz, 0);
-    if (wS !== 1.0) {
-      for (let i = 0; i < zDim; i++) this.Pz[i] *= wS;
+    const sqrtW = Math.sqrt(w);
+
+    // Copy and scale z
+    for (let i = 0; i < zDim; i++) {
+      this.tmpZ[i] = sqrtW * z[(zOff + i) | 0];
     }
 
-    // denom = lambda + z'^T * P * z' = lambda + (wS*z)^T * Pz
-    let denom = this.lambda;
-    if (wS !== 0) {
-      let zi = zOff | 0;
-      for (let i = 0; i < zDim; i++) {
-        denom += (wS * z[zi++]) * this.Pz[i];
-      }
-    }
+    // Pz = P * z'
+    TensorOps.matVec(this.P, 0, zDim, zDim, this.tmpZ, 0, this.Pz, 0);
+
+    // denom = lambda + z'^T * Pz + l2
+    let zPz = TensorOps.dot(this.tmpZ, 0, this.Pz, 0, zDim);
+    let denom = this.lambda + zPz + this.l2;
     if (denom < this.eps) denom = this.eps;
 
-    // gain = k = Pz / denom
+    // gain = Pz / denom
     const invDen = 1.0 / denom;
-    for (let i = 0; i < zDim; i++) this.gain[i] = this.Pz[i] * invDen;
-
-    // Compute predictions and errors (using z')
-    // yHat = Wout * z' = Wout * (wS*z)
-    // e = y' - yHat = wS*y - yHat
-    // Clip based on RMS of unscaled error (in target units): (y - Wout*z)
-    // For stability and determinism: compute both in one pass.
-
-    // First compute yHatUnscaled = Wout * z (unscaled)
-    // Then errorUnscaled = y - yHatUnscaled
-    // Then apply scaling wS to error for weighted update: e = wS * errorUnscaled
-    let errRmsSq = 0;
-    for (let t = 0; t < nT; t++) {
-      const row = t * zDim;
-      let yHat = 0;
-      let zi = zOff | 0;
-      for (let i = 0; i < zDim; i++) yHat += this.Wout[row + i] * z[zi++];
-      const eUn = y[(yOff + t) | 0] - yHat;
-      errRmsSq += eUn * eUn;
-    }
-    const errRms = Math.sqrt(errRmsSq / nT);
-
-    let clipScale = 1.0;
-    if (this.clip > 0 && errRms > this.clip) clipScale = this.clip / errRms;
-
-    // Apply updates: Wout += (wS * clipScale * errorUnscaled) * gain^T
-    const eScale = wS * clipScale;
-
-    for (let t = 0; t < nT; t++) {
-      const row = t * zDim;
-      // recompute yHat unscaled for determinism and no extra buffers
-      let yHat = 0;
-      let zi = zOff | 0;
-      for (let i = 0; i < zDim; i++) yHat += this.Wout[row + i] * z[zi++];
-      const eUn = y[(yOff + t) | 0] - yHat;
-      const e = eScale * eUn;
-
-      // Wout_row += gain * e
-      for (let i = 0; i < zDim; i++) this.Wout[row + i] += this.gain[i] * e;
+    for (let i = 0; i < zDim; i++) {
+      this.gain[i] = this.Pz[i] * invDen;
     }
 
-    // Compute zTP = z'^T * P  (vector length zDim)
-    // zTP[j] = sum_i z'_i * P[i,j]
-    // z'_i = wS * z_i
-    if (wS !== 0) {
-      // Compute using columns, no allocations
-      for (let j = 0; j < zDim; j++) {
-        let sum = 0;
-        let zi = zOff | 0;
-        let pIdx = j | 0; // P[i*zDim + j]
-        for (let i = 0; i < zDim; i++) {
-          sum += (wS * z[zi++]) * this.P[pIdx];
-          pIdx += zDim;
-        }
-        this.zTP[j] = sum;
+    // Compute errors and apply gradient clipping
+    let errSumSq = 0;
+    for (let t = 0; t < nT; t++) {
+      const row = t * zDim;
+      let pred = 0;
+      for (let i = 0; i < zDim; i++) {
+        pred += this.Wout[row + i] * this.tmpZ[i];
       }
-    } else {
-      this.zTP.fill(0);
+      const yScaled = sqrtW * y[(yOff + t) | 0];
+      const err = yScaled - pred;
+      errSumSq += err * err;
     }
 
-    // P = (P - k * zTP) / lambda
+    const errRms = Math.sqrt(errSumSq / Math.max(1, nT));
+    let clipScale = 1.0;
+    if (this.clip > 0 && errRms > this.clip) {
+      clipScale = this.clip / errRms;
+    }
+
+    // Update Wout
+    for (let t = 0; t < nT; t++) {
+      const row = t * zDim;
+      let pred = 0;
+      for (let i = 0; i < zDim; i++) {
+        pred += this.Wout[row + i] * this.tmpZ[i];
+      }
+      const yScaled = sqrtW * y[(yOff + t) | 0];
+      const err = (yScaled - pred) * clipScale;
+
+      for (let i = 0; i < zDim; i++) {
+        this.Wout[row + i] += this.gain[i] * err;
+      }
+    }
+
+    // zTP = z'^T * P
+    for (let j = 0; j < zDim; j++) {
+      let sum = 0;
+      for (let i = 0; i < zDim; i++) {
+        sum += this.tmpZ[i] * this.P[i * zDim + j];
+      }
+      this.zTP[j] = sum;
+    }
+
+    // P = (P - gain * zTP) / lambda
     const invLam = 1.0 / this.lambda;
     for (let i = 0; i < zDim; i++) {
       const ki = this.gain[i];
-      let pRow = (i * zDim) | 0;
+      const rowStart = i * zDim;
       for (let j = 0; j < zDim; j++) {
-        this.P[pRow + j] = invLam * (this.P[pRow + j] - ki * this.zTP[j]);
+        this.P[rowStart + j] = invLam *
+          (this.P[rowStart + j] - ki * this.zTP[j]);
       }
     }
 
-    // Ensure symmetry (numerically stabilizing). Cost: O(zDim^2), but same order as P update.
-    // P = 0.5*(P + P^T)
+    // Symmetrize P for numerical stability
     for (let i = 0; i < zDim; i++) {
-      const ii = i * zDim;
       for (let j = i + 1; j < zDim; j++) {
-        const a = this.P[ii + j];
+        const a = this.P[i * zDim + j];
         const b = this.P[j * zDim + i];
         const m = 0.5 * (a + b);
-        this.P[ii + j] = m;
+        this.P[i * zDim + j] = m;
         this.P[j * zDim + i] = m;
       }
     }
 
-    // L2 shrink (stable, deterministic)
-    if (this.l2 > 0) {
-      const shrink = 1.0 / (1.0 + this.l2);
-      for (let i = 0; i < this.Wout.length; i++) this.Wout[i] *= shrink;
+    // Add small regularization to diagonal periodically to prevent P from becoming singular
+    this.updateCount++;
+    if (this.updateCount % 100 === 0) {
+      const reg = this.eps * 10;
+      for (let i = 0; i < zDim; i++) {
+        this.P[i * zDim + i] += reg;
+      }
     }
 
-    return errRms;
+    return errRms / sqrtW;
   }
 
-  serialize(): { P: number[]; Wout: number[] } {
-    return { P: Array.from(this.P), Wout: Array.from(this.Wout) };
+  serialize(): { P: number[]; Wout: number[]; updateCount: number } {
+    return {
+      P: Array.from(this.P),
+      Wout: Array.from(this.Wout),
+      updateCount: this.updateCount,
+    };
   }
 
-  deserialize(d: { P: number[]; Wout: number[] }): void {
-    const p = d.P;
-    const w = d.Wout;
-    for (let i = 0; i < this.P.length; i++) this.P[i] = p[i] || 0;
-    for (let i = 0; i < this.Wout.length; i++) this.Wout[i] = w[i] || 0;
+  deserialize(d: { P: number[]; Wout: number[]; updateCount?: number }): void {
+    for (let i = 0; i < this.P.length; i++) this.P[i] = d.P[i] || 0;
+    for (let i = 0; i < this.Wout.length; i++) this.Wout[i] = d.Wout[i] || 0;
+    this.updateCount = d.updateCount || 0;
   }
 
   getZDim(): number {
@@ -1396,8 +1387,8 @@ class LinearReadout {
   private zDim: number;
 
   private rls: RLSOptimizer;
+  private z: Float64Array;
 
-  private z: Float64Array; // scratch
   constructor(
     reservoirSize: number,
     nFeatures: number,
@@ -1410,11 +1401,7 @@ class LinearReadout {
     this.useX = !!config.useInputInReadout;
     this.useB = !!config.useBiasInReadout;
 
-    let zDim = this.rs;
-    if (this.useX) zDim += this.nf;
-    if (this.useB) zDim += 1;
-    this.zDim = zDim;
-
+    this.zDim = this.rs + (this.useX ? this.nf : 0) + (this.useB ? 1 : 0);
     this.rls = new RLSOptimizer(this.zDim, this.nT, config);
     this.z = new Float64Array(this.zDim);
   }
@@ -1429,17 +1416,10 @@ class LinearReadout {
   ): void {
     let k = outOff | 0;
 
-    // r
-    let ir = rOff | 0;
-    for (let i = 0; i < this.rs; i++) out[k++] = r[ir++];
-
-    // x
+    for (let i = 0; i < this.rs; i++) out[k++] = r[(rOff + i) | 0];
     if (this.useX) {
-      let ix = xOff | 0;
-      for (let i = 0; i < this.nf; i++) out[k++] = x[ix++];
+      for (let i = 0; i < this.nf; i++) out[k++] = x[(xOff + i) | 0];
     }
-
-    // bias
     if (this.useB) out[k] = 1.0;
   }
 
@@ -1484,11 +1464,13 @@ class LinearReadout {
     this.rls.reset();
   }
 
-  serialize(): { rls: { P: number[]; Wout: number[] } } {
+  serialize(): { rls: { P: number[]; Wout: number[]; updateCount: number } } {
     return { rls: this.rls.serialize() };
   }
 
-  deserialize(d: { rls: { P: number[]; Wout: number[] } }): void {
+  deserialize(
+    d: { rls: { P: number[]; Wout: number[]; updateCount?: number } },
+  ): void {
     this.rls.deserialize(d.rls);
   }
 }
@@ -1503,8 +1485,7 @@ class SerializationHelper {
   }
 
   static deserialize(model: ESNRegression, s: string): void {
-    const obj = JSON.parse(s);
-    model.setSerializableState(obj);
+    model.setSerializableState(JSON.parse(s));
   }
 }
 
@@ -1524,13 +1505,14 @@ export class ESNRegression {
 
   private ring: RingBuffer | null = null;
   private normalizer: WelfordNormalizer | null = null;
+  private yNormalizer: WelfordNormalizer | null = null;
   private reservoir: ESNReservoir | null = null;
   private readout: LinearReadout | null = null;
   private residualStats: ResidualStatsTracker | null = null;
   private outlier: OutlierDownweighter | null = null;
   private metrics: MetricsAccumulator | null = null;
 
-  // scratch
+  // Scratch buffers
   private xRaw: Float64Array | null = null;
   private xNorm: Float64Array | null = null;
   private y: Float64Array | null = null;
@@ -1538,8 +1520,9 @@ export class ESNRegression {
   private resid: Float64Array | null = null;
   private residStds: Float64Array | null = null;
   private scratchR: Float64Array | null = null;
+  private scratchX: Float64Array | null = null;
 
-  // reusable results
+  // Reusable results
   private fitResultObj: FitResult;
   private predResultObj: PredictionResult;
 
@@ -1579,6 +1562,11 @@ export class ESNRegression {
       this.config.normalizationEpsilon,
       this.config.normalizationWarmup,
     );
+    this.yNormalizer = new WelfordNormalizer(
+      this.nTargets,
+      this.config.normalizationEpsilon,
+      this.config.normalizationWarmup,
+    );
     this.reservoir = new ESNReservoir(
       this.config.reservoirSize,
       this.nFeatures,
@@ -1608,32 +1596,29 @@ export class ESNRegression {
     this.resid = new Float64Array(this.nTargets);
     this.residStds = new Float64Array(this.nTargets);
     this.scratchR = new Float64Array(this.config.reservoirSize);
+    this.scratchX = new Float64Array(this.nFeatures);
 
-    // preallocate output arrays (no per-call allocations)
     const maxSteps = this.config.maxSequenceLength | 0;
     for (let i = 0; i < maxSteps; i++) {
-      this.predResultObj.predictions[i] = new Array<number>(this.nTargets);
-      this.predResultObj.lowerBounds[i] = new Array<number>(this.nTargets);
-      this.predResultObj.upperBounds[i] = new Array<number>(this.nTargets);
-      for (let t = 0; t < this.nTargets; t++) {
-        this.predResultObj.predictions[i][t] = 0;
-        this.predResultObj.lowerBounds[i][t] = 0;
-        this.predResultObj.upperBounds[i][t] = 0;
-      }
+      this.predResultObj.predictions[i] = new Array<number>(this.nTargets).fill(
+        0,
+      );
+      this.predResultObj.lowerBounds[i] = new Array<number>(this.nTargets).fill(
+        0,
+      );
+      this.predResultObj.upperBounds[i] = new Array<number>(this.nTargets).fill(
+        0,
+      );
     }
 
     this.initialized = true;
   }
 
   /**
-   * Online training.
+   * Online training with incremental RLS readout updates.
    *
-   * Critical enforced behavior:
-   * - xCoordinates.length MUST equal yCoordinates.length else throw BEFORE ingestion.
-   * - For each sample: push X into ring buffer FIRST, then all training steps use internal buffers.
-   *
-   * @param param0 xCoordinates: [N x nFeatures], yCoordinates: [N x nTargets]
-   * @returns FitResult (reused object; caller must copy if needed)
+   * @param data Object containing xCoordinates [N x nFeatures] and yCoordinates [N x nTargets]
+   * @returns FitResult (reused object; caller must copy if persistence needed)
    */
   fitOnline(
     { xCoordinates, yCoordinates }: {
@@ -1665,26 +1650,23 @@ export class ESNRegression {
       this.initialize(nf, nt);
     }
 
-    // Strict shape validation before processing
+    // Validate all rows before processing
     for (let i = 0; i < N; i++) {
       if (xCoordinates[i].length !== this.nFeatures) {
         throw new Error(
-          `fitOnline: xCoordinates[${i}].length (${
-            xCoordinates[i].length
-          }) must equal nFeatures (${this.nFeatures})`,
+          `fitOnline: xCoordinates[${i}].length must equal nFeatures (${this.nFeatures})`,
         );
       }
       if (yCoordinates[i].length !== this.nTargets) {
         throw new Error(
-          `fitOnline: yCoordinates[${i}].length (${
-            yCoordinates[i].length
-          }) must equal nTargets (${this.nTargets})`,
+          `fitOnline: yCoordinates[${i}].length must equal nTargets (${this.nTargets})`,
         );
       }
     }
 
     const ring = this.ring!;
     const norm = this.normalizer!;
+    const yNorm = this.yNormalizer!;
     const res = this.reservoir!;
     const head = this.readout!;
     const rStats = this.residualStats!;
@@ -1701,46 +1683,47 @@ export class ESNRegression {
     metrics.reset();
 
     for (let i = 0; i < N; i++) {
-      // 1) Push X FIRST (authoritative latest-X)
+      // 1) Push X into ring buffer FIRST (authoritative latest-X)
       const xr = xCoordinates[i];
       for (let j = 0; j < this.nFeatures; j++) xRaw[j] = xr[j];
       ring.push(xRaw, 0);
 
-      // 2) Update normalization stats
+      // 2) Update X normalization stats
       norm.update(xRaw, 0);
 
       // 3) Normalize x
       norm.normalize(xRaw, 0, xNorm, 0);
 
-      // 4) Reservoir update (live)
+      // 4) Update reservoir state
       res.update(xNorm, 0);
 
-      // 5) Copy target
+      // 5) Copy target and update Y normalizer
       const yr = yCoordinates[i];
       for (let t = 0; t < this.nTargets; t++) y[t] = yr[t];
+      yNorm.update(y, 0);
 
-      // 6) Forward (before update)
+      // 6) Forward pass (before training update) to compute prediction
       head.forward(res.getState(), 0, xNorm, 0, yHat, 0);
 
-      // 7) residuals (pred - y), for stats/loss/outliers
+      // 7) Compute residuals for outlier detection and stats
       LossFunction.residuals(yHat, 0, y, 0, resid, 0, this.nTargets);
 
-      // 8) outlier stds
+      // 8) Get current residual standard deviations
       rStats.getStds(stds, 0);
 
-      // 9) sample weight
+      // 9) Compute sample weight (downweight outliers)
       const w = outlier.computeWeight(resid, 0, stds, 0, this.nTargets);
 
       // 10) RLS update
       const gradNorm = head.train(res.getState(), 0, xNorm, 0, y, 0, w);
 
-      // 11) loss
+      // 11) Compute loss for metrics
       const loss = LossFunction.mse(yHat, 0, y, 0, this.nTargets);
 
-      // 12) update residual stats
+      // 12) Update residual statistics with new residuals
       rStats.update(resid, 0);
 
-      // 13) metrics
+      // 13) Update metrics accumulator
       metrics.update(loss, gradNorm, w);
 
       this.sampleCount++;
@@ -1755,11 +1738,10 @@ export class ESNRegression {
   }
 
   /**
-   * Multi-step roll-forward prediction using scratch reservoir state.
-   * Uses internal RingBuffer for the latest X (caller does NOT pass latest-X).
+   * Multi-step ahead prediction using roll-forward with scratch reservoir state.
    *
-   * @param futureSteps integer >= 1 and <= maxSequenceLength
-   * @returns PredictionResult (reused object; caller must copy if needed)
+   * @param futureSteps Number of steps to predict (1 to maxSequenceLength)
+   * @returns PredictionResult (reused object; caller must copy if persistence needed)
    */
   predict(futureSteps: number): PredictionResult {
     if (
@@ -1791,76 +1773,91 @@ export class ESNRegression {
     const yHat = this.yHat!;
     const stds = this.residStds!;
     const scratchR = this.scratchR!;
+    const scratchX = this.scratchX!;
     const out = this.predResultObj;
 
-    // context ends at most recent ingested X
+    // Get latest X from ring buffer (prediction context ends here)
     ring.getLatest(xRaw, 0);
 
-    // scratch copy of reservoir state (do not mutate live state in predict)
+    // Copy live reservoir state to scratch (do NOT mutate live state)
     res.copyStateTo(scratchR, 0);
 
-    // base residual stds for 1-step
+    // Get base residual standard deviations for uncertainty
     rStats.getStds(stds, 0);
 
-    // roll-forward deterministically
+    // Determine rollforward mode
     const mode = this.config.rollforwardMode;
-    const canAR = mode === "autoregressive" && this.nFeatures === this.nTargets;
+    const canAutoregress = mode === "autoregressive" &&
+      this.nFeatures === this.nTargets;
+
+    // Copy initial x for rollforward
+    for (let j = 0; j < this.nFeatures; j++) scratchX[j] = xRaw[j];
 
     for (let step = 0; step < futureSteps; step++) {
-      // Normalize x for this step using running stats
-      norm.normalize(xRaw, 0, xNorm, 0);
+      // Normalize current x using running stats
+      norm.normalize(scratchX, 0, xNorm, 0);
 
-      // Advance scratch reservoir one step
+      // Advance scratch reservoir state one step
       res.stepStateInPlace(scratchR, xNorm, 0);
 
-      // Predict
+      // Compute prediction using readout
       head.forward(scratchR, 0, xNorm, 0, yHat, 0);
 
-      // Store prediction and bounds
-      const horizonScale = Math.sqrt(step + 1); // sigma_k = sigma_1 * sqrt(k+1)
+      // Store prediction and compute uncertainty bounds
+      // Uncertainty grows with horizon: sigma_k = sigma_1 * sqrt(k + 1)
+      const horizonScale = Math.sqrt(step + 1);
+
       for (let t = 0; t < this.nTargets; t++) {
-        const pred = yHat[t];
+        const pred = safeVal(yHat[t]);
         out.predictions[step][t] = pred;
 
         const sigma1 = stds[t];
         const sigma = sigma1 * horizonScale;
-        const half = this.config.uncertaintyMultiplier * sigma;
+        const halfWidth = this.config.uncertaintyMultiplier * sigma;
 
-        out.lowerBounds[step][t] = pred - half;
-        out.upperBounds[step][t] = pred + half;
+        out.lowerBounds[step][t] = pred - halfWidth;
+        out.upperBounds[step][t] = pred + halfWidth;
       }
 
-      // Next xRaw (default holdLastX: keep constant)
-      if (canAR) {
-        // Deterministic autoregressive roll-forward:
-        // Set x_{t+k} := y_hat_{t+k-1} in raw space, then normalize next loop.
+      // Update scratchX for next step
+      if (canAutoregress) {
+        // Autoregressive: use prediction as next input
         for (let j = 0; j < this.nFeatures; j++) {
-          const v = yHat[j];
-          xRaw[j] = isFiniteNumber(v) ? v : 0;
+          scratchX[j] = safeVal(yHat[j]);
         }
       }
+      // else: holdLastX mode - scratchX remains unchanged
     }
 
-    // confidence: deterministic finite clamp [0,1]
+    // Compute confidence score
     let avgStd = 0;
     for (let t = 0; t < this.nTargets; t++) avgStd += stds[t];
     avgStd = this.nTargets > 0 ? avgStd / this.nTargets : 0;
 
-    const base = avgStd > 0 ? 1.0 / (1.0 + avgStd) : 1.0;
+    // Base confidence from residual std (lower std = higher confidence)
+    const baseConf = avgStd > 0 ? 1.0 / (1.0 + avgStd) : 1.0;
+
+    // Penalize confidence for longer horizons
     const horizonPenalty = 1.0 / Math.sqrt(futureSteps);
-    out.confidence = clamp01(base * horizonPenalty);
+
+    // Penalize confidence for insufficient training
+    const samplePenalty = Math.min(
+      1.0,
+      this.sampleCount / Math.max(1, this.config.normalizationWarmup * 2),
+    );
+
+    out.confidence = clamp01(baseConf * horizonPenalty * samplePenalty);
 
     return out;
   }
 
   /**
-   * @returns ModelSummary
+   * @returns Model summary statistics
    */
   getModelSummary(): ModelSummary {
     const zDim = this.readout ? this.readout.getZDim() : 0;
-    const totalParams = (this.nTargets | 0) * (zDim | 0);
     return {
-      totalParameters: totalParams,
+      totalParameters: (this.nTargets | 0) * (zDim | 0),
       receptiveField: this.config.maxSequenceLength,
       spectralRadius: this.config.spectralRadius,
       reservoirSize: this.config.reservoirSize,
@@ -1872,18 +1869,17 @@ export class ESNRegression {
   }
 
   /**
-   * @returns WeightInfo (allocates for serialization/export; not hot path)
+   * @returns Weight information for inspection/debugging
    */
   getWeights(): WeightInfo {
     const weights: Array<{ name: string; shape: number[]; values: number[] }> =
       [];
 
     if (this.readout) {
-      const Wout = this.readout.getWout();
       weights.push({
         name: "Wout",
         shape: [this.nTargets, this.readout.getZDim()],
-        values: Array.from(Wout),
+        values: Array.from(this.readout.getWout()),
       });
     }
 
@@ -1910,7 +1906,7 @@ export class ESNRegression {
   }
 
   /**
-   * @returns NormalizationStats
+   * @returns Normalization statistics for inputs
    */
   getNormalizationStats(): NormalizationStats {
     if (!this.normalizer) {
@@ -1925,12 +1921,13 @@ export class ESNRegression {
   }
 
   /**
-   * Reset model to a clean state with the same config.
+   * Reset model to initial state while preserving configuration.
    */
   reset(): void {
     if (this.reservoir) this.reservoir.resetState();
     if (this.readout) this.readout.reset();
     if (this.normalizer) this.normalizer.reset();
+    if (this.yNormalizer) this.yNormalizer.reset();
     if (this.ring) this.ring.reset();
     if (this.residualStats) this.residualStats.reset();
     if (this.metrics) this.metrics.reset();
@@ -1939,20 +1936,19 @@ export class ESNRegression {
   }
 
   /**
-   * Save full model state as JSON string.
+   * Serialize complete model state to JSON string.
    */
   save(): string {
     return SerializationHelper.serialize(this);
   }
 
   /**
-   * Load full model state from JSON string.
+   * Restore model state from JSON string.
    */
   load(s: string): void {
     SerializationHelper.deserialize(this, s);
   }
 
-  // Internal serialization hooks (no public contract beyond save/load)
   getSerializableState(): object {
     return {
       config: this.config,
@@ -1963,6 +1959,7 @@ export class ESNRegression {
       rngState: this.rng.getState(),
       ring: this.ring ? this.ring.serialize() : null,
       normalizer: this.normalizer ? this.normalizer.serialize() : null,
+      yNormalizer: this.yNormalizer ? this.yNormalizer.serialize() : null,
       reservoir: this.reservoir ? this.reservoir.serialize() : null,
       readout: this.readout ? this.readout.serialize() : null,
       residualStats: this.residualStats ? this.residualStats.serialize() : null,
@@ -1979,11 +1976,11 @@ export class ESNRegression {
     if (typeof state.rngState === "number") this.rng.setState(state.rngState);
 
     if (this.initialized && this.nFeatures > 0 && this.nTargets > 0) {
-      // Recreate all components deterministically, then overwrite arrays with saved values
       this.initialize(this.nFeatures, this.nTargets);
 
       if (state.ring) this.ring!.deserialize(state.ring);
       if (state.normalizer) this.normalizer!.deserialize(state.normalizer);
+      if (state.yNormalizer) this.yNormalizer!.deserialize(state.yNormalizer);
       if (state.reservoir) this.reservoir!.deserialize(state.reservoir);
       if (state.readout) this.readout!.deserialize(state.readout);
       if (state.residualStats) {
