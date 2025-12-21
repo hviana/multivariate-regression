@@ -82,11 +82,9 @@
           opacity: 0.7;
         }
       }
-
       * {
         -webkit-tap-highlight-color: transparent;
       }
-
       ::-webkit-scrollbar {
         width: 6px;
         height: 6px;
@@ -101,7 +99,6 @@
       .dark ::-webkit-scrollbar-thumb {
         background: rgba(255, 255, 255, 0.15);
       }
-
       .skeleton {
         background: linear-gradient(
           90deg,
@@ -129,11 +126,9 @@
           background-position: -200% 0;
         }
       }
-
       input[type="number"]::-webkit-inner-spin-button {
         opacity: 0.5;
       }
-
       .collapsible-content {
         max-height: 0;
         overflow: hidden;
@@ -142,11 +137,9 @@
       .collapsible-content.open {
         max-height: 2000px;
       }
-
       .toast-enter {
         animation: slideInRight 0.3s ease-out;
       }
-
       .focus-ring:focus {
         outline: none;
         box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4);
@@ -154,12 +147,10 @@
       .dark .focus-ring:focus {
         box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.4);
       }
-
       .touch-target {
         min-height: 44px;
         min-width: 44px;
       }
-
       .glass {
         background: rgba(255, 255, 255, 0.8);
         backdrop-filter: blur(12px);
@@ -167,24 +158,6 @@
       .dark .glass {
         background: rgba(15, 23, 42, 0.8);
       }
-
-      .gradient-border {
-        background: linear-gradient(
-          135deg,
-          rgba(59, 130, 246, 0.1),
-          rgba(139, 92, 246, 0.1)
-        );
-        border: 1px solid rgba(59, 130, 246, 0.2);
-      }
-      .dark .gradient-border {
-        background: linear-gradient(
-          135deg,
-          rgba(59, 130, 246, 0.05),
-          rgba(139, 92, 246, 0.05)
-        );
-        border: 1px solid rgba(59, 130, 246, 0.15);
-      }
-
       @media (max-width: 640px) {
         .mobile-full {
           width: 100%;
@@ -200,7 +173,6 @@
     class="bg-gradient-to-br from-slate-50 via-slate-100 to-slate-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 text-slate-900 dark:text-slate-100 font-sans min-h-screen transition-colors duration-300"
   >
     <div id="app" class="flex flex-col h-screen h-[100dvh] overflow-hidden">
-      <!-- Header -->
       <header
         class="flex-shrink-0 glass border-b border-slate-200/50 dark:border-slate-700/50 px-3 sm:px-4 py-2.5 sm:py-3 z-30"
       >
@@ -236,7 +208,6 @@
               </p>
             </div>
           </div>
-
           <div class="flex items-center gap-1.5 sm:gap-2">
             <div
               id="model-status"
@@ -248,7 +219,6 @@
               ></span>
               <span id="status-text" class="font-medium">No Model</span>
             </div>
-
             <button
               onclick="runPrediction()"
               id="predict-btn-header"
@@ -270,7 +240,6 @@
               </svg>
               <span class="hidden md:inline">Predict</span>
             </button>
-
             <button
               onclick="openModal('config-modal')"
               class="touch-target p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors focus-ring"
@@ -297,7 +266,6 @@
                 />
               </svg>
             </button>
-
             <button
               onclick="toggleMainMenu()"
               class="touch-target p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors focus-ring"
@@ -318,7 +286,6 @@
                 />
               </svg>
             </button>
-
             <button
               onclick="toggleTheme()"
               class="touch-target p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors focus-ring"
@@ -355,14 +322,10 @@
           </div>
         </div>
       </header>
-
-      <!-- Main Content -->
       <div class="flex-1 flex flex-col lg:flex-row overflow-hidden">
-        <!-- Main Area -->
         <main
           class="flex-1 flex flex-col overflow-hidden p-2 sm:p-4 gap-2 sm:gap-4"
         >
-          <!-- Visualization Tabs -->
           <div
             class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 -mx-2 px-2 sm:mx-0 sm:px-0 scrollbar-hide"
           >
@@ -371,16 +334,18 @@
               class="viz-tab touch-target px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap transition-all flex-shrink-0"
               data-mode="grid"
             >
-              <span class="hidden sm:inline">Small Multiples</span>
-              <span class="sm:hidden">Grid</span>
+              <span class="hidden sm:inline">Small Multiples</span><span
+                class="sm:hidden"
+              >Grid</span>
             </button>
             <button
               onclick="setVisualizationMode('focus')"
               class="viz-tab touch-target px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap transition-all flex-shrink-0"
               data-mode="focus"
             >
-              <span class="hidden sm:inline">Focus View</span>
-              <span class="sm:hidden">Focus</span>
+              <span class="hidden sm:inline">Focus View</span><span
+                class="sm:hidden"
+              >Focus</span>
             </button>
             <button
               onclick="setVisualizationMode('heatmap')"
@@ -394,8 +359,9 @@
               class="viz-tab touch-target px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap transition-all flex-shrink-0"
               data-mode="uncertainty"
             >
-              <span class="hidden sm:inline">Uncertainty</span>
-              <span class="sm:hidden">CI</span>
+              <span class="hidden sm:inline">Uncertainty</span><span
+                class="sm:hidden"
+              >CI</span>
             </button>
             <button
               onclick="setVisualizationMode('bar')"
@@ -404,7 +370,6 @@
             >
               Snapshot
             </button>
-
             <div class="ml-auto flex items-center gap-2 flex-shrink-0">
               <button
                 onclick="toggleSidePanel()"
@@ -427,8 +392,6 @@
               </button>
             </div>
           </div>
-
-          <!-- Chart Container -->
           <div
             class="flex-1 min-h-[250px] sm:min-h-[300px] bg-white dark:bg-slate-800/50 rounded-2xl shadow-xl shadow-slate-200/50 dark:shadow-slate-900/50 border border-slate-200/50 dark:border-slate-700/50 overflow-hidden relative"
           >
@@ -437,8 +400,6 @@
                 id="main-canvas"
                 class="w-full h-full touch-none"
               ></canvas>
-
-              <!-- Chart Controls -->
               <div
                 id="chart-controls"
                 class="absolute top-2 sm:top-3 right-2 sm:right-3 flex flex-col gap-1 hidden z-10"
@@ -501,16 +462,12 @@
                   </svg>
                 </button>
               </div>
-
-              <!-- Zoom Level Badge -->
               <div
                 id="zoom-badge"
                 class="absolute top-2 sm:top-3 left-2 sm:left-3 px-2 py-1 bg-white/90 dark:bg-slate-700/90 rounded-lg text-xs font-semibold hidden backdrop-blur-sm shadow-md"
               >
                 100%
               </div>
-
-              <!-- Empty State -->
               <div
                 id="empty-state"
                 class="absolute inset-0 flex items-center justify-center p-4"
@@ -578,8 +535,7 @@
                           stroke-width="2"
                           d="M13 10V3L4 14h7v7l9-11h-7z"
                         />
-                      </svg>
-                      Start with Defaults
+                      </svg>Start with Defaults
                     </button>
                     <div class="flex gap-2">
                       <button
@@ -598,8 +554,7 @@
                             stroke-width="2"
                             d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
                           />
-                        </svg>
-                        <span class="hidden sm:inline">Load</span>
+                        </svg><span class="hidden sm:inline">Load</span>
                       </button>
                       <button
                         onclick="runRandomTest()"
@@ -617,15 +572,12 @@
                             stroke-width="2"
                             d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
                           />
-                        </svg>
-                        Demo
+                        </svg>Demo
                       </button>
                     </div>
                   </div>
                 </div>
               </div>
-
-              <!-- Loading State -->
               <div
                 id="loading-state"
                 class="absolute inset-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md flex items-center justify-center hidden z-50"
@@ -661,8 +613,6 @@
                   </div>
                 </div>
               </div>
-
-              <!-- Tooltip -->
               <div
                 id="chart-tooltip"
                 class="absolute pointer-events-none opacity-0 transition-opacity duration-150 z-40"
@@ -675,8 +625,6 @@
               </div>
             </div>
           </div>
-
-          <!-- Bottom Controls (Mobile) -->
           <div
             class="sm:hidden flex items-center gap-2 p-2 bg-white/80 dark:bg-slate-800/80 rounded-xl backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50"
           >
@@ -718,8 +666,6 @@
               </svg>
             </button>
           </div>
-
-          <!-- Dimension Selector -->
           <div id="dimension-selector" class="hidden">
             <div
               class="bg-white/80 dark:bg-slate-800/80 rounded-xl p-2 sm:p-3 border border-slate-200/50 dark:border-slate-700/50 backdrop-blur-sm"
@@ -738,8 +684,35 @@
               </div>
             </div>
           </div>
-
-          <!-- Stats Bar -->
+          <div id="step-selector" class="hidden">
+            <div
+              class="bg-white/80 dark:bg-slate-800/80 rounded-xl p-2 sm:p-3 border border-slate-200/50 dark:border-slate-700/50 backdrop-blur-sm"
+            >
+              <div class="flex items-center gap-2 sm:gap-3">
+                <span
+                  class="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap flex-shrink-0"
+                >Step:</span>
+                <input
+                  type="range"
+                  id="snapshot-step-range"
+                  min="0"
+                  max="9"
+                  value="0"
+                  class="flex-1 h-2 accent-blue-500"
+                  oninput="setSnapshotStep(parseInt(this.value))"
+                >
+                <input
+                  type="number"
+                  id="snapshot-step-input"
+                  min="1"
+                  max="10"
+                  value="1"
+                  class="w-16 px-2 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-lg text-sm text-center font-semibold focus-ring"
+                  oninput="setSnapshotStep(parseInt(this.value)-1)"
+                >
+              </div>
+            </div>
+          </div>
           <div id="stats-bar" class="hidden">
             <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3">
               <div
@@ -826,8 +799,6 @@
             </div>
           </div>
         </main>
-
-        <!-- Side Panel -->
         <aside
           id="side-panel"
           class="fixed lg:relative inset-0 lg:inset-auto lg:w-80 z-40 lg:z-auto flex-shrink-0 hidden lg:flex flex-col"
@@ -864,8 +835,6 @@
                 </svg>
               </button>
             </div>
-
-            <!-- Metrics -->
             <div class="p-4 border-b border-slate-200 dark:border-slate-700">
               <h3
                 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3"
@@ -899,8 +868,6 @@
                 </div>
               </div>
             </div>
-
-            <!-- Prediction Controls -->
             <div class="p-4 border-b border-slate-200 dark:border-slate-700">
               <h3
                 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3"
@@ -942,8 +909,6 @@
                 </button>
               </div>
             </div>
-
-            <!-- Event Log -->
             <div class="flex-1 flex flex-col overflow-hidden">
               <div class="flex items-center gap-2 px-4 py-3">
                 <h3
@@ -982,8 +947,6 @@
         </aside>
       </div>
     </div>
-
-    <!-- Main Menu Overlay -->
     <div
       id="main-menu-overlay"
       class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 hidden"
@@ -1019,7 +982,6 @@
         </button>
       </div>
       <div class="p-4 space-y-6 overflow-y-auto h-[calc(100%-60px)]">
-        <!-- Model Section -->
         <div>
           <h3
             class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3"
@@ -1090,8 +1052,6 @@
             </button>
           </div>
         </div>
-
-        <!-- Data Section -->
         <div>
           <h3
             class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3"
@@ -1162,8 +1122,6 @@
             </button>
           </div>
         </div>
-
-        <!-- Test Section -->
         <div>
           <h3
             class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3"
@@ -1202,8 +1160,6 @@
             </button>
           </div>
         </div>
-
-        <!-- Advanced Section -->
         <div>
           <h3
             class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3"
@@ -1307,8 +1263,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Configuration Modal -->
     <div
       id="config-modal"
       class="fixed inset-0 z-50 hidden"
@@ -1350,8 +1304,6 @@
             </svg>
           </button>
         </div>
-
-        <!-- Presets -->
         <div
           class="px-4 sm:px-5 py-3 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 flex-shrink-0"
         >
@@ -1397,13 +1349,11 @@
             </button>
           </div>
         </div>
-
         <div
           class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3 sm:space-y-4"
           id="config-sections"
         >
         </div>
-
         <div
           class="p-4 sm:p-5 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 sm:gap-3 flex-shrink-0"
         >
@@ -1437,8 +1387,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Upload Modal -->
     <div
       id="upload-modal"
       class="fixed inset-0 z-50 hidden"
@@ -1513,13 +1461,11 @@
               onchange="handleFileSelect(event)"
             >
           </div>
-
           <div
             class="text-center text-sm text-slate-500 dark:text-slate-400 font-medium"
           >
             or paste JSON directly
           </div>
-
           <div>
             <textarea
               id="upload-json-input"
@@ -1527,7 +1473,6 @@
               placeholder='{"coordinates": [[1.0, 2.0, 3.0], [1.1, 2.1, 3.1], ...]}'
             ></textarea>
           </div>
-
           <details class="bg-slate-50 dark:bg-slate-900/50 rounded-xl">
             <summary class="px-4 py-3 cursor-pointer text-sm font-semibold">
               View format example
@@ -1555,7 +1500,6 @@
               </button>
             </div>
           </details>
-
           <div
             id="upload-preview"
             class="hidden bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4"
@@ -1575,13 +1519,11 @@
                   stroke-width="2"
                   d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
-              </svg>
-              Validation Passed
+              </svg>Validation Passed
             </h4>
             <div class="grid grid-cols-2 gap-2 text-sm" id="preview-stats">
             </div>
           </div>
-
           <div
             id="upload-error"
             class="hidden bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4"
@@ -1601,8 +1543,7 @@
                   stroke-width="2"
                   d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
-              </svg>
-              Validation Error
+              </svg>Validation Error
             </h4>
             <p
               class="text-sm text-red-600 dark:text-red-400"
@@ -1637,8 +1578,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Manual Insert Modal -->
     <div
       id="insert-modal"
       class="fixed inset-0 z-50 hidden"
@@ -1717,8 +1656,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Save/Load Modal -->
     <div
       id="load-modal"
       class="fixed inset-0 z-50 hidden"
@@ -1777,8 +1714,7 @@
                     stroke-width="2"
                     d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                   />
-                </svg>
-                <span class="hidden sm:inline">Download</span>
+                </svg><span class="hidden sm:inline">Download</span>
               </button>
               <button
                 onclick="saveToLocalStorage()"
@@ -1796,12 +1732,10 @@
                     stroke-width="2"
                     d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
                   />
-                </svg>
-                <span class="hidden sm:inline">Browser</span>
+                </svg><span class="hidden sm:inline">Browser</span>
               </button>
             </div>
           </div>
-
           <div class="space-y-3">
             <h3 class="font-semibold">Load Model</h3>
             <div
@@ -1832,7 +1766,6 @@
             </div>
             <div id="saved-models-list" class="space-y-2"></div>
           </div>
-
           <div class="pt-3 border-t border-slate-200 dark:border-slate-700">
             <button
               onclick="clearLocalStorageModels()"
@@ -1844,8 +1777,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Random Test Modal -->
     <div
       id="random-test-modal"
       class="fixed inset-0 z-50 hidden"
@@ -1976,8 +1907,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Settings Modal -->
     <div
       id="settings-modal"
       class="fixed inset-0 z-50 hidden"
@@ -2023,7 +1952,7 @@
             <input
               type="text"
               id="module-url-input"
-              value="https://cdn.esm.sh/jsr/@hviana/multivariate-regression@1.3.5"
+              value="https://cdn.esm.sh/jsr/@hviana/multivariate-regression@1.3.6"
               class="w-full px-3 py-2.5 bg-slate-100 dark:bg-slate-700 rounded-xl text-xs sm:text-sm font-mono focus-ring"
             >
             <p class="text-xs text-slate-500 mt-1.5">
@@ -2046,8 +1975,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Data Table Modal -->
     <div
       id="data-table-modal"
       class="fixed inset-0 z-50 hidden"
@@ -2098,8 +2025,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Keyboard Shortcuts Modal -->
     <div
       id="shortcuts-modal"
       class="fixed inset-0 z-50 hidden"
@@ -2172,8 +2097,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Toast Container -->
     <div
       id="toast-container"
       class="fixed bottom-20 sm:bottom-4 left-4 right-4 sm:left-auto sm:right-4 z-50 flex flex-col gap-2 sm:w-80"
@@ -2195,9 +2118,7 @@
         "#F97316",
         "#14B8A6",
       ];
-
       const MAX_FUTURE_STEPS = 10000;
-
       const DEFAULT_CONFIG = {
         reservoirSize: 256,
         spectralRadius: 0.9,
@@ -2224,7 +2145,6 @@
         seed: 42,
         verbose: false,
       };
-
       const PRESETS = {
         "start-here": { ...DEFAULT_CONFIG },
         "fast": {
@@ -2257,7 +2177,6 @@
           leakRate: 0.2,
         },
       };
-
       const CONFIG_SECTIONS = [
         {
           id: "reservoir",
@@ -2532,19 +2451,16 @@
           visibleCount: 0,
         },
         hover: { active: false, x: 0, y: 0, dataIndex: -1 },
-        animation: { active: false, startTime: 0, duration: 0 },
         sidePanelOpen: false,
         isLoading: false,
         loadingCount: 0,
       };
 
-      let worker = null;
-      let workerReady = false;
-      let workerReadyResolve = null;
-      let workerReadyPromise = null;
-      let canvas, ctx;
-      let resizeObserver;
-      let touchStartY = 0;
+      let worker = null,
+        workerReady = false,
+        workerReadyResolve = null,
+        workerReadyPromise = null;
+      let canvas, ctx, resizeObserver;
 
       function initApp() {
         loadPreferences();
@@ -2568,9 +2484,7 @@
             if (p.vizMode) state.vizMode = p.vizMode;
             if (p.isDark !== undefined) state.isDark = p.isDark;
           }
-        } catch (e) {
-          console.warn("Failed to load preferences:", e);
-        }
+        } catch (e) {}
       }
 
       function savePreferences() {
@@ -2583,9 +2497,7 @@
               isDark: state.isDark,
             }),
           );
-        } catch (e) {
-          console.warn("Failed to save preferences:", e);
-        }
+        } catch (e) {}
       }
 
       function initTheme() {
@@ -2605,7 +2517,7 @@
         const input = document.getElementById("module-url-input");
         return input
           ? input.value
-          : "https://cdn.esm.sh/jsr/@hviana/multivariate-regression@1.3.4";
+          : "https://cdn.esm.sh/jsr/@hviana/multivariate-regression@1.3.5";
       }
 
       function initWorker() {
@@ -2613,12 +2525,9 @@
         workerReadyPromise = new Promise((resolve) => {
           workerReadyResolve = resolve;
         });
-
         const workerCode = `
-let ESNRegression = null;
-let model = null;
-let modelConfig = null;
-let moduleUrl = 'https://cdn.esm.sh/jsr/@hviana/multivariate-regression@1.3.4';
+let ESNRegression = null, model = null, modelConfig = null;
+let moduleUrl = 'https://cdn.esm.sh/jsr/@hviana/multivariate-regression@1.3.5';
 let cancelled = new Set();
 
 async function loadModule(url) {
@@ -2651,130 +2560,73 @@ function emitProgress(requestId, processed, total, stage) {
 
 self.onmessage = async function(e) {
   const { requestId, type, payload } = e.data;
-  
-  if (type === 'cancel') {
-    cancelled.add(payload.requestId);
-    return;
-  }
-  
+  if (type === 'cancel') { cancelled.add(payload.requestId); return; }
   try {
     let result;
-    
     if (type === 'init') {
       const loadResult = await loadModule(payload.moduleUrl);
-      if (!loadResult.success) {
-        self.postMessage({ requestId, type: 'error', payload: { error: loadResult.error }});
-        return;
-      }
+      if (!loadResult.success) { self.postMessage({ requestId, type: 'error', payload: { error: loadResult.error }}); return; }
       result = { initialized: true };
     }
-    
     else if (type === 'createModel') {
-      if (!ESNRegression) {
-        self.postMessage({ requestId, type: 'error', payload: { error: 'Module not loaded' }});
-        return;
-      }
+      if (!ESNRegression) { self.postMessage({ requestId, type: 'error', payload: { error: 'Module not loaded' }}); return; }
       modelConfig = payload.config;
       model = new ESNRegression(modelConfig);
       result = { created: true, config: modelConfig };
     }
-    
     else if (type === 'train') {
-      if (!model) {
-        self.postMessage({ requestId, type: 'error', payload: { error: 'No model exists' }});
-        return;
-      }
+      if (!model) { self.postMessage({ requestId, type: 'error', payload: { error: 'No model exists' }}); return; }
       const { coordinates } = payload;
       const total = coordinates.length;
       let lastResult = null;
-      
       for (let i = 0; i < total-1; i++) {
-        if (cancelled.has(requestId)) {
-          cancelled.delete(requestId);
-          self.postMessage({ requestId, type: 'cancelled', payload: { processed: i }});
-          return;
-        }
+        if (cancelled.has(requestId)) { cancelled.delete(requestId); self.postMessage({ requestId, type: 'cancelled', payload: { processed: i }}); return; }
         lastResult = model.fitOnline({ coordinates: [coordinates[i], coordinates[i+1]] });
-        if (total > 10 && i % Math.max(1, Math.floor(total/50)) === 0) {
-          emitProgress(requestId, i+1, total, 'Training');
-        }
+        if (total > 10 && i % Math.max(1, Math.floor(total/50)) === 0) emitProgress(requestId, i+1, total, 'Training');
       }
       const summary = model.getModelSummary();
       result = { trained: true, samplesProcessed: total, summary, fitResult: lastResult };
     }
-    
     else if (type === 'predict') {
-      if (!model) {
-        self.postMessage({ requestId, type: 'error', payload: { error: 'No model exists' }});
-        return;
-      }
+      if (!model) { self.postMessage({ requestId, type: 'error', payload: { error: 'No model exists' }}); return; }
       const prediction = model.predict(payload.futureSteps);
-      result = { predictions: prediction.predictions.slice(0, payload.futureSteps), lowerBounds: prediction.lowerBounds.slice(0, payload.futureSteps), upperBounds: prediction.upperBounds.slice(0, payload.futureSteps), confidence: prediction.confidence };
+      const summary = model.getModelSummary();
+      result = { predictions: prediction.predictions.slice(0, payload.futureSteps), lowerBounds: prediction.lowerBounds.slice(0, payload.futureSteps), upperBounds: prediction.upperBounds.slice(0, payload.futureSteps), confidence: prediction.confidence, nFeatures: summary.nFeatures };
     }
-    
     else if (type === 'save') {
-      if (!model) {
-        self.postMessage({ requestId, type: 'error', payload: { error: 'No model exists' }});
-        return;
-      }
+      if (!model) { self.postMessage({ requestId, type: 'error', payload: { error: 'No model exists' }}); return; }
       const savedState = model.save();
       const summary = model.getModelSummary();
-      result = { modelState: savedState, meta: { config: modelConfig, nDimensions: summary.nDimensions, sampleCount: summary.sampleCount, createdAt: new Date().toISOString(), appVersion: '1.0.0' }};
+      result = { modelState: savedState, meta: { config: modelConfig, nFeatures: summary.nFeatures, sampleCount: summary.sampleCount, createdAt: new Date().toISOString(), appVersion: '1.0.0' }};
     }
-    
     else if (type === 'load') {
-      if (!ESNRegression) {
-        self.postMessage({ requestId, type: 'error', payload: { error: 'Module not loaded' }});
-        return;
-      }
+      if (!ESNRegression) { self.postMessage({ requestId, type: 'error', payload: { error: 'Module not loaded' }}); return; }
       let modelState, meta;
-      if (typeof payload.data === 'string') {
-        modelState = payload.data;
-        meta = null;
-      } else if (payload.data.modelState) {
-        modelState = payload.data.modelState;
-        meta = payload.data.meta;
-      } else {
-        self.postMessage({ requestId, type: 'error', payload: { error: 'Invalid model format' }});
-        return;
-      }
+      if (typeof payload.data === 'string') { modelState = payload.data; meta = null; }
+      else if (payload.data.modelState) { modelState = payload.data.modelState; meta = payload.data.meta; }
+      else { self.postMessage({ requestId, type: 'error', payload: { error: 'Invalid model format' }}); return; }
       model = new ESNRegression();
       model.load(modelState);
       const summary = model.getModelSummary();
       modelConfig = meta?.config || {};
       result = { loaded: true, summary, meta };
     }
-    
     else if (type === 'getSummary') {
       if (!model) result = { exists: false };
-      else {
-        const summary = model.getModelSummary();
-        result = { exists: true, summary };
-      }
+      else { const summary = model.getModelSummary(); result = { exists: true, summary }; }
     }
-    
-    else if (type === 'reset') {
-      if (model) model.reset();
-      model = null;
-      result = { reset: true };
-    }
-    
+    else if (type === 'reset') { if (model) model.reset(); model = null; result = { reset: true }; }
     self.postMessage({ requestId, type: 'result', payload: result });
-  } catch (err) {
-    self.postMessage({ requestId, type: 'error', payload: { error: err.message || String(err) }});
-  }
-};
-`;
+  } catch (err) { self.postMessage({ requestId, type: 'error', payload: { error: err.message || String(err) }}); }
+};`;
         const blob = new Blob([workerCode], {
           type: "application/javascript",
         });
         worker = new Worker(URL.createObjectURL(blob), {
           type: "module",
         });
-
         worker.onmessage = (e) => {
           const { requestId, type, payload } = e.data;
-
           if (type === "progress") {
             if (payload && payload.processed !== undefined) {
               updateProgress(
@@ -2785,7 +2637,6 @@ self.onmessage = async function(e) {
             }
             return;
           }
-
           const pending = state.pendingRequests.get(requestId);
           if (pending) {
             state.pendingRequests.delete(requestId);
@@ -2795,12 +2646,9 @@ self.onmessage = async function(e) {
               );
             } else if (type === "cancelled") {
               pending.resolve({ cancelled: true, ...payload });
-            } else {
-              pending.resolve(payload);
-            }
+            } else pending.resolve(payload);
           }
         };
-
         worker.onerror = (e) => {
           console.error("Worker error:", e);
           showToast(
@@ -2809,20 +2657,16 @@ self.onmessage = async function(e) {
           );
           hideLoadingForce();
         };
-
-        workerRequest("init", { moduleUrl: getModuleUrl() })
-          .then(() => {
+        workerRequest("init", { moduleUrl: getModuleUrl() }).then(
+          () => {
             workerReady = true;
             if (workerReadyResolve) workerReadyResolve();
             log("success", "Worker", "ESNRegression module loaded");
-          })
-          .catch((err) => {
-            log("error", "Worker", err.message);
-            showToast(
-              "error",
-              "Failed to load module. Check Settings.",
-            );
-          });
+          },
+        ).catch((err) => {
+          log("error", "Worker", err.message);
+          showToast("error", "Failed to load module. Check Settings.");
+        });
       }
 
       async function reinitializeWorker() {
@@ -2843,9 +2687,7 @@ self.onmessage = async function(e) {
       }
 
       async function workerRequest(type, payload = {}) {
-        if (type !== "init" && !workerReady) {
-          await workerReadyPromise;
-        }
+        if (type !== "init" && !workerReady) await workerReadyPromise;
         return new Promise((resolve, reject) => {
           const requestId = crypto.randomUUID();
           state.pendingRequests.set(requestId, { resolve, reject });
@@ -2869,13 +2711,11 @@ self.onmessage = async function(e) {
       function initCanvas() {
         canvas = document.getElementById("main-canvas");
         ctx = canvas.getContext("2d");
-
         resizeObserver = new ResizeObserver(debounce(() => {
           resizeCanvas();
           renderChart();
         }, 150));
         resizeObserver.observe(canvas.parentElement);
-
         canvas.addEventListener("mousemove", handleCanvasHover);
         canvas.addEventListener("mouseleave", handleCanvasLeave);
         canvas.addEventListener("touchstart", handleTouchStart, {
@@ -2891,7 +2731,6 @@ self.onmessage = async function(e) {
           passive: false,
         });
         canvas.addEventListener("click", handleCanvasClick);
-
         resizeCanvas();
       }
 
@@ -2908,67 +2747,41 @@ self.onmessage = async function(e) {
       function initConfigSections() {
         const container = document.getElementById("config-sections");
         container.innerHTML = CONFIG_SECTIONS.map((section) => `
-        <div class="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
-          <button onclick="toggleSection('${section.id}')" class="w-full flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors text-left">
-            <span class="font-semibold text-sm">${section.title}</span>
-            <svg class="w-5 h-5 transform transition-transform section-chevron-${section.id}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-          </button>
-          <div class="collapsible-content open section-content-${section.id}">
-            <div class="p-4 space-y-4">${
+          <div class="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+            <button onclick="toggleSection('${section.id}')" class="w-full flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors text-left">
+              <span class="font-semibold text-sm">${section.title}</span>
+              <svg class="w-5 h-5 transform transition-transform section-chevron-${section.id}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            <div class="collapsible-content open section-content-${section.id}"><div class="p-4 space-y-4">${
           section.params.map((p) => renderConfigParam(p)).join("")
-        }</div>
-          </div>
-        </div>
-      `).join("");
+        }</div></div>
+          </div>`).join("");
         updateConfigValues();
       }
 
       function renderConfigParam(p) {
         const value = state.config[p.key];
         if (p.type === "number") {
-          return `<div class="space-y-1.5">
-          <div class="flex items-center justify-between gap-2">
-            <label class="text-sm font-medium">${p.label}</label>
-            <input type="number" id="cfg-${p.key}" value="${value}" min="${p.min}" max="${p.max}" step="${p.step}" class="w-20 sm:w-24 px-2 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-lg text-sm text-right focus-ring font-mono" onchange="updateConfigValue('${p.key}', this.value)">
-          </div>
-          <p class="text-xs text-slate-500 dark:text-slate-400">${p.desc}</p>
-        </div>`;
-        } else if (p.type === "boolean") {
-          return `<div class="flex items-center justify-between gap-4">
-          <div class="flex-1 min-w-0">
-            <label class="text-sm font-medium">${p.label}</label>
-            <p class="text-xs text-slate-500 dark:text-slate-400">${p.desc}</p>
-          </div>
-          <button onclick="toggleConfigBool('${p.key}')" class="relative w-12 h-7 rounded-full transition-colors flex-shrink-0 ${
+          return `<div class="space-y-1.5"><div class="flex items-center justify-between gap-2"><label class="text-sm font-medium">${p.label}</label><input type="number" id="cfg-${p.key}" value="${value}" min="${p.min}" max="${p.max}" step="${p.step}" class="w-20 sm:w-24 px-2 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-lg text-sm text-right focus-ring font-mono" onchange="updateConfigValue('${p.key}', this.value)"></div><p class="text-xs text-slate-500 dark:text-slate-400">${p.desc}</p></div>`;
+        }
+        if (p.type === "boolean") {
+          return `<div class="flex items-center justify-between gap-4"><div class="flex-1 min-w-0"><label class="text-sm font-medium">${p.label}</label><p class="text-xs text-slate-500 dark:text-slate-400">${p.desc}</p></div><button onclick="toggleConfigBool('${p.key}')" class="relative w-12 h-7 rounded-full transition-colors flex-shrink-0 ${
             value ? "bg-blue-500" : "bg-slate-300 dark:bg-slate-600"
-          }" id="cfg-${p.key}-btn">
-            <span class="absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+          }" id="cfg-${p.key}-btn"><span class="absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${
             value ? "translate-x-5" : ""
-          }"></span>
-          </button>
-        </div>`;
-        } else if (p.type === "select") {
-          return `<div class="space-y-1.5">
-          <label class="text-sm font-medium">${p.label}</label>
-          <select id="cfg-${p.key}" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-sm focus-ring" onchange="updateConfigValue('${p.key}', this.value)">
-            ${
+          }"></span></button></div>`;
+        }
+        if (p.type === "select") {
+          return `<div class="space-y-1.5"><label class="text-sm font-medium">${p.label}</label><select id="cfg-${p.key}" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-sm focus-ring" onchange="updateConfigValue('${p.key}', this.value)">${
             p.options.map((o) =>
               `<option value="${o}" ${
                 value === o ? "selected" : ""
               }>${o}</option>`
             ).join("")
-          }
-          </select>
-          <p class="text-xs text-slate-500 dark:text-slate-400">${p.desc}</p>
-        </div>`;
-        } else if (p.type === "fixed") {
-          return `<div class="flex items-center justify-between">
-          <div>
-            <label class="text-sm font-medium">${p.label}</label>
-            <p class="text-xs text-slate-500 dark:text-slate-400">${p.desc}</p>
-          </div>
-          <span class="px-3 py-1 bg-slate-200 dark:bg-slate-600 rounded-lg text-sm font-mono">${p.value}</span>
-        </div>`;
+          }</select><p class="text-xs text-slate-500 dark:text-slate-400">${p.desc}</p></div>`;
+        }
+        if (p.type === "fixed") {
+          return `<div class="flex items-center justify-between"><div><label class="text-sm font-medium">${p.label}</label><p class="text-xs text-slate-500 dark:text-slate-400">${p.desc}</p></div><span class="px-3 py-1 bg-slate-200 dark:bg-slate-600 rounded-lg text-sm font-mono">${p.value}</span></div>`;
         }
         return "";
       }
@@ -2983,16 +2796,14 @@ self.onmessage = async function(e) {
         content.classList.toggle("open");
         chevron.classList.toggle("rotate-180");
       }
-
       function updateConfigValue(key, value) {
-        const param = CONFIG_SECTIONS.flatMap((s) => s.params).find(
-          (p) => p.key === key,
-        );
+        const param = CONFIG_SECTIONS.flatMap((s) => s.params).find((
+          p,
+        ) => p.key === key);
         if (param?.type === "number") {
           state.config[key] = parseFloat(value);
         } else state.config[key] = value;
       }
-
       function toggleConfigBool(key) {
         state.config[key] = !state.config[key];
         updateConfigValues();
@@ -3026,7 +2837,6 @@ self.onmessage = async function(e) {
         updateConfigValues();
         log("info", "Config", `Applied preset: ${preset}`);
       }
-
       function resetConfigToDefaults() {
         state.config = { ...DEFAULT_CONFIG };
         updateConfigValues();
@@ -3119,7 +2929,6 @@ self.onmessage = async function(e) {
           overlay.classList.remove("hidden");
         }
       }
-
       function toggleSidePanel() {
         const panel = document.getElementById("side-panel");
         state.sidePanelOpen = !state.sidePanelOpen;
@@ -3131,20 +2940,17 @@ self.onmessage = async function(e) {
           panel.classList.remove("flex");
         }
       }
-
       function openModal(id) {
         document.getElementById(id).classList.remove("hidden");
         document.body.style.overflow = "hidden";
         if (id === "load-modal") updateSavedModelsList();
       }
-
       function closeModal(id) {
         document.getElementById(id).classList.add("hidden");
         if (!document.querySelector('[id$="-modal"]:not(.hidden)')) {
           document.body.style.overflow = "";
         }
       }
-
       function closeAllModals() {
         [
           "config-modal",
@@ -3162,7 +2968,6 @@ self.onmessage = async function(e) {
         }
         document.body.style.overflow = "";
       }
-
       function showLoading(text = "Processing...") {
         state.loadingCount++;
         state.isLoading = true;
@@ -3174,7 +2979,6 @@ self.onmessage = async function(e) {
           "hidden",
         );
       }
-
       function hideLoading() {
         state.loadingCount = Math.max(0, state.loadingCount - 1);
         if (state.loadingCount === 0) {
@@ -3184,7 +2988,6 @@ self.onmessage = async function(e) {
           );
         }
       }
-
       function hideLoadingForce() {
         state.loadingCount = 0;
         state.isLoading = false;
@@ -3192,7 +2995,6 @@ self.onmessage = async function(e) {
           "hidden",
         );
       }
-
       function updateProgress(processed, total, stage) {
         const container = document.getElementById("progress-container");
         const bar = document.getElementById("progress-bar");
@@ -3202,7 +3004,6 @@ self.onmessage = async function(e) {
         bar.style.width = pct + "%";
         text.textContent = `${stage}: ${processed}/${total} (${pct}%)`;
       }
-
       function showToast(type, message) {
         const container = document.getElementById("toast-container");
         const colors = {
@@ -3217,24 +3018,19 @@ self.onmessage = async function(e) {
             colors[type]
           }`;
         toast.innerHTML =
-          `<span class="flex-1 text-sm font-medium">${message}</span>
-        <button onclick="this.parentElement.remove()" class="p-1 hover:bg-white/20 rounded-lg flex-shrink-0">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-        </button>`;
+          `<span class="flex-1 text-sm font-medium">${message}</span><button onclick="this.parentElement.remove()" class="p-1 hover:bg-white/20 rounded-lg flex-shrink-0"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>`;
         container.appendChild(toast);
         setTimeout(
           () => toast.remove(),
           type === "error" ? 6000 : 4000,
         );
       }
-
       function log(type, category, message) {
         const entry = { type, category, message, time: new Date() };
         state.logs.unshift(entry);
         if (state.logs.length > 200) state.logs.pop();
         renderLogs();
       }
-
       function renderLogs() {
         const container = document.getElementById("event-log");
         const filter = document.getElementById("log-filter").value;
@@ -3255,18 +3051,11 @@ self.onmessage = async function(e) {
             warning: "text-amber-500",
             error: "text-red-500",
           };
-          return `<div class="text-xs p-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
-          <div class="flex items-center gap-2 mb-1">
-            <span class="${
+          return `<div class="text-xs p-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-lg"><div class="flex items-center gap-2 mb-1"><span class="${
             colors[l.type]
-          } font-semibold">${l.category}</span>
-            <span class="text-slate-400">${l.time.toLocaleTimeString()}</span>
-          </div>
-          <p class="text-slate-600 dark:text-slate-300">${l.message}</p>
-        </div>`;
+          } font-semibold">${l.category}</span><span class="text-slate-400">${l.time.toLocaleTimeString()}</span></div><p class="text-slate-600 dark:text-slate-300">${l.message}</p></div>`;
         }).join("");
       }
-
       function filterLogs() {
         renderLogs();
       }
@@ -3306,9 +3095,7 @@ self.onmessage = async function(e) {
           if (predictBtnSide) predictBtnSide.disabled = true;
           if (predictBtnMobile) predictBtnMobile.disabled = true;
         }
-
         chartControls.classList.toggle("hidden", !state.predictions);
-
         document.getElementById("metric-samples").textContent =
           state.sampleCount;
         document.getElementById("metric-loss").textContent =
@@ -3323,9 +3110,9 @@ self.onmessage = async function(e) {
           state.metrics.sampleWeight !== null
             ? state.metrics.sampleWeight.toFixed(3)
             : "-";
-
         updateDimensionButtons();
         updateStatsBar();
+        updateStepSelector();
       }
 
       function syncFutureSteps(val) {
@@ -3366,6 +3153,10 @@ self.onmessage = async function(e) {
           "hidden",
           mode !== "focus",
         );
+        document.getElementById("step-selector").classList.toggle(
+          "hidden",
+          mode !== "bar",
+        );
         savePreferences();
         renderChart();
       }
@@ -3379,16 +3170,13 @@ self.onmessage = async function(e) {
         container.innerHTML = Array.from(
           { length: state.nDimensions },
           (_, i) => `
-        <button onclick="selectDimension(${i})" class="touch-target px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all flex-shrink-0 ${
+          <button onclick="selectDimension(${i})" class="touch-target px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all flex-shrink-0 ${
             state.selectedDim === i
               ? "text-white shadow-md"
               : "bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600"
           }" style="${
             state.selectedDim === i ? "background:" + getColor(i) : ""
-          }">
-          D${i + 1}
-        </button>
-      `,
+          }">D${i + 1}</button>`,
         ).join("");
       }
 
@@ -3396,6 +3184,29 @@ self.onmessage = async function(e) {
         state.selectedDim = i;
         updateDimensionButtons();
         updateStatsBar();
+        renderChart();
+      }
+
+      function updateStepSelector() {
+        if (!state.predictions || state.vizMode !== "bar") return;
+        const maxStep = state.predictions.predictions.length - 1;
+        const rangeEl = document.getElementById("snapshot-step-range");
+        const inputEl = document.getElementById("snapshot-step-input");
+        if (rangeEl) {
+          rangeEl.max = maxStep;
+          rangeEl.value = state.selectedStep;
+        }
+        if (inputEl) {
+          inputEl.max = maxStep + 1;
+          inputEl.value = state.selectedStep + 1;
+        }
+      }
+
+      function setSnapshotStep(step) {
+        if (!state.predictions) return;
+        const maxStep = state.predictions.predictions.length - 1;
+        state.selectedStep = Math.max(0, Math.min(step, maxStep));
+        updateStepSelector();
         renderChart();
       }
 
@@ -3410,7 +3221,6 @@ self.onmessage = async function(e) {
         const trend = preds.length > 1
           ? (preds[preds.length - 1] - preds[0])
           : 0;
-
         document.getElementById("stat-min").textContent = formatNumber(
           min,
         );
@@ -3436,7 +3246,6 @@ self.onmessage = async function(e) {
       function getColor(index) {
         return COLORS[index % COLORS.length];
       }
-
       function formatNumber(n) {
         if (Math.abs(n) < 0.01 || Math.abs(n) >= 10000) {
           return n.toExponential(2);
@@ -3449,16 +3258,12 @@ self.onmessage = async function(e) {
         const dpr = window.devicePixelRatio || 1;
         const w = canvas.width / dpr;
         const h = canvas.height / dpr;
-
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.scale(dpr, dpr);
-
         const isDark = state.isDark;
         ctx.fillStyle = isDark ? "#0F172A" : "#FFFFFF";
         ctx.fillRect(0, 0, w, h);
-
-        if (!state.predictions) return;
-
+        if (!state.predictions || state.nDimensions === 0) return;
         switch (state.vizMode) {
           case "grid":
             renderGridView(w, h, isDark);
@@ -3488,7 +3293,6 @@ self.onmessage = async function(e) {
         };
         const plotW = w - margin.left - margin.right;
         const plotH = h - margin.top - margin.bottom;
-
         const dim = state.selectedDim;
         const allPreds = state.predictions.predictions.map((p) =>
           p[dim]
@@ -3499,7 +3303,6 @@ self.onmessage = async function(e) {
         const allUppers = state.predictions.upperBounds.map((p) =>
           p[dim]
         );
-
         const totalPoints = allPreds.length;
         const visibleCount = Math.max(
           2,
@@ -3514,33 +3317,26 @@ self.onmessage = async function(e) {
           startIndex + visibleCount,
           totalPoints,
         );
-
         state.zoom.visibleStart = startIndex;
         state.zoom.visibleCount = endIndex - startIndex;
-
         const preds = allPreds.slice(startIndex, endIndex);
         const lowers = allLowers.slice(startIndex, endIndex);
         const uppers = allUppers.slice(startIndex, endIndex);
-
         const allVals = [...preds, ...lowers, ...uppers];
         let minY = Math.min(...allVals);
         let maxY = Math.max(...allVals);
         const padding = (maxY - minY) * 0.12 || 1;
         minY -= padding;
         maxY += padding;
-
         const xScale = (i) =>
           margin.left + (i / (preds.length - 1 || 1)) * plotW;
         const yScale = (v) =>
           margin.top + plotH - ((v - minY) / (maxY - minY)) * plotH;
-
-        // Grid
         ctx.strokeStyle = isDark
           ? "rgba(255,255,255,0.05)"
           : "rgba(0,0,0,0.05)";
         ctx.setLineDash([4, 4]);
         ctx.lineWidth = 1;
-
         const yTicks = niceScale(minY, maxY, 5);
         yTicks.forEach((tick) => {
           const y = yScale(tick);
@@ -3550,8 +3346,6 @@ self.onmessage = async function(e) {
           ctx.stroke();
         });
         ctx.setLineDash([]);
-
-        // Axes
         ctx.strokeStyle = isDark
           ? "rgba(255,255,255,0.15)"
           : "rgba(0,0,0,0.15)";
@@ -3561,8 +3355,6 @@ self.onmessage = async function(e) {
         ctx.lineTo(margin.left, h - margin.bottom);
         ctx.lineTo(w - margin.right, h - margin.bottom);
         ctx.stroke();
-
-        // Y-axis labels
         ctx.fillStyle = isDark ? "#94A3B8" : "#64748B";
         ctx.font = `500 ${isMobile ? 9 : 11}px system-ui`;
         ctx.textAlign = "right";
@@ -3573,8 +3365,6 @@ self.onmessage = async function(e) {
             yScale(tick) + 4,
           );
         });
-
-        // X-axis labels
         ctx.textAlign = "center";
         const xStep = Math.max(
           1,
@@ -3587,10 +3377,7 @@ self.onmessage = async function(e) {
             h - margin.bottom + (isMobile ? 14 : 18),
           );
         }
-
         const color = getColor(dim);
-
-        // Confidence band
         ctx.beginPath();
         ctx.moveTo(xScale(0), yScale(uppers[0]));
         for (let i = 1; i < preds.length; i++) {
@@ -3600,7 +3387,6 @@ self.onmessage = async function(e) {
           ctx.lineTo(xScale(i), yScale(lowers[i]));
         }
         ctx.closePath();
-
         const gradient = ctx.createLinearGradient(
           0,
           margin.top,
@@ -3611,8 +3397,6 @@ self.onmessage = async function(e) {
         gradient.addColorStop(1, color + (isDark ? "08" : "05"));
         ctx.fillStyle = gradient;
         ctx.fill();
-
-        // Band borders
         ctx.strokeStyle = color + "40";
         ctx.setLineDash([4, 4]);
         ctx.lineWidth = 1;
@@ -3629,8 +3413,6 @@ self.onmessage = async function(e) {
         }
         ctx.stroke();
         ctx.setLineDash([]);
-
-        // Line with glow
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
         [[8, "1A"], [4, "33"], [isMobile ? 2 : 2.5, "FF"]].forEach(
@@ -3657,15 +3439,12 @@ self.onmessage = async function(e) {
             ctx.stroke();
           },
         );
-
-        // Hover
         if (state.hover.active && state.hover.dataIndex >= 0) {
           const localIdx = state.hover.dataIndex;
           if (localIdx >= 0 && localIdx < preds.length) {
             const hx = xScale(localIdx);
             const hy = yScale(preds[localIdx]);
             const actualIdx = startIndex + localIdx;
-
             ctx.strokeStyle = isDark
               ? "rgba(255,255,255,0.3)"
               : "rgba(0,0,0,0.2)";
@@ -3680,13 +3459,11 @@ self.onmessage = async function(e) {
             ctx.lineTo(hx, hy);
             ctx.stroke();
             ctx.setLineDash([]);
-
             ctx.strokeStyle = color + "40";
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.arc(hx, hy, 8, 0, Math.PI * 2);
             ctx.stroke();
-
             ctx.fillStyle = color;
             ctx.beginPath();
             ctx.arc(hx, hy, 5, 0, Math.PI * 2);
@@ -3694,7 +3471,6 @@ self.onmessage = async function(e) {
             ctx.strokeStyle = "#fff";
             ctx.lineWidth = 2;
             ctx.stroke();
-
             updateTooltip(
               hx,
               hy,
@@ -3711,6 +3487,8 @@ self.onmessage = async function(e) {
       }
 
       function renderGridView(w, h, isDark) {
+        const nDims = state.nDimensions;
+        if (nDims === 0) return;
         const isMobile = w < 500;
         const cols = w < 400
           ? 2
@@ -3727,47 +3505,35 @@ self.onmessage = async function(e) {
         );
         const cellH = Math.min(
           isMobile ? 80 : 110,
-          Math.floor(
-            (h - gap * 2) / Math.ceil(state.nDimensions / cols),
-          ) -
-            gap,
+          Math.floor((h - gap * 2) / Math.ceil(nDims / cols)) - gap,
         );
-
-        for (let d = 0; d < state.nDimensions; d++) {
+        for (let d = 0; d < nDims; d++) {
           const col = d % cols;
           const row = Math.floor(d / cols);
           const x = gap + col * (cellW + gap);
           const y = gap + row * (cellH + gap);
-
           if (y + cellH > h) continue;
-
           ctx.fillStyle = isDark ? "#1E293B" : "#F8FAFC";
           ctx.beginPath();
           ctx.roundRect(x, y, cellW, cellH, 8);
           ctx.fill();
-
           const preds = state.predictions.predictions.map((p) => p[d]);
           const lowers = state.predictions.lowerBounds.map((p) => p[d]);
           const uppers = state.predictions.upperBounds.map((p) => p[d]);
-
           const margin = 6;
           const pW = cellW - margin * 2;
           const pH = cellH - 24;
-
           const allVals = [...preds, ...lowers, ...uppers];
           let minY = Math.min(...allVals);
           let maxY = Math.max(...allVals);
           const pad = (maxY - minY) * 0.1 || 1;
           minY -= pad;
           maxY += pad;
-
           const xs = (i) =>
             x + margin + (i / (preds.length - 1 || 1)) * pW;
           const ys = (v) =>
             y + 18 + pH - ((v - minY) / (maxY - minY)) * pH;
-
           const color = getColor(d);
-
           ctx.fillStyle = color + "1A";
           ctx.beginPath();
           ctx.moveTo(xs(0), ys(uppers[0]));
@@ -3779,7 +3545,6 @@ self.onmessage = async function(e) {
           }
           ctx.closePath();
           ctx.fill();
-
           ctx.strokeStyle = color;
           ctx.lineWidth = 1.5;
           ctx.lineCap = "round";
@@ -3789,12 +3554,10 @@ self.onmessage = async function(e) {
             ctx.lineTo(xs(i), ys(preds[i]));
           }
           ctx.stroke();
-
           ctx.fillStyle = isDark ? "#94A3B8" : "#64748B";
           ctx.font = "600 9px system-ui";
           ctx.textAlign = "left";
           ctx.fillText(`D${d + 1}`, x + 5, y + 12);
-
           ctx.textAlign = "right";
           ctx.fillStyle = color;
           ctx.fillText(
@@ -3806,6 +3569,8 @@ self.onmessage = async function(e) {
       }
 
       function renderHeatmapView(w, h, isDark) {
+        const nDims = state.nDimensions;
+        if (nDims === 0) return;
         const isMobile = w < 400;
         const margin = {
           left: isMobile ? 40 : 60,
@@ -3815,26 +3580,19 @@ self.onmessage = async function(e) {
         };
         const plotW = w - margin.left - margin.right;
         const plotH = h - margin.top - margin.bottom;
-
         const steps = state.predictions.predictions.length;
-        const dims = state.nDimensions;
-
         const cellW = Math.max(8, plotW / steps);
-        const cellH = Math.max(8, plotH / dims);
-
+        const cellH = Math.max(8, plotH / nDims);
         const allVals = state.predictions.predictions.flat();
         const minVal = Math.min(...allVals);
         const maxVal = Math.max(...allVals);
         const range = maxVal - minVal || 1;
-
-        for (let d = 0; d < dims; d++) {
+        for (let d = 0; d < nDims; d++) {
           for (let s = 0; s < steps; s++) {
             const val = state.predictions.predictions[s][d];
             const norm = (val - minVal) / range;
-
             const cx = margin.left + s * cellW;
             const cy = margin.top + d * cellH;
-
             const r = Math.round(59 + (239 - 59) * norm);
             const g = Math.round(130 + (68 - 130) * norm);
             const b = Math.round(246 + (68 - 246) * norm);
@@ -3842,18 +3600,16 @@ self.onmessage = async function(e) {
             ctx.fillRect(cx, cy, cellW - 1, cellH - 1);
           }
         }
-
         ctx.fillStyle = isDark ? "#94A3B8" : "#64748B";
         ctx.font = `500 ${isMobile ? 8 : 10}px system-ui`;
         ctx.textAlign = "right";
-        for (let d = 0; d < dims; d++) {
+        for (let d = 0; d < nDims; d++) {
           ctx.fillText(
             `D${d + 1}`,
             margin.left - 5,
             margin.top + d * cellH + cellH / 2 + 3,
           );
         }
-
         ctx.textAlign = "center";
         const xStep = Math.max(
           1,
@@ -3866,9 +3622,39 @@ self.onmessage = async function(e) {
             h - margin.bottom + 14,
           );
         }
+        const legendW = 20;
+        const legendH = plotH;
+        const legendX = w - margin.right + 10;
+        const legendY = margin.top;
+        const lgradient = ctx.createLinearGradient(
+          0,
+          legendY,
+          0,
+          legendY + legendH,
+        );
+        lgradient.addColorStop(0, "rgb(239, 68, 68)");
+        lgradient.addColorStop(0.5, "rgb(59, 130, 246)");
+        lgradient.addColorStop(1, "rgb(59, 130, 246)");
+        ctx.fillStyle = lgradient;
+        ctx.fillRect(legendX, legendY, legendW, legendH);
+        ctx.fillStyle = isDark ? "#94A3B8" : "#64748B";
+        ctx.font = "500 9px system-ui";
+        ctx.textAlign = "left";
+        ctx.fillText(
+          formatNumber(maxVal),
+          legendX + legendW + 4,
+          legendY + 8,
+        );
+        ctx.fillText(
+          formatNumber(minVal),
+          legendX + legendW + 4,
+          legendY + legendH,
+        );
       }
 
       function renderUncertaintyView(w, h, isDark) {
+        const nDims = state.nDimensions;
+        if (nDims === 0) return;
         const isMobile = w < 400;
         const margin = {
           left: isMobile ? 45 : 65,
@@ -3878,27 +3664,23 @@ self.onmessage = async function(e) {
         };
         const plotW = w - margin.left - margin.right;
         const plotH = h - margin.top - margin.bottom;
-
         const uncertainties = state.predictions.predictions.map(
           (_, i) => {
             let sum = 0;
-            for (let d = 0; d < state.nDimensions; d++) {
+            for (let d = 0; d < nDims; d++) {
               sum += state.predictions.upperBounds[i][d] -
                 state.predictions.lowerBounds[i][d];
             }
-            return sum / state.nDimensions;
+            return sum / nDims;
           },
         );
-
         const maxU = Math.max(...uncertainties);
         const minU = Math.min(...uncertainties);
         const range = maxU - minU || 1;
-
         const xScale = (i) =>
           margin.left + (i / (uncertainties.length - 1 || 1)) * plotW;
         const yScale = (v) =>
           margin.top + plotH - ((v - minU) / range) * plotH;
-
         ctx.beginPath();
         ctx.moveTo(xScale(0), yScale(minU));
         for (let i = 0; i < uncertainties.length; i++) {
@@ -3906,7 +3688,6 @@ self.onmessage = async function(e) {
         }
         ctx.lineTo(xScale(uncertainties.length - 1), yScale(minU));
         ctx.closePath();
-
         const grad = ctx.createLinearGradient(
           0,
           margin.top,
@@ -3918,7 +3699,6 @@ self.onmessage = async function(e) {
         grad.addColorStop(1, "#10B98140");
         ctx.fillStyle = grad;
         ctx.fill();
-
         ctx.strokeStyle = "#F59E0B";
         ctx.lineWidth = 2;
         ctx.lineCap = "round";
@@ -3928,7 +3708,6 @@ self.onmessage = async function(e) {
           ctx.lineTo(xScale(i), yScale(uncertainties[i]));
         }
         ctx.stroke();
-
         ctx.fillStyle = isDark ? "#94A3B8" : "#64748B";
         ctx.font = `500 ${isMobile ? 9 : 11}px system-ui`;
         ctx.textAlign = "right";
@@ -3942,19 +3721,23 @@ self.onmessage = async function(e) {
           margin.left - 6,
           h - margin.bottom,
         );
-
-        // Confidence gauge
+        ctx.textAlign = "center";
+        const xStep = Math.max(
+          1,
+          Math.ceil(uncertainties.length / (isMobile ? 5 : 8)),
+        );
+        for (let i = 0; i < uncertainties.length; i += xStep) {
+          ctx.fillText(i + 1, xScale(i), h - margin.bottom + 14);
+        }
         const conf = state.predictions.confidence;
         const gaugeX = w - (isMobile ? 35 : 55);
         const gaugeY = margin.top + 30;
         const gaugeR = isMobile ? 25 : 35;
-
         ctx.beginPath();
         ctx.arc(gaugeX, gaugeY, gaugeR, Math.PI, 2 * Math.PI);
         ctx.strokeStyle = isDark ? "#374151" : "#E5E7EB";
         ctx.lineWidth = 6;
         ctx.stroke();
-
         const confColor = conf > 0.8
           ? "#10B981"
           : conf > 0.5
@@ -3970,12 +3753,10 @@ self.onmessage = async function(e) {
         );
         ctx.strokeStyle = confColor;
         ctx.stroke();
-
         ctx.fillStyle = isDark ? "#F1F5F9" : "#1E293B";
         ctx.font = `bold ${isMobile ? 12 : 16}px system-ui`;
         ctx.textAlign = "center";
         ctx.fillText(`${(conf * 100).toFixed(0)}%`, gaugeX, gaugeY + 5);
-
         ctx.font = `500 ${isMobile ? 8 : 10}px system-ui`;
         ctx.fillStyle = isDark ? "#94A3B8" : "#64748B";
         ctx.fillText(
@@ -3986,6 +3767,8 @@ self.onmessage = async function(e) {
       }
 
       function renderBarView(w, h, isDark) {
+        const nDims = state.nDimensions;
+        if (nDims === 0) return;
         const isMobile = w < 400;
         const margin = {
           left: isMobile ? 50 : 80,
@@ -3995,7 +3778,6 @@ self.onmessage = async function(e) {
         };
         const plotW = w - margin.left - margin.right;
         const plotH = h - margin.top - margin.bottom;
-
         const step = Math.min(
           state.selectedStep,
           state.predictions.predictions.length - 1,
@@ -4003,33 +3785,23 @@ self.onmessage = async function(e) {
         const preds = state.predictions.predictions[step];
         const lowers = state.predictions.lowerBounds[step];
         const uppers = state.predictions.upperBounds[step];
-
         const maxVal = Math.max(...uppers);
         const minVal = Math.min(...lowers, 0);
         const range = maxVal - minVal || 1;
-
-        const barH = Math.min(
-          isMobile ? 20 : 28,
-          plotH / state.nDimensions - 3,
-        );
-
-        for (let d = 0; d < state.nDimensions; d++) {
+        const barH = Math.min(isMobile ? 20 : 28, plotH / nDims - 3);
+        for (let d = 0; d < nDims; d++) {
           const y = margin.top + d * (barH + 3);
           const val = preds[d];
           const lower = lowers[d];
           const upper = uppers[d];
-
           const barW = Math.max(4, ((val - minVal) / range) * plotW);
           const errorStart = ((lower - minVal) / range) * plotW;
           const errorEnd = ((upper - minVal) / range) * plotW;
-
           const color = getColor(d);
-
           ctx.fillStyle = color;
           ctx.beginPath();
           ctx.roundRect(margin.left, y, barW, barH, 4);
           ctx.fill();
-
           ctx.strokeStyle = isDark ? "#94A3B8" : "#64748B";
           ctx.lineWidth = 1.5;
           const ey = y + barH / 2;
@@ -4041,12 +3813,10 @@ self.onmessage = async function(e) {
           ctx.moveTo(margin.left + errorEnd, ey - 3);
           ctx.lineTo(margin.left + errorEnd, ey + 3);
           ctx.stroke();
-
           ctx.fillStyle = isDark ? "#94A3B8" : "#64748B";
           ctx.font = `500 ${isMobile ? 9 : 11}px system-ui`;
           ctx.textAlign = "right";
           ctx.fillText(`D${d + 1}`, margin.left - 6, y + barH / 2 + 4);
-
           ctx.textAlign = "left";
           ctx.fillText(
             formatNumber(val),
@@ -4054,7 +3824,6 @@ self.onmessage = async function(e) {
             y + barH / 2 + 4,
           );
         }
-
         ctx.fillStyle = isDark ? "#F1F5F9" : "#1E293B";
         ctx.font = "bold 12px system-ui";
         ctx.textAlign = "center";
@@ -4074,33 +3843,25 @@ self.onmessage = async function(e) {
       ) {
         const tooltip = document.getElementById("chart-tooltip");
         const content = document.getElementById("tooltip-content");
-
-        content.innerHTML = `
-        <div class="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Step</div>
-        <div class="text-xl font-bold mb-2">${idx + 1}</div>
-        <hr class="border-slate-200 dark:border-slate-700 my-2">
-        <div class="flex items-center gap-2 mb-1">
-          <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:${
-          getColor(dim)
-        }"></span>
-          <span class="text-sm font-medium">Dim ${dim + 1}</span>
-          <span class="ml-auto font-bold">${formatNumber(pred)}</span>
-        </div>
-        <div class="text-[11px] text-slate-500 dark:text-slate-400 space-y-0.5">
-          <div>Bounds: ${formatNumber(lower)} – ${
-          formatNumber(upper)
-        }</div>
-          <div>Spread: ${formatNumber(upper - lower)}</div>
-        </div>
-      `;
-
+        content.innerHTML =
+          `<div class="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Step</div><div class="text-xl font-bold mb-2">${
+            idx + 1
+          }</div><hr class="border-slate-200 dark:border-slate-700 my-2"><div class="flex items-center gap-2 mb-1"><span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:${
+            getColor(dim)
+          }"></span><span class="text-sm font-medium">Dim ${
+            dim + 1
+          }</span><span class="ml-auto font-bold">${
+            formatNumber(pred)
+          }</span></div><div class="text-[11px] text-slate-500 dark:text-slate-400 space-y-0.5"><div>Bounds: ${
+            formatNumber(lower)
+          } – ${formatNumber(upper)}</div><div>Spread: ${
+            formatNumber(upper - lower)
+          }</div></div>`;
         let tx = x + 16;
         let ty = y - 20;
-
         if (tx + 180 > canvasW) tx = x - 180;
         if (ty < 10) ty = y + 20;
         if (tx < 10) tx = 10;
-
         tooltip.style.left = tx + "px";
         tooltip.style.top = ty + "px";
         tooltip.style.opacity = "1";
@@ -4112,7 +3873,6 @@ self.onmessage = async function(e) {
 
       function handleCanvasHover(e) {
         if (!state.predictions || state.vizMode !== "focus") return;
-
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const w = rect.width;
@@ -4122,20 +3882,17 @@ self.onmessage = async function(e) {
           right: isMobile ? 15 : 24,
         };
         const plotW = w - margin.left - margin.right;
-
         if (x < margin.left || x > w - margin.right) {
           state.hover.active = false;
           hideTooltip();
           renderChart();
           return;
         }
-
         const visibleCount = state.zoom.visibleCount ||
           state.predictions.predictions.length;
         const localIdx = Math.round(
           (x - margin.left) / plotW * (visibleCount - 1),
         );
-
         state.hover = {
           active: true,
           x,
@@ -4152,17 +3909,14 @@ self.onmessage = async function(e) {
         hideTooltip();
         renderChart();
       }
-
       function handleTouchStart(e) {
         if (e.touches.length === 1) {
-          touchStartY = e.touches[0].clientY;
           handleCanvasHover({
             clientX: e.touches[0].clientX,
             clientY: e.touches[0].clientY,
           });
         }
       }
-
       function handleTouchMove(e) {
         if (e.touches.length === 1) {
           handleCanvasHover({
@@ -4171,7 +3925,6 @@ self.onmessage = async function(e) {
           });
         }
       }
-
       function handleTouchEnd() {
         setTimeout(() => {
           state.hover.active = false;
@@ -4179,7 +3932,6 @@ self.onmessage = async function(e) {
           renderChart();
         }, 1500);
       }
-
       function handleCanvasWheel(e) {
         if (!e.ctrlKey && !e.metaKey) return;
         e.preventDefault();
@@ -4194,7 +3946,6 @@ self.onmessage = async function(e) {
           const y = e.clientY - rect.top;
           const w = rect.width;
           const h = rect.height;
-
           const isMobile = w < 500;
           const cols = w < 400
             ? 2
@@ -4215,11 +3966,9 @@ self.onmessage = async function(e) {
               (h - gap * 2) / Math.ceil(state.nDimensions / cols),
             ) - gap,
           );
-
           const col = Math.floor((x - gap) / (cellW + gap));
           const row = Math.floor((y - gap) / (cellH + gap));
           const idx = row * cols + col;
-
           if (idx >= 0 && idx < state.nDimensions) {
             state.selectedDim = idx;
             setVisualizationMode("focus");
@@ -4236,7 +3985,6 @@ self.onmessage = async function(e) {
         );
         renderChart();
       }
-
       function chartZoomOut() {
         state.zoom.level = Math.max(1, state.zoom.level / 1.4);
         document.getElementById("zoom-badge").textContent =
@@ -4246,7 +3994,6 @@ self.onmessage = async function(e) {
         }
         renderChart();
       }
-
       function chartResetZoom() {
         state.zoom.level = 1;
         state.zoom.offsetX = 0;
@@ -4262,16 +4009,13 @@ self.onmessage = async function(e) {
           Math.floor(Math.log10(roughStep)),
         );
         const residual = roughStep / magnitude;
-
         let niceStep;
         if (residual > 5) niceStep = 10 * magnitude;
         else if (residual > 2) niceStep = 5 * magnitude;
         else if (residual > 1) niceStep = 2 * magnitude;
         else niceStep = magnitude;
-
         const niceMin = Math.floor(min / niceStep) * niceStep;
         const niceMax = Math.ceil(max / niceStep) * niceStep;
-
         const result = [];
         for (let v = niceMin; v <= niceMax; v += niceStep) {
           result.push(v);
@@ -4288,14 +4032,10 @@ self.onmessage = async function(e) {
           errors.push("Missing coordinates array");
         }
         if (errors.length) return { valid: false, errors };
-
         const coordLen = data.coordinates.length;
-
         if (coordLen === 0) errors.push("coordinates is empty");
         if (errors.length) return { valid: false, errors };
-
         let nDimensions = null;
-
         for (let i = 0; i < Math.min(coordLen, 20); i++) {
           if (!Array.isArray(data.coordinates[i])) {
             errors.push(`coordinates[${i}] not array`);
@@ -4312,7 +4052,6 @@ self.onmessage = async function(e) {
             break;
           }
         }
-
         if (errors.length) return { valid: false, errors };
         return { valid: true, nDimensions, sampleCount: coordLen };
       }
@@ -4326,7 +4065,6 @@ self.onmessage = async function(e) {
           "dark:bg-blue-900/20",
         );
       }
-
       function handleDragLeave(e) {
         e.currentTarget.classList.remove(
           "border-blue-400",
@@ -4335,7 +4073,6 @@ self.onmessage = async function(e) {
           "dark:bg-blue-900/20",
         );
       }
-
       function handleDrop(e) {
         e.preventDefault();
         e.currentTarget.classList.remove(
@@ -4347,12 +4084,10 @@ self.onmessage = async function(e) {
         const file = e.dataTransfer.files[0];
         if (file) readFile(file);
       }
-
       function handleFileSelect(e) {
         const file = e.target.files[0];
         if (file) readFile(file);
       }
-
       function readFile(file) {
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -4369,14 +4104,11 @@ self.onmessage = async function(e) {
         const preview = document.getElementById("upload-preview");
         const error = document.getElementById("upload-error");
         const applyBtn = document.getElementById("apply-upload-btn");
-
         preview.classList.add("hidden");
         error.classList.add("hidden");
         applyBtn.disabled = true;
         state.uploadedData = null;
-
         if (!input) return;
-
         let data;
         try {
           data = JSON.parse(input);
@@ -4386,23 +4118,16 @@ self.onmessage = async function(e) {
             "Invalid JSON: " + e.message;
           return;
         }
-
         const result = validateDataset(data);
-
         if (!result.valid) {
           error.classList.remove("hidden");
           document.getElementById("upload-error-text").textContent =
             result.errors.join("\n");
           return;
         }
-
         preview.classList.remove("hidden");
-        document.getElementById("preview-stats").innerHTML = `
-        <div><span class="text-slate-500">Dimensions:</span> <strong>${result.nDimensions}</strong></div>
-        <div><span class="text-slate-500">Time Steps:</span> <strong>${result.sampleCount}</strong></div>
-        <div><span class="text-slate-500">Status:</span> <strong class="text-emerald-600">OK ✓</strong></div>
-      `;
-
+        document.getElementById("preview-stats").innerHTML =
+          `<div><span class="text-slate-500">Dimensions:</span> <strong>${result.nDimensions}</strong></div><div><span class="text-slate-500">Time Steps:</span> <strong>${result.sampleCount}</strong></div><div><span class="text-slate-500">Status:</span> <strong class="text-emerald-600">OK ✓</strong></div>`;
         state.uploadedData = data;
         applyBtn.disabled = false;
       }
@@ -4413,9 +4138,7 @@ self.onmessage = async function(e) {
           showToast("warning", "Create a model first");
           return;
         }
-
         showLoading("Training on uploaded data...");
-
         try {
           const result = await workerRequest(
             "train",
@@ -4425,15 +4148,14 @@ self.onmessage = async function(e) {
             log("warning", "Training", "Cancelled");
             return;
           }
-
           state.sampleCount = result.summary.sampleCount;
-          state.nDimensions = result.summary.nDimensions;
+          state.nDimensions = result.summary.nFeatures ||
+            state.uploadedData.coordinates[0]?.length || 0;
           state.metrics = {
             avgLoss: result.fitResult?.averageLoss || null,
             gradientNorm: result.fitResult?.gradientNorm || null,
             sampleWeight: result.fitResult?.sampleWeight || null,
           };
-
           updateUI();
           closeModal("upload-modal");
           log(
@@ -4445,7 +4167,6 @@ self.onmessage = async function(e) {
             "success",
             `Trained on ${result.samplesProcessed} time steps`,
           );
-
           await runPredictionInternal();
         } catch (err) {
           log("error", "Training", err.message);
@@ -4456,19 +4177,15 @@ self.onmessage = async function(e) {
       }
 
       function copyFormatExample() {
-        const example =
-          `{"coordinates": [[1.0, 2.0, 3.0], [1.1, 2.1, 3.1], [1.2, 2.2, 3.2]]}`;
-        navigator.clipboard.writeText(example);
+        navigator.clipboard.writeText(
+          `{"coordinates": [[1.0, 2.0, 3.0], [1.1, 2.1, 3.1], [1.2, 2.2, 3.2]]}`,
+        );
         showToast("success", "Copied to clipboard");
       }
-
       function generateInsertTemplate() {
         const nD = state.nDimensions || 3;
-        const template = {
-          coordinates: [Array(nD).fill(0)],
-        };
         document.getElementById("insert-json-input").value = JSON
-          .stringify(template, null, 2);
+          .stringify({ coordinates: [Array(nD).fill(0)] }, null, 2);
       }
 
       async function applyManualInsert() {
@@ -4478,7 +4195,6 @@ self.onmessage = async function(e) {
           showToast("warning", "Create a model first");
           return;
         }
-
         let data;
         try {
           data = JSON.parse(input);
@@ -4486,19 +4202,17 @@ self.onmessage = async function(e) {
           showToast("error", "Invalid JSON");
           return;
         }
-
         const result = validateDataset(data);
         if (!result.valid) {
           showToast("error", result.errors[0]);
           return;
         }
-
         showLoading("Inserting time steps...");
-
         try {
           const trainResult = await workerRequest("train", data);
           state.sampleCount = trainResult.summary.sampleCount;
-          state.nDimensions = trainResult.summary.nDimensions;
+          state.nDimensions = trainResult.summary.nFeatures ||
+            data.coordinates[0]?.length || 0;
           state.metrics = {
             avgLoss: trainResult.fitResult?.averageLoss || null,
             gradientNorm: trainResult.fitResult?.gradientNorm || null,
@@ -4526,7 +4240,6 @@ self.onmessage = async function(e) {
       async function runPrediction() {
         if (!state.modelExists) return;
         if (state.isLoading) return;
-
         showLoading("Running prediction...");
         try {
           await runPredictionInternal();
@@ -4539,29 +4252,23 @@ self.onmessage = async function(e) {
         const steps = parseInt(
           document.getElementById("future-steps-input").value,
         ) || 10;
-
         try {
           const result = await workerRequest("predict", {
             futureSteps: steps,
           });
           state.predictions = result;
-
-          const summary = await workerRequest("getSummary");
-          if (summary.exists) {
-            state.nDimensions = summary.summary.nDimensions;
-          }
-
+          state.nDimensions = result.nFeatures ||
+            (result.predictions[0]?.length || 0);
           document.getElementById("empty-state").classList.add(
             "hidden",
           );
           document.getElementById("chart-controls").classList.remove(
             "hidden",
           );
-
           updateDimensionButtons();
           updateStatsBar();
+          updateStepSelector();
           renderChart();
-
           log(
             "success",
             "Prediction",
@@ -4578,7 +4285,6 @@ self.onmessage = async function(e) {
           showToast("warning", "No model to save");
           return;
         }
-
         showLoading("Saving model...");
         try {
           const result = await workerRequest("save");
@@ -4612,13 +4318,11 @@ self.onmessage = async function(e) {
           showToast("warning", "No model to save");
           return;
         }
-
         const name = prompt(
           "Model name:",
           `Model ${new Date().toLocaleString()}`,
         );
         if (!name) return;
-
         showLoading("Saving model...");
         try {
           const result = await workerRequest("save");
@@ -4651,24 +4355,16 @@ self.onmessage = async function(e) {
           localStorage.getItem("esn-saved-models") || "{}",
         );
         const names = Object.keys(saved);
-
         if (names.length === 0) {
           container.innerHTML =
             '<p class="text-sm text-slate-500 text-center py-4">No saved models</p>';
           return;
         }
-
         container.innerHTML = names.map((name) => {
           const model = saved[name];
-          return `<div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
-          <div class="min-w-0 flex-1">
-            <p class="font-semibold text-sm truncate">${name}</p>
-            <p class="text-xs text-slate-500">${
-            model.meta?.nDimensions || "?"
-          } dimensions</p>
-          </div>
-          <button onclick="loadFromLocalStorage('${name}')" class="touch-target ml-2 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-semibold hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors flex-shrink-0">Load</button>
-        </div>`;
+          return `<div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl"><div class="min-w-0 flex-1"><p class="font-semibold text-sm truncate">${name}</p><p class="text-xs text-slate-500">${
+            model.meta?.nFeatures || "?"
+          } dimensions</p></div><button onclick="loadFromLocalStorage('${name}')" class="touch-target ml-2 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-semibold hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors flex-shrink-0">Load</button></div>`;
         }).join("");
       }
 
@@ -4681,18 +4377,15 @@ self.onmessage = async function(e) {
           showToast("error", "Model not found");
           return;
         }
-
         showLoading("Loading model...");
-
         try {
           const result = await workerRequest("load", { data: model });
           state.modelExists = true;
           state.sampleCount = result.summary.sampleCount;
-          state.nDimensions = result.summary.nDimensions;
+          state.nDimensions = result.summary.nFeatures || 0;
           if (result.meta?.config) {
             state.config = { ...DEFAULT_CONFIG, ...result.meta.config };
           }
-
           updateConfigValues();
           updateUI();
           closeModal("load-modal");
@@ -4709,7 +4402,6 @@ self.onmessage = async function(e) {
       async function loadModelFromFile(e) {
         const file = e.target.files[0];
         if (!file) return;
-
         const reader = new FileReader();
         reader.onload = async (ev) => {
           showLoading("Loading model...");
@@ -4720,18 +4412,16 @@ self.onmessage = async function(e) {
             } catch {
               data = ev.target.result;
             }
-
             const result = await workerRequest("load", { data });
             state.modelExists = true;
             state.sampleCount = result.summary.sampleCount;
-            state.nDimensions = result.summary.nDimensions;
+            state.nDimensions = result.summary.nFeatures || 0;
             if (result.meta?.config) {
               state.config = {
                 ...DEFAULT_CONFIG,
                 ...result.meta.config,
               };
             }
-
             updateConfigValues();
             updateUI();
             closeModal("load-modal");
@@ -4761,7 +4451,6 @@ self.onmessage = async function(e) {
           return s / 233280;
         };
       }
-
       async function runRandomTestFromModal() {
         closeModal("random-test-modal");
         await runRandomTest();
@@ -4774,7 +4463,6 @@ self.onmessage = async function(e) {
         const noiseEl = document.getElementById("test-noise");
         const outliersEl = document.getElementById("test-outliers");
         const diffEl = document.getElementById("test-difficulty");
-
         const seed = seedEl ? (parseInt(seedEl.value) || 42) : 42;
         const nDimensions = dimEl ? (parseInt(dimEl.value) || 3) : 3;
         const nSamples = samplesEl
@@ -4789,16 +4477,12 @@ self.onmessage = async function(e) {
         const difficulty = diffEl
           ? (diffEl.value || "medium")
           : "medium";
-
         const rand = seededRandom(seed);
-
         const coordinates = [];
-
         for (let t = 0; t < nSamples; t++) {
           const point = [];
           for (let d = 0; d < nDimensions; d++) {
             let val = Math.sin(t * 0.1 * (d + 1) + d);
-
             if (difficulty !== "easy" && t > 0) {
               val += 0.2 * coordinates[t - 1][(d + 1) % nDimensions];
             }
@@ -4806,9 +4490,7 @@ self.onmessage = async function(e) {
               val += 0.1 *
                 Math.cos(coordinates[t - 1][d] * coordinates[t - 2][d]);
             }
-
             val += (rand() - 0.5) * noise * 2;
-
             if (rand() < outlierRate) {
               val += (rand() > 0.5 ? 1 : -1) * (3 + rand() * 2);
             }
@@ -4816,15 +4498,11 @@ self.onmessage = async function(e) {
           }
           coordinates.push(point);
         }
-
         applyPreset("balanced");
-
         showLoading("Running demo...");
-
         try {
           await workerRequest("createModel", { config: state.config });
           state.modelExists = true;
-
           const trainResult = await workerRequest("train", {
             coordinates,
           });
@@ -4832,35 +4510,32 @@ self.onmessage = async function(e) {
             log("warning", "Training", "Cancelled");
             return;
           }
-
           state.sampleCount = trainResult.summary.sampleCount;
-          state.nDimensions = trainResult.summary.nDimensions;
+          state.nDimensions = trainResult.summary.nFeatures ||
+            nDimensions;
           state.metrics = {
             avgLoss: trainResult.fitResult?.averageLoss || null,
             gradientNorm: trainResult.fitResult?.gradientNorm || null,
             sampleWeight: trainResult.fitResult?.sampleWeight || null,
           };
-
           updateUI();
-
           const steps = Math.min(20, MAX_FUTURE_STEPS);
           const predResult = await workerRequest("predict", {
             futureSteps: steps,
           });
           state.predictions = predResult;
-
+          state.nDimensions = predResult.nFeatures || nDimensions;
           document.getElementById("empty-state").classList.add(
             "hidden",
           );
           document.getElementById("chart-controls").classList.remove(
             "hidden",
           );
-
           updateDimensionButtons();
           updateStatsBar();
+          updateStepSelector();
           setVisualizationMode("focus");
           renderChart();
-
           log(
             "success",
             "Demo",
@@ -4880,32 +4555,20 @@ self.onmessage = async function(e) {
           showToast("warning", "No predictions to display");
           return;
         }
-
         const head = document.getElementById("data-table-head");
         const body = document.getElementById("data-table-body");
-
+        const nDims = state.nDimensions;
         const headers = [
           "Step",
-          ...Array.from(
-            { length: state.nDimensions },
-            (_, i) => `P${i + 1}`,
-          ),
-          ...Array.from(
-            { length: state.nDimensions },
-            (_, i) => `L${i + 1}`,
-          ),
-          ...Array.from(
-            { length: state.nDimensions },
-            (_, i) => `U${i + 1}`,
-          ),
+          ...Array.from({ length: nDims }, (_, i) => `P${i + 1}`),
+          ...Array.from({ length: nDims }, (_, i) => `L${i + 1}`),
+          ...Array.from({ length: nDims }, (_, i) => `U${i + 1}`),
         ];
-
         head.innerHTML = `<tr>${
           headers.map((h) =>
             `<th class="px-2 sm:px-3 py-2 text-left text-xs">${h}</th>`
           ).join("")
         }</tr>`;
-
         body.innerHTML = state.predictions.predictions.map(
           (preds, i) => {
             const lowers = state.predictions.lowerBounds[i];
@@ -4923,20 +4586,17 @@ self.onmessage = async function(e) {
             }</tr>`;
           },
         ).join("");
-
         openModal("data-table-modal");
       }
 
       function showKeyboardShortcuts() {
         openModal("shortcuts-modal");
       }
-
       function clearAllPreferences() {
         if (!confirm("Clear all preferences and reload?")) return;
         localStorage.clear();
         location.reload();
       }
-
       function debounce(fn, ms) {
         let timeout;
         return (...args) => {
