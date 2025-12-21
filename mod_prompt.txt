@@ -1,300 +1,374 @@
-Implement a TypeScript library named "ESNRegression": an Echo State Network (ESN) / Reservoir Computing model for multivariate autoregressive regression with incremental online learning using RLS readout training and Welford z-score normalization.
-
-OUTPUT REQUIREMENTS (STRICT)
-
-* Output ONLY the complete TypeScript implementation (single self-contained module / file).
-* No markdown, no explanations, no extra text.
-* The code must compile and run without external heavy runtime dependencies (no Node-only APIs; no DOM APIs).
-
-SCOPE AND GOALS
-
-* Build ONE single self-contained TypeScript library (no heavy runtime deps) that trains online (one sample at a time) and predicts multiple steps ahead in autoregressive mode.
-* Primary use-case is tight CPU and memory environments, so the implementation MUST be deterministic, numerically stable, and allocation-free in hot paths.
-* The model MUST learn nonlinear cross-variable relationships and implicit lag structure via a fixed recurrent reservoir state with fading memory. The reservoir's echo state property naturally captures temporal dependencies without requiring explicit sequence windows or history buffers.
-* The model MUST support native multi-horizon forecasting for arbitrary futureSteps without requiring a fixed maxFutureSteps setting. Output arrays for predictions may be allocated dynamically since they are returned to the caller.
-
-NON-NEGOTIABLE CRITICAL BEHAVIOR (DO NOT VIOLATE)
-
-1. Latest coordinates are always internal and authoritative
-
-* fitOnline() MUST store the latest coordinates internally BEFORE completing training for that sample.
-* predict() MUST read its starting input ONLY from the internally stored latest coordinates; it MUST NOT require the caller to pass any input.
-
-2. Correct timestep alignment (no off-by-one)
-
-* For any predict(futureSteps), the prediction context MUST start from the most recently ingested coordinates (the last processed row).
-* The reservoir state used for prediction MUST reflect all training samples processed so far.
-
-3. Prevent prediction drift and bias (common failure)
-
-* Multi-step forecasting MUST use a dedicated roll-forward scratch state and MUST NEVER mutate the main reservoir state or stored coordinates during predict.
-* Normalization MUST be applied consistently to prevent scale drift.
-* Uncertainty bounds MUST scale appropriately with prediction horizon.
-
-AUTOREGRESSIVE MODE (ALWAYS ACTIVE)
-
-* The model operates exclusively in autoregressive mode: coordinates at time t are used to predict coordinates at time t+1.
-* nFeatures ALWAYS equals nTargets (inferred from coordinates dimension).
-* fitOnline receives a sequence of coordinate vectors and learns the mapping c_t -> c_{t+1} implicitly.
-* predict rolls forward by feeding each prediction back as input for the next step.
-
-MODEL ARCHITECTURE (ESN / RESERVOIR COMPUTING)
-
-Input/shape
-
-* Input is a multivariate time series row c_t with shape [nFeatures] (batch fixed to 1 per timestep).
-* Target is implicitly c_{t+1} (the next coordinates in the sequence).
-* predict() reads the latest c_t ONLY from internal storage (no external input argument).
-
-Reservoir state
-
-* Maintain a reservoir state vector r_t with shape [reservoirSize].
-* Update per timestep using a leaky integrator ESN:
-  r_t = (1 - leakRate) * r_{t-1} + leakRate * activation( (Win * c_t) + (W * r_{t-1}) + b )
-* activation is tanh by default (or configurable).
-* Win (reservoirSize x nFeatures) and W (reservoirSize x reservoirSize) are fixed after initialization (NOT trained) and MUST be deterministic given seed.
-* Enforce echo-state behavior by scaling W to spectralRadius and applying sparse connectivity (reservoirSparsity) at init.
-* Support inputScale (applied to c before Win) and biasScale (applied to b).
-
-Readout (trainable)
-
-* Train ONLY a linear readout layer that maps extended state z_t to outputs:
-  z_t = [r_t; c_t; 1]  (configurable inclusion of c_t and bias term)
-  c_hat_{t+1} = Wout * z_t
-* Define:
-  zDim = reservoirSize + (useInputInReadout ? nFeatures : 0) + (useBiasInReadout ? 1 : 0)
-* Wout shape is ALWAYS [nTargets, zDim] where nTargets === nFeatures.
-
-ONLINE LEARNING ALGORITHM (READOUT)
-
-Default training MUST be allocation-free and online:
-
-* Use RLS (Recursive Least Squares) to update Wout each sample with forgetting factor rlsLambda, inverse-covariance P matrix, and initialization scale rlsDelta.
-* RLS must update all output rows of Wout using the same gain vector and shared P (zDim x zDim).
-* Include L2 regularization via l2Lambda on readout weights (implement in a numerically stable way compatible with RLS; do NOT break determinism).
-* The readout update is always incremental, fixed-size matrix updates (no backprop, no Adam).
-
-NATIVE MULTI-HORIZON AUTOREGRESSIVE FORECASTING
-
-Key rule: multi-step prediction is performed by rolling the ESN forward in time using a scratch copy of the reservoir state, without touching the live reservoir state or stored coordinates.
-
-* predict(futureSteps) MUST support futureSteps as any integer >= 1.
-* Roll-forward procedure (MANDATORY implementation):
-
-  * Copy live reservoir state to scratch reservoir state.
-  * Read latest coordinates c_last from internal storage into scratch buffer.
-  * For step=0..futureSteps-1:
-
-    * Normalize c_step consistently.
-    * Update scratch reservoir state by one timestep using c_step.
-    * Compute c_hat_step from scratch z_step via Wout.
-    * Store c_hat_step into PredictionResult.predictions[step][feature].
-    * Set c_step := c_hat_step for the next iteration (autoregressive feeding).
-  * NEVER mutate the live reservoir state or stored coordinates during predict().
-
-Uncertainty for horizons > 1 (MUST BE WELL-DEFINED)
-
-* ResidualStatsTracker observes 1-step residuals from training using Welford running statistics.
-* For multi-step predict, uncertainty bounds MUST increase with horizon deterministically:
-
-  * Required rule: sigma_k = sigma_1 * sqrt(k) where k is the step number (1-indexed).
-  * Do NOT return identical bounds for all horizons unless sigma_1 is zero.
-* confidence MUST remain deterministic, finite, and clamped to [0,1].
-
-NORMALIZATION (WELFORD) + UNCERTAINTY (RESIDUAL STATS)
-
-* Use Welford online mean/variance per feature for coordinate normalization (WelfordNormalizer).
-* Apply normalization consistently in BOTH fitOnline() and predict() using the same running stats:
-  c_norm[j] = (c[j] - mean[j]) / max(std[j], normalizationEpsilon)
-* normalizationWarmup controls NormalizationStats.isActive, but normalization computation must still be safe and deterministic before warmup (variance floors + epsilon guards).
-* ResidualStatsTracker tracks residuals per target using Welford running statistics (no window size parameter).
-* predict() MUST return lower/upper bounds:
-  lower = c_hat - uncertaintyMultiplier * sigma_k
-  upper = c_hat + uncertaintyMultiplier * sigma_k
-  using sigma_k adjusted per horizon as described above.
-
-PERFORMANCE PRINCIPLES (HARD REQUIREMENTS)
-
-* Fixed-size memory for reservoir and training state: preallocate all parameters, state, covariance (P) for RLS, and internal scratch buffers once at initialization; never grow during training.
-* No attention matrices and no convolutions: do not implement self-attention or Conv1D; all temporal mixing is via reservoir recurrence.
-* Typed-array only core: all internal tensors live in contiguous Float64Array slabs in row-major layout; expose internal zero-copy views via (data, offset, shape, strides).
-* No hot-path allocations for internal computations: updateReservoirState(), forward(), fitOnline() internal loops, predict() internal loops MUST allocate 0 arrays/objects per call; all temporaries come from TensorArena and BufferPool.
-* Output objects:
-
-  * Reuse a single FitResult object for fitOnline().
-  * For predict(), output arrays may be allocated to match the requested futureSteps since they are returned to the caller.
-* Tight loops only: classic for-loops with manual indexing; avoid map/reduce/forEach, closures, iterator protocols, and polymorphic dispatch in inner loops.
-* Cache once, reuse forever: sparsity patterns, scale factors, and shape metadata computed once and reused; lazy init allowed, but never re-init.
-* GC guardrails: pool small objects (TensorView shells); keep debug and verbose metrics off by default.
-
-DESIGN PRINCIPLES (HARD REQUIREMENTS)
-
-* Full numerical stability throughout (epsilon guards, finite checks, variance floors, RLS stabilization).
-* Object-oriented design with interfaces for public contracts; private field encapsulation for internal state.
-* JSDoc on public methods and key classes (@param, @returns, @example).
-* Inline math formula notes where it clarifies behavior (normalization, loss, RLS, reservoir update, spectral radius scaling).
-* NO full backpropagation through time and NO training of reservoir weights; only trainable component is the readout Wout.
-* Spectral radius scaling MUST be deterministic and lightweight:
-
-  * Use a fixed-iteration power method to estimate the largest eigenvalue magnitude of W.
-  * Scale W so estimatedSpectralRadius becomes config.spectralRadius.
-
-PUBLIC API (MUST MATCH EXACTLY)
-
-fitOnline({ coordinates: number[][] }): FitResult
-
-* Validate strictly BEFORE processing:
-
-  * coordinates must have at least 2 rows to form at least one (input, target) pair.
-  * On first non-empty call, infer nFeatures from coordinates[0].length and validate all rows match.
-
-* For i in 0..N-2 (where N = coordinates.length), the order is mandatory:
-
-  1. Use coordinates[i] as input c_t.
-  2. Use coordinates[i+1] as target c_{t+1}.
-  3. Normalize c_t, updateReservoirState with c_t, build z_t, compute prediction, compute loss vs c_{t+1}, compute outlier weight, apply L2 regularization, perform RLS readout update, update residual stats and metrics.
-  4. After processing all pairs, store coordinates[N-1] as the latest coordinates for future predictions.
-
-* Reuse a single FitResult object (no per-call allocations).
-
-* driftDetected MUST remain in FitResult for API compatibility; set driftDetected=false always.
-
-predict(futureSteps: number): PredictionResult
-
-* Validate:
-
-  * If no samples ingested (model not initialized), throw Error("predict: model not initialized (call fitOnline first)").
-  * futureSteps must be integer >= 1.
-* Uses ONLY internally stored latest coordinates to start prediction.
-* Multi-step autoregressive roll-forward (MANDATORY implementation):
-
-  * Copy live reservoir state to scratch reservoir state.
-  * Read latest coordinates c_last into scratch buffer.
-  * For step=0..futureSteps-1:
-
-    * Normalize c_step consistently.
-    * Update scratch reservoir state by one timestep using c_step.
-    * Compute c_hat_step from scratch z_step via Wout.
-    * Store c_hat_step into PredictionResult.predictions[step][feature].
-    * Set c_step := c_hat_step (autoregressive).
-  * NEVER mutate the live reservoir state or stored coordinates during predict().
-* Fill and return uncertainty bounds using residual stats adjusted per horizon (sigma_k = sigma_1 * sqrt(k)).
-* confidence MUST be deterministic, finite, and clamped to [0,1].
-
-getModelSummary(): ModelSummary
-getWeights(): WeightInfo
-getNormalizationStats(): NormalizationStats
-reset(): void
-save(): string  (JSON.stringify of all state)
-load(w: string): void  (restore all state)
-
-PUBLIC RESULT TYPES (MUST MATCH EXACTLY)
-
-export interface FitResult {
-samplesProcessed: number;
-averageLoss: number;
-gradientNorm: number;
-driftDetected: boolean;
-sampleWeight: number;
-}
-
-export interface PredictionResult {
-predictions: number[][];
-lowerBounds: number[][];
-upperBounds: number[][];
-confidence: number;
-}
-
-export interface ModelSummary {
-totalParameters: number;
-receptiveField: number;
-spectralRadius: number;
-reservoirSize: number;
-nFeatures: number;
-nTargets: number;
-sampleCount: number;
-}
-
-export interface WeightInfo {
-weights: Array<{ name: string; shape: number[]; values: number[] }>;
-}
-
-export interface NormalizationStats {
-means: number[];
-stds: number[];
-count: number;
-isActive: boolean;
-}
-
-SETTINGS WITH DEFAULT VALUES (MUST MATCH)
-
-export interface ESNRegressionConfig {
-reservoirSize: number                  // Default: 256
-spectralRadius: number                 // Default: 0.9
-leakRate: number                       // Default: 0.3
-inputScale: number                     // Default: 1.0
-biasScale: number                      // Default: 0.1
-reservoirSparsity: number              // Default: 0.9        // fraction of zeros in W
-inputSparsity: number                  // Default: 0.0        // fraction of zeros in Win
-activation: "tanh" | "relu"            // Default: "tanh"
-useInputInReadout: boolean             // Default: true
-useBiasInReadout: boolean              // Default: true
-readoutTraining: "rls"                 // Default: "rls"
-rlsLambda: number                      // Default: 0.999
-rlsDelta: number                       // Default: 1.0
-epsilon: number                        // Default: 1e-8
-l2Lambda: number                       // Default: 0.0001
-gradientClipNorm: number               // Default: 1.0
-normalizationEpsilon: number           // Default: 1e-8
-normalizationWarmup: number            // Default: 10
-outlierThreshold: number               // Default: 3.0
-outlierMinWeight: number               // Default: 0.1
-uncertaintyMultiplier: number          // Default: 1.96
-weightInitScale: number                // Default: 0.1
-seed: number                           // Default: 42
-verbose: boolean                       // Default: false
-}
-
-INPUT EXAMPLE:
-const coordinates = [
-  [1.0, 2.0, 3.0],
-  [1.5, 2.5, 3.5],
-  [2.0, 3.0, 4.0],
-  [2.5, 3.5, 4.5],
-  [3.0, 4.0, 5.0],
-];
-
-NOTES ON AUTOREGRESSIVE OPERATION
-
-* fitOnline learns the mapping coordinates[t] -> coordinates[t+1] for all consecutive pairs.
-* After fitOnline, the model stores coordinates[last] internally for starting predictions.
-* predict(1) returns the 1-step ahead forecast from the last seen coordinates.
-* predict(K) returns steps 1..K forecasts, computed via autoregressive roll-forward where each prediction becomes input for the next.
-* The library MUST NOT require the caller to provide any input for predict().
-
-INTERNAL CLASSES / MODULES TO IMPLEMENT (ONLY WHAT IS NEEDED; DO NOT INVENT BACKPROP/TAPES)
-
-Implement the following internal classes exactly as listed, using typed arrays, fixed-size preallocation, and pooled shell objects as required:
-TensorShape, TensorView, BufferPool, TensorArena, TensorOps,
-ActivationOps, RandomGenerator,
-WelfordAccumulator, WelfordNormalizer,
-ResidualStatsTracker,
-OutlierDownweighter,
-LossFunction, MetricsAccumulator,
-ReservoirInitMask, SpectralRadiusScaler,
-ESNReservoirParams, ESNReservoir,
-ReadoutConfig, ReadoutParams, LinearReadout,
-RLSState, RLSOptimizer,
-SerializationHelper,
-ESNRegression.
-
-IMPLEMENTATION ORDER (KEEP FOCUSED AND FAST)
-
-1. Memory infra: TensorShape, TensorView, BufferPool, TensorArena, TensorOps.
-2. Numerics: RNG (seeded), activations, Welford normalizers, loss, metrics.
-3. Readout training: RLSState + RLSOptimizer (online, fixed-size P matrix, shared across outputs).
-4. Reservoir: sparse W/Win init with masks, deterministic power-iteration spectral radius estimate, spectral radius scaling, ESNReservoir update kernel.
-5. Readout/head: LinearReadout for single-step output; multi-step roll-forward implemented by advancing scratch reservoir state step-by-step with autoregressive feeding.
-6. Training utilities: ResidualStatsTracker (Welford-based), outlier downweighting, metrics accumulator; ensure all are allocation-free per call.
-7. ESNRegression public API enforcing the Critical Behavioral Requirements (validate before processing, store latest coordinates, correct predict context, never mutate live state in predict).
-8. Serialization save/load for full state and determinism (restore typed arrays and counters exactly).
+Create a TypeScript library implementing an Echo State Network (ESN) for multivariate autoregressive regression with online learning capabilities. The implementation must prioritize low memory allocation and low CPU usage through buffer reuse, sparse matrix operations, and avoiding unnecessary object creation.
+
+===========================================
+LIBRARY NAME AND EXPORT
+===========================================
+
+Export a class named ESNRegression as the main entry point and default export.
+
+===========================================
+PUBLIC INTERFACES
+===========================================
+
+Define and export the following interfaces:
+
+1. ESNRegressionConfig
+   - reservoirSize: number - Size of the reservoir (hidden state dimension)
+   - spectralRadius: number - Target spectral radius for reservoir weight matrix
+   - leakRate: number - Leaky integration rate (0 to 1)
+   - inputScale: number - Scaling factor for input weights
+   - biasScale: number - Scaling factor for bias vector
+   - reservoirSparsity: number - Fraction of zero elements in reservoir matrix (0 to 1)
+   - inputSparsity: number - Fraction of zero elements in input matrix (0 to 1)
+   - activation: "tanh" | "relu" - Activation function type
+   - useInputInReadout: boolean - Include raw input in extended state
+   - useBiasInReadout: boolean - Include bias term in extended state
+   - readoutTraining: "rls" - Training algorithm (only RLS supported)
+   - rlsLambda: number - RLS forgetting factor
+   - rlsDelta: number - RLS initial covariance scaling
+   - epsilon: number - Small constant for numerical stability
+   - l2Lambda: number - L2 regularization coefficient
+   - gradientClipNorm: number - Maximum gradient norm for clipping
+   - normalizationEpsilon: number - Epsilon for normalization stability
+   - normalizationWarmup: number - Samples before normalization activates
+   - outlierThreshold: number - Z-score threshold for outlier detection
+   - outlierMinWeight: number - Minimum sample weight for outliers
+   - uncertaintyMultiplier: number - Confidence interval multiplier (e.g., 1.96 for 95%)
+   - weightInitScale: number - Standard deviation for weight initialization
+   - seed: number - Random seed for reproducibility
+   - verbose: boolean - Enable verbose logging
+
+2. FitResult
+   - samplesProcessed: number - Number of samples processed in this call
+   - averageLoss: number - Mean squared error over processed samples
+   - gradientNorm: number - Norm of gradient from last update
+   - driftDetected: boolean - Whether concept drift was detected
+   - sampleWeight: number - Weight applied to last sample (outlier detection)
+
+3. PredictionResult
+   - predictions: number[][] - Array of predicted coordinate vectors
+   - lowerBounds: number[][] - Lower confidence bounds per prediction
+   - upperBounds: number[][] - Upper confidence bounds per prediction
+   - confidence: number - Overall prediction confidence score (0 to 1)
+
+4. ModelSummary
+   - totalParameters: number - Total trainable and fixed parameters
+   - receptiveField: number - Effective temporal memory length
+   - spectralRadius: number - Configured spectral radius
+   - reservoirSize: number - Reservoir dimension
+   - nFeatures: number - Input/output feature dimension
+   - nTargets: number - Number of prediction targets
+   - sampleCount: number - Total samples seen during training
+
+5. WeightInfo
+   - weights: Array<{ name: string; shape: number[]; values: number[] }> - All weight matrices
+
+6. NormalizationStats
+   - means: number[] - Running mean per feature
+   - stds: number[] - Running standard deviation per feature
+   - count: number - Number of samples accumulated
+   - isActive: boolean - Whether normalization has warmed up
+
+===========================================
+DEFAULT CONFIGURATION VALUES
+===========================================
+
+reservoirSize: 256
+spectralRadius: 0.9
+leakRate: 0.3
+inputScale: 1.0
+biasScale: 0.1
+reservoirSparsity: 0.9
+inputSparsity: 0.0
+activation: "tanh"
+useInputInReadout: true
+useBiasInReadout: true
+readoutTraining: "rls"
+rlsLambda: 0.999
+rlsDelta: 1.0
+epsilon: 1e-8
+l2Lambda: 0.0001
+gradientClipNorm: 1.0
+normalizationEpsilon: 1e-8
+normalizationWarmup: 10
+outlierThreshold: 3.0
+outlierMinWeight: 0.1
+uncertaintyMultiplier: 1.96
+weightInitScale: 0.1
+seed: 42
+verbose: false
+
+===========================================
+PUBLIC METHODS OF ESNRegression CLASS
+===========================================
+
+1. constructor(config?: Partial<ESNRegressionConfig>)
+   - Accepts partial configuration, merges with defaults
+   - Does NOT allocate model buffers (lazy initialization)
+
+2. fitOnline(params: { coordinates: number[][] }): FitResult
+   - Primary training method for online learning
+   - Accepts 2D array where each row is a coordinate vector
+   - Requires at least 2 rows (forms input-target pairs)
+   - Initializes model on first call based on feature dimension
+   - Processes samples sequentially, updating reservoir state and readout weights
+   - Returns training metrics
+
+3. predict(futureSteps: number): PredictionResult
+   - Autoregressive multi-step prediction
+   - Uses current reservoir state and latest coordinates
+   - Rolls forward using predictions as next inputs
+   - Computes uncertainty bounds that grow with prediction horizon
+   - Requires model to be initialized first
+
+4. getModelSummary(): ModelSummary
+   - Returns summary statistics about model architecture
+
+5. getWeights(): WeightInfo
+   - Returns all weight matrices (Wout, Win, W, bias)
+
+6. getNormalizationStats(): NormalizationStats
+   - Returns current normalization statistics
+
+7. reset(): void
+   - Resets model to uninitialized state
+   - Clears all learned weights and statistics
+
+8. save(): string
+   - Serializes complete model state to JSON string
+   - Includes all weights, optimizer state, normalizer state
+
+9. load(str: string): void
+   - Deserializes model state from JSON string
+   - Restores all internal state for continued training or prediction
+
+===========================================
+INTERNAL ARCHITECTURE REQUIREMENTS
+===========================================
+
+MEMORY OPTIMIZATION STRATEGIES:
+
+1. Buffer Reuse
+   - Pre-allocate all working buffers during initialization
+   - Reuse scratch arrays for temporary computations
+   - Avoid allocating arrays inside loops or hot paths
+
+2. Typed Arrays
+   - Use Float64Array for all numerical data
+   - Use Int32Array for sparse matrix indices
+   - Avoid using standard JavaScript arrays for numerical operations
+
+3. Buffer Pool Pattern
+   - Implement a BufferPool class that caches and reuses Float64Array instances
+   - Pool buffers by size for efficient reuse
+
+4. Tensor Arena
+   - Single contiguous buffer for related tensors
+   - Named allocation with offset tracking
+
+CPU OPTIMIZATION STRATEGIES:
+
+1. Sparse Matrix Operations
+   - Store sparse matrices using coordinate format (row indices, column indices)
+   - Implement sparse matrix-vector multiplication that only touches non-zero elements
+   - Use sparsity for both reservoir weights and input weights
+
+2. Loop Optimization
+   - Inline small helper functions
+   - Avoid function calls in tight loops
+   - Use direct array indexing instead of iterators
+
+3. Numerical Stability
+   - Clamp values to prevent overflow/underflow
+   - Check for non-finite values and sanitize
+   - Use epsilon values to prevent division by zero
+
+4. Activation Functions
+   - Implement with early exit for extreme values (tanh saturates beyond ±20)
+   - Process arrays in-place when possible
+
+===========================================
+INTERNAL CLASSES TO IMPLEMENT
+===========================================
+
+1. TensorShape
+   - Immutable dimension descriptor
+   - Computes strides and total size
+
+2. TensorView
+   - View into Float64Array with offset
+   - get/set/fill operations
+
+3. BufferPool
+   - Acquires and releases Float64Array buffers
+   - Limits pool size to prevent memory bloat
+
+4. TensorArena
+   - Single buffer with named sub-allocations
+   - Reset clears all allocations
+
+5. TensorOps (static methods)
+   - matVec: Dense matrix-vector multiplication
+   - dot: Vector dot product
+   - axpy: y += alpha * x operation
+   - copy: Array copy with offsets
+   - norm: Euclidean norm
+   - fill: Fill array region
+   - sparseMatVecByIndices: Sparse matrix-vector using index arrays
+   - clampInPlace: Clamp values to range
+   - hasNonFinite: Check for NaN/Infinity
+   - sanitize: Replace non-finite values
+
+6. RandomGenerator
+   - Xorshift32 PRNG for reproducibility
+   - uniform(): [0, 1)
+   - normal(): Standard normal via Box-Muller
+   - range(min, max): Uniform in range
+   - getState/setState for serialization
+
+7. ActivationOps (static methods)
+   - tanh: Hyperbolic tangent with saturation handling
+   - relu: Rectified linear unit
+   - apply: Dispatch based on type string
+
+8. WelfordAccumulator
+   - Single-pass mean and variance computation
+   - Numerically stable online algorithm
+
+9. WelfordNormalizer
+   - Per-feature normalization using Welford's algorithm
+   - Tracks min/max observed values for output clamping
+   - Warmup period before activation
+   - normalize/denormalize methods
+
+10. ResidualStatsTracker
+    - Tracks prediction residual statistics per target
+    - Used for uncertainty estimation
+
+11. OutlierDownweighter
+    - Computes sample weights based on z-score
+    - Exponential downweighting beyond threshold
+
+12. LossFunction (static)
+    - mse: Mean squared error computation
+
+13. MetricsAccumulator
+    - Accumulates loss, tracks gradient norm
+    - Provides running averages
+
+14. SparseIndices
+    - Stores row/column indices for sparse matrix
+    - Constructor generates random sparsity pattern
+    - Serialization support
+
+15. SpectralRadiusScaler (static)
+    - Power iteration to estimate spectral radius
+    - Scales matrix to target spectral radius
+
+16. ESNReservoir
+    - Manages reservoir weights (W), input weights (Win), bias
+    - Sparse storage and operations
+    - update(): Process input, update internal state
+    - updateScratch(): Update using external state buffer (for prediction)
+    - Serialization support
+
+17. RLSState
+    - Stores covariance matrix P for RLS algorithm
+    - Tracks update count
+
+18. RLSOptimizer
+    - Recursive Least Squares weight updates
+    - Periodic symmetrization of P matrix
+    - Trace monitoring for stability
+    - L2 regularization support
+    - Gradient clipping
+
+19. LinearReadout
+    - Output weights (Wout)
+    - buildExtendedState(): Concatenate reservoir state, input, bias
+    - forward(): Compute output predictions
+
+20. SerializationHelper (static)
+    - JSON serialize/deserialize wrappers
+
+===========================================
+ALGORITHM FLOW
+===========================================
+
+TRAINING (fitOnline):
+1. Validate input dimensions
+2. Initialize model on first call (lazy initialization)
+3. For each consecutive pair (input, target):
+   a. Update normalizer statistics with input
+   b. Normalize input
+   c. Update reservoir state
+   d. Build extended state (reservoir + optional input + optional bias)
+   e. Forward through readout to get prediction
+   f. Normalize target
+   g. Compute loss
+   h. Compute outlier weight based on residual z-score
+   i. Update readout weights via RLS
+   j. Update residual statistics
+4. Store latest coordinates for prediction
+5. Return fit metrics
+
+PREDICTION (predict):
+1. Validate model is initialized
+2. Copy current reservoir state to scratch buffer
+3. Start with latest coordinates as input
+4. For each future step:
+   a. Normalize input
+   b. Update scratch reservoir state
+   c. Build extended state
+   d. Forward through readout
+   e. Denormalize output
+   f. Sanitize predictions (handle NaN, clamp to reasonable range)
+   g. Compute uncertainty bounds (grow with horizon)
+   h. Use prediction as next input
+5. Compute overall confidence score
+6. Return predictions with bounds
+
+===========================================
+NUMERICAL STABILITY REQUIREMENTS
+===========================================
+
+1. All divisions must check for zero denominator (use epsilon)
+2. Check for NaN/Infinity after all operations and sanitize
+3. Clamp predictions to observed data range with margin
+4. Periodically symmetrize RLS covariance matrix
+5. Reset RLS covariance if trace becomes too large or small
+6. Clamp normalized values to ±10
+7. Clamp raw predictions to ±100 before denormalization
+8. Use fallback values when computations produce non-finite results
+
+===========================================
+SERIALIZATION REQUIREMENTS
+===========================================
+
+1. All numeric arrays serialized as standard JavaScript arrays
+2. Config object serialized directly
+3. Each internal class implements serialize() and static deserialize()
+4. Main save/load uses JSON.stringify/parse
+5. After load, reinitialize scratch buffers
+
+===========================================
+ERROR HANDLING
+===========================================
+
+1. Throw descriptive errors for invalid inputs
+2. fitOnline requires coordinates array with at least 2 rows
+3. All rows must have consistent dimension
+4. predict requires model to be initialized
+5. futureSteps must be positive integer
+6. Feature dimension must match after initialization
+
+===========================================
+CODE STYLE
+===========================================
+
+1. Use TypeScript with strict typing
+2. Private members prefixed with underscore or use private keyword
+3. Readonly where appropriate
+4. Object.freeze for immutable structures
+5. JSDoc comments for public methods
+6. No external dependencies
