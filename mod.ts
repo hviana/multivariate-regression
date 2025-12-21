@@ -108,14 +108,6 @@ class TensorShape {
     }
     this.strides = Object.freeze(strides);
   }
-
-  index(...indices: number[]): number {
-    let idx = 0;
-    for (let i = 0; i < indices.length; i++) {
-      idx += indices[i] * this.strides[i];
-    }
-    return idx;
-  }
 }
 
 class TensorView {
@@ -137,30 +129,10 @@ class TensorView {
     this.data[this.offset + i] = v;
   }
 
-  get2d(row: number, col: number): number {
-    return this.data[this.offset + row * this.shape.strides[0] + col];
-  }
-
-  set2d(row: number, col: number, v: number): void {
-    this.data[this.offset + row * this.shape.strides[0] + col] = v;
-  }
-
   fill(v: number): void {
     const end = this.offset + this.shape.size;
     for (let i = this.offset; i < end; i++) {
       this.data[i] = v;
-    }
-  }
-
-  copyFrom(src: Float64Array, srcOffset: number, length: number): void {
-    for (let i = 0; i < length; i++) {
-      this.data[this.offset + i] = src[srcOffset + i];
-    }
-  }
-
-  copyTo(dst: Float64Array, dstOffset: number, length: number): void {
-    for (let i = 0; i < length; i++) {
-      dst[dstOffset + i] = this.data[this.offset + i];
     }
   }
 }
@@ -183,7 +155,10 @@ class BufferPool {
       pool = [];
       this.pools.set(size, pool);
     }
-    pool.push(buffer);
+    if (pool.length < 16) {
+      buffer.fill(0);
+      pool.push(buffer);
+    }
   }
 
   clear(): void {
@@ -263,33 +238,6 @@ class TensorOps {
     return sum;
   }
 
-  static scale(
-    x: Float64Array,
-    xOffset: number,
-    alpha: number,
-    y: Float64Array,
-    yOffset: number,
-    length: number,
-  ): void {
-    for (let i = 0; i < length; i++) {
-      y[yOffset + i] = alpha * x[xOffset + i];
-    }
-  }
-
-  static add(
-    a: Float64Array,
-    aOffset: number,
-    b: Float64Array,
-    bOffset: number,
-    y: Float64Array,
-    yOffset: number,
-    length: number,
-  ): void {
-    for (let i = 0; i < length; i++) {
-      y[yOffset + i] = a[aOffset + i] + b[bOffset + i];
-    }
-  }
-
   static axpy(
     alpha: number,
     x: Float64Array,
@@ -335,28 +283,74 @@ class TensorOps {
     }
   }
 
-  static sparseMatVec(
+  static sparseMatVecByIndices(
     A: Float64Array,
     aOffset: number,
-    rows: number,
     cols: number,
-    mask: Uint8Array,
-    maskOffset: number,
+    rowIndices: Int32Array,
+    colIndices: Int32Array,
+    nnz: number,
     x: Float64Array,
     xOffset: number,
     y: Float64Array,
     yOffset: number,
+    rows: number,
   ): void {
     for (let i = 0; i < rows; i++) {
-      let sum = 0.0;
-      const rowStart = aOffset + i * cols;
-      const maskRowStart = maskOffset + i * cols;
-      for (let j = 0; j < cols; j++) {
-        if (mask[maskRowStart + j]) {
-          sum += A[rowStart + j] * x[xOffset + j];
-        }
+      y[yOffset + i] = 0.0;
+    }
+    for (let k = 0; k < nnz; k++) {
+      const i = rowIndices[k];
+      const j = colIndices[k];
+      y[yOffset + i] += A[aOffset + i * cols + j] * x[xOffset + j];
+    }
+  }
+
+  static clampInPlace(
+    x: Float64Array,
+    offset: number,
+    length: number,
+    minVal: number,
+    maxVal: number,
+  ): void {
+    for (let i = 0; i < length; i++) {
+      const idx = offset + i;
+      let v = x[idx];
+      if (!Number.isFinite(v)) {
+        v = 0.0;
+      } else if (v < minVal) {
+        v = minVal;
+      } else if (v > maxVal) {
+        v = maxVal;
       }
-      y[yOffset + i] = sum;
+      x[idx] = v;
+    }
+  }
+
+  static hasNonFinite(
+    x: Float64Array,
+    offset: number,
+    length: number,
+  ): boolean {
+    for (let i = 0; i < length; i++) {
+      if (!Number.isFinite(x[offset + i])) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static sanitize(
+    x: Float64Array,
+    offset: number,
+    length: number,
+    fallback: number,
+  ): void {
+    for (let i = 0; i < length; i++) {
+      const idx = offset + i;
+      if (!Number.isFinite(x[idx])) {
+        x[idx] = fallback;
+      }
     }
   }
 }
@@ -414,7 +408,11 @@ class ActivationOps {
     length: number,
   ): void {
     for (let i = 0; i < length; i++) {
-      y[yOffset + i] = Math.tanh(x[xOffset + i]);
+      let v = x[xOffset + i];
+      if (v > 20) v = 1.0;
+      else if (v < -20) v = -1.0;
+      else v = Math.tanh(v);
+      y[yOffset + i] = v;
     }
   }
 
@@ -484,6 +482,8 @@ class WelfordNormalizer {
   private warmup: number;
   private cachedStds: Float64Array;
   private cachedMeans: Float64Array;
+  private minObserved: Float64Array;
+  private maxObserved: Float64Array;
 
   constructor(nFeatures: number, epsilon: number, warmup: number) {
     this.nFeatures = nFeatures;
@@ -495,12 +495,21 @@ class WelfordNormalizer {
     }
     this.cachedStds = new Float64Array(nFeatures);
     this.cachedMeans = new Float64Array(nFeatures);
+    this.minObserved = new Float64Array(nFeatures);
+    this.maxObserved = new Float64Array(nFeatures);
     this.cachedStds.fill(1.0);
+    this.minObserved.fill(Infinity);
+    this.maxObserved.fill(-Infinity);
   }
 
   update(input: Float64Array, offset: number): void {
     for (let i = 0; i < this.nFeatures; i++) {
-      this.accumulators[i].update(input[offset + i]);
+      const v = input[offset + i];
+      if (Number.isFinite(v)) {
+        this.accumulators[i].update(v);
+        if (v < this.minObserved[i]) this.minObserved[i] = v;
+        if (v > this.maxObserved[i]) this.maxObserved[i] = v;
+      }
     }
     this.updateCache();
   }
@@ -525,8 +534,15 @@ class WelfordNormalizer {
     outputOffset: number,
   ): void {
     for (let i = 0; i < this.nFeatures; i++) {
-      output[outputOffset + i] =
-        (input[inputOffset + i] - this.cachedMeans[i]) / this.cachedStds[i];
+      const v = input[inputOffset + i];
+      const mean = this.cachedMeans[i];
+      const std = this.cachedStds[i];
+      let normalized = (v - mean) / std;
+      if (!Number.isFinite(normalized)) {
+        normalized = 0.0;
+      }
+      normalized = Math.max(-10.0, Math.min(10.0, normalized));
+      output[outputOffset + i] = normalized;
     }
   }
 
@@ -537,16 +553,28 @@ class WelfordNormalizer {
     outputOffset: number,
   ): void {
     for (let i = 0; i < this.nFeatures; i++) {
-      output[outputOffset + i] = input[inputOffset + i] * this.cachedStds[i] +
-        this.cachedMeans[i];
+      let v = input[inputOffset + i] * this.cachedStds[i] + this.cachedMeans[i];
+      if (!Number.isFinite(v)) {
+        v = this.cachedMeans[i];
+      }
+      const range = this.maxObserved[i] - this.minObserved[i];
+      const margin = Math.max(
+        range * 5.0,
+        Math.abs(this.cachedMeans[i]) * 10.0,
+        100.0,
+      );
+      const lb = this.minObserved[i] - margin;
+      const ub = this.maxObserved[i] + margin;
+      if (Number.isFinite(lb) && Number.isFinite(ub)) {
+        v = Math.max(lb, Math.min(ub, v));
+      }
+      output[outputOffset + i] = v;
     }
   }
 
   isActive(): boolean {
-    return (
-      this.accumulators.length > 0 &&
-      this.accumulators[0].count >= this.warmup
-    );
+    return this.accumulators.length > 0 &&
+      this.accumulators[0].count >= this.warmup;
   }
 
   getCount(): number {
@@ -573,12 +601,22 @@ class WelfordNormalizer {
     return this.cachedStds;
   }
 
+  getMinObserved(): Float64Array {
+    return this.minObserved;
+  }
+
+  getMaxObserved(): Float64Array {
+    return this.maxObserved;
+  }
+
   reset(): void {
     for (let i = 0; i < this.nFeatures; i++) {
       this.accumulators[i].reset();
     }
     this.cachedStds.fill(1.0);
     this.cachedMeans.fill(0);
+    this.minObserved.fill(Infinity);
+    this.maxObserved.fill(-Infinity);
   }
 
   serialize(): object {
@@ -591,6 +629,8 @@ class WelfordNormalizer {
         mean: acc.mean,
         m2: acc.m2,
       })),
+      minObserved: Array.from(this.minObserved),
+      maxObserved: Array.from(this.maxObserved),
     };
   }
 
@@ -604,6 +644,12 @@ class WelfordNormalizer {
       normalizer.accumulators[i].count = data.accumulators[i].count;
       normalizer.accumulators[i].mean = data.accumulators[i].mean;
       normalizer.accumulators[i].m2 = data.accumulators[i].m2;
+    }
+    if (data.minObserved) {
+      normalizer.minObserved = new Float64Array(data.minObserved);
+    }
+    if (data.maxObserved) {
+      normalizer.maxObserved = new Float64Array(data.maxObserved);
     }
     normalizer.updateCache();
     return normalizer;
@@ -622,6 +668,7 @@ class ResidualStatsTracker {
       this.accumulators[i] = new WelfordAccumulator();
     }
     this.cachedStds = new Float64Array(nTargets);
+    this.cachedStds.fill(1.0);
   }
 
   update(
@@ -632,8 +679,11 @@ class ResidualStatsTracker {
   ): void {
     for (let i = 0; i < this.nTargets; i++) {
       const residual = prediction[predOffset + i] - target[targetOffset + i];
-      this.accumulators[i].update(residual);
-      this.cachedStds[i] = this.accumulators[i].getStd();
+      if (Number.isFinite(residual)) {
+        this.accumulators[i].update(residual);
+        const std = this.accumulators[i].getStd();
+        this.cachedStds[i] = Math.max(std, 1e-10);
+      }
     }
   }
 
@@ -645,14 +695,6 @@ class ResidualStatsTracker {
     return this.cachedStds[idx];
   }
 
-  getMeans(): Float64Array {
-    const means = new Float64Array(this.nTargets);
-    for (let i = 0; i < this.nTargets; i++) {
-      means[i] = this.accumulators[i].mean;
-    }
-    return means;
-  }
-
   getCount(): number {
     return this.accumulators.length > 0 ? this.accumulators[0].count : 0;
   }
@@ -660,7 +702,7 @@ class ResidualStatsTracker {
   reset(): void {
     for (let i = 0; i < this.nTargets; i++) {
       this.accumulators[i].reset();
-      this.cachedStds[i] = 0;
+      this.cachedStds[i] = 1.0;
     }
   }
 
@@ -681,7 +723,8 @@ class ResidualStatsTracker {
       tracker.accumulators[i].count = data.accumulators[i].count;
       tracker.accumulators[i].mean = data.accumulators[i].mean;
       tracker.accumulators[i].m2 = data.accumulators[i].m2;
-      tracker.cachedStds[i] = tracker.accumulators[i].getStd();
+      const std = tracker.accumulators[i].getStd();
+      tracker.cachedStds[i] = Math.max(std, 1e-10);
     }
     return tracker;
   }
@@ -712,7 +755,7 @@ class OutlierDownweighter {
       );
       const std = residualStds[i] > epsilon ? residualStds[i] : 1.0;
       const zScore = residual / std;
-      if (zScore > maxZScore) {
+      if (Number.isFinite(zScore) && zScore > maxZScore) {
         maxZScore = zScore;
       }
     }
@@ -734,26 +777,16 @@ class LossFunction {
     length: number,
   ): number {
     let sum = 0.0;
+    let validCount = 0;
     for (let i = 0; i < length; i++) {
       const diff = prediction[predOffset + i] - target[targetOffset + i];
-      sum += diff * diff;
+      if (Number.isFinite(diff)) {
+        sum += diff * diff;
+        validCount++;
+      }
     }
-    return sum / length;
-  }
-
-  static computeError(
-    prediction: Float64Array,
-    predOffset: number,
-    target: Float64Array,
-    targetOffset: number,
-    error: Float64Array,
-    errorOffset: number,
-    length: number,
-  ): void {
-    for (let i = 0; i < length; i++) {
-      error[errorOffset + i] = prediction[predOffset + i] -
-        target[targetOffset + i];
-    }
+    if (validCount === 0) return 0;
+    return sum / validCount;
   }
 }
 
@@ -803,19 +836,69 @@ class MetricsAccumulator {
   }
 }
 
-class ReservoirInitMask {
-  static generate(
+class SparseIndices {
+  rowIndices: Int32Array;
+  colIndices: Int32Array;
+  nnz: number;
+
+  constructor(
     rows: number,
     cols: number,
     sparsity: number,
     rng: RandomGenerator,
-  ): Uint8Array {
-    const mask = new Uint8Array(rows * cols);
+  ) {
     const threshold = 1.0 - sparsity;
-    for (let i = 0; i < rows * cols; i++) {
-      mask[i] = rng.uniform() < threshold ? 1 : 0;
+    const indices: { row: number; col: number }[] = [];
+    for (let i = 0; i < rows; i++) {
+      for (let j = 0; j < cols; j++) {
+        if (rng.uniform() < threshold) {
+          indices.push({ row: i, col: j });
+        }
+      }
     }
-    return mask;
+    this.nnz = indices.length;
+    this.rowIndices = new Int32Array(this.nnz);
+    this.colIndices = new Int32Array(this.nnz);
+    for (let k = 0; k < this.nnz; k++) {
+      this.rowIndices[k] = indices[k].row;
+      this.colIndices[k] = indices[k].col;
+    }
+  }
+
+  static fromMask(mask: Uint8Array, rows: number, cols: number): SparseIndices {
+    const indices: { row: number; col: number }[] = [];
+    for (let i = 0; i < rows; i++) {
+      for (let j = 0; j < cols; j++) {
+        if (mask[i * cols + j]) {
+          indices.push({ row: i, col: j });
+        }
+      }
+    }
+    const sparse = Object.create(SparseIndices.prototype) as SparseIndices;
+    sparse.nnz = indices.length;
+    sparse.rowIndices = new Int32Array(sparse.nnz);
+    sparse.colIndices = new Int32Array(sparse.nnz);
+    for (let k = 0; k < sparse.nnz; k++) {
+      sparse.rowIndices[k] = indices[k].row;
+      sparse.colIndices[k] = indices[k].col;
+    }
+    return sparse;
+  }
+
+  serialize(): object {
+    return {
+      nnz: this.nnz,
+      rowIndices: Array.from(this.rowIndices),
+      colIndices: Array.from(this.colIndices),
+    };
+  }
+
+  static deserialize(data: any): SparseIndices {
+    const sparse = Object.create(SparseIndices.prototype) as SparseIndices;
+    sparse.nnz = data.nnz;
+    sparse.rowIndices = new Int32Array(data.rowIndices);
+    sparse.colIndices = new Int32Array(data.colIndices);
+    return sparse;
   }
 }
 
@@ -824,12 +907,11 @@ class SpectralRadiusScaler {
     W: Float64Array,
     offset: number,
     size: number,
-    mask: Uint8Array,
-    maskOffset: number,
+    sparseIndices: SparseIndices,
     targetRadius: number,
     rng: RandomGenerator,
     epsilon: number,
-    iterations: number = 30,
+    iterations: number = 50,
   ): number {
     const v = new Float64Array(size);
     const vNew = new Float64Array(size);
@@ -845,44 +927,54 @@ class SpectralRadiusScaler {
       }
       norm = 1.0;
     } else {
+      const invNorm = 1.0 / norm;
       for (let i = 0; i < size; i++) {
-        v[i] /= norm;
+        v[i] *= invNorm;
       }
     }
 
     let eigenvalue = 1.0;
+    let prevEigenvalue = 0.0;
 
     for (let iter = 0; iter < iterations; iter++) {
-      TensorOps.sparseMatVec(
+      TensorOps.sparseMatVecByIndices(
         W,
         offset,
         size,
-        size,
-        mask,
-        maskOffset,
+        sparseIndices.rowIndices,
+        sparseIndices.colIndices,
+        sparseIndices.nnz,
         v,
         0,
         vNew,
         0,
+        size,
       );
+
       eigenvalue = TensorOps.norm(vNew, 0, size);
       if (eigenvalue < epsilon) {
         eigenvalue = epsilon;
         break;
       }
+
       const invEig = 1.0 / eigenvalue;
       for (let i = 0; i < size; i++) {
         v[i] = vNew[i] * invEig;
       }
+
+      if (Math.abs(eigenvalue - prevEigenvalue) < epsilon * 0.01) {
+        break;
+      }
+      prevEigenvalue = eigenvalue;
     }
 
     if (eigenvalue > epsilon) {
       const scaleFactor = targetRadius / eigenvalue;
-      const n = size * size;
-      for (let i = 0; i < n; i++) {
-        if (mask[maskOffset + i]) {
-          W[offset + i] *= scaleFactor;
-        }
+      const { rowIndices, colIndices, nnz } = sparseIndices;
+      for (let k = 0; k < nnz; k++) {
+        const i = rowIndices[k];
+        const j = colIndices[k];
+        W[offset + i * size + j] *= scaleFactor;
       }
     }
 
@@ -909,8 +1001,8 @@ class ESNReservoir {
   private W: Float64Array;
   private Win: Float64Array;
   private bias: Float64Array;
-  private Wmask: Uint8Array;
-  private WinMask: Uint8Array;
+  private Wsparse: SparseIndices;
+  private WinSparse: SparseIndices;
   private state: Float64Array;
   private preActivation: Float64Array;
   private temp1: Float64Array;
@@ -926,8 +1018,8 @@ class ESNReservoir {
     this.preActivation = new Float64Array(reservoirSize);
     this.temp1 = new Float64Array(reservoirSize);
     this.temp2 = new Float64Array(reservoirSize);
-    this.Wmask = new Uint8Array(0);
-    this.WinMask = new Uint8Array(0);
+    this.Wsparse = new SparseIndices(0, 0, 1, new RandomGenerator(1));
+    this.WinSparse = new SparseIndices(0, 0, 1, new RandomGenerator(1));
     this.initialize();
   }
 
@@ -946,40 +1038,42 @@ class ESNReservoir {
 
     const rng = new RandomGenerator(seed);
 
-    this.Wmask = ReservoirInitMask.generate(
+    this.Wsparse = new SparseIndices(
       reservoirSize,
       reservoirSize,
       reservoirSparsity,
       rng,
     );
-    this.WinMask = ReservoirInitMask.generate(
+    this.WinSparse = new SparseIndices(
       reservoirSize,
       nFeatures,
       inputSparsity,
       rng,
     );
 
-    for (let i = 0; i < reservoirSize * reservoirSize; i++) {
-      if (this.Wmask[i]) {
-        this.W[i] = rng.range(-1, 1);
-      }
+    const { rowIndices: wRows, colIndices: wCols, nnz: wNnz } = this.Wsparse;
+    for (let k = 0; k < wNnz; k++) {
+      const i = wRows[k];
+      const j = wCols[k];
+      this.W[i * reservoirSize + j] = rng.range(-1, 1);
     }
 
     SpectralRadiusScaler.scaleToSpectralRadius(
       this.W,
       0,
       reservoirSize,
-      this.Wmask,
-      0,
+      this.Wsparse,
       spectralRadius,
       rng,
       epsilon,
     );
 
-    for (let i = 0; i < reservoirSize * nFeatures; i++) {
-      if (this.WinMask[i]) {
-        this.Win[i] = rng.range(-1, 1) * inputScale;
-      }
+    const { rowIndices: winRows, colIndices: winCols, nnz: winNnz } =
+      this.WinSparse;
+    for (let k = 0; k < winNnz; k++) {
+      const i = winRows[k];
+      const j = winCols[k];
+      this.Win[i * nFeatures + j] = rng.range(-1, 1) * inputScale;
     }
 
     for (let i = 0; i < reservoirSize; i++) {
@@ -992,27 +1086,45 @@ class ESNReservoir {
   update(input: Float64Array, inputOffset: number): void {
     const { reservoirSize, nFeatures, leakRate, activation } = this.params;
 
-    TensorOps.matVec(
-      this.Win,
-      0,
-      reservoirSize,
-      nFeatures,
-      input,
-      inputOffset,
-      this.temp1,
-      0,
-    );
-    TensorOps.sparseMatVec(
+    if (this.WinSparse.nnz === reservoirSize * nFeatures) {
+      TensorOps.matVec(
+        this.Win,
+        0,
+        reservoirSize,
+        nFeatures,
+        input,
+        inputOffset,
+        this.temp1,
+        0,
+      );
+    } else {
+      TensorOps.sparseMatVecByIndices(
+        this.Win,
+        0,
+        nFeatures,
+        this.WinSparse.rowIndices,
+        this.WinSparse.colIndices,
+        this.WinSparse.nnz,
+        input,
+        inputOffset,
+        this.temp1,
+        0,
+        reservoirSize,
+      );
+    }
+
+    TensorOps.sparseMatVecByIndices(
       this.W,
       0,
       reservoirSize,
-      reservoirSize,
-      this.Wmask,
-      0,
+      this.Wsparse.rowIndices,
+      this.Wsparse.colIndices,
+      this.Wsparse.nnz,
       this.state,
       0,
       this.temp2,
       0,
+      reservoirSize,
     );
 
     for (let i = 0; i < reservoirSize; i++) {
@@ -1030,7 +1142,11 @@ class ESNReservoir {
 
     const oneMinusLeak = 1.0 - leakRate;
     for (let i = 0; i < reservoirSize; i++) {
-      this.state[i] = oneMinusLeak * this.state[i] + leakRate * this.temp1[i];
+      let newState = oneMinusLeak * this.state[i] + leakRate * this.temp1[i];
+      if (!Number.isFinite(newState)) {
+        newState = 0.0;
+      }
+      this.state[i] = newState;
     }
   }
 
@@ -1042,27 +1158,45 @@ class ESNReservoir {
   ): void {
     const { reservoirSize, nFeatures, leakRate, activation } = this.params;
 
-    TensorOps.matVec(
-      this.Win,
-      0,
-      reservoirSize,
-      nFeatures,
-      input,
-      inputOffset,
-      this.temp1,
-      0,
-    );
-    TensorOps.sparseMatVec(
+    if (this.WinSparse.nnz === reservoirSize * nFeatures) {
+      TensorOps.matVec(
+        this.Win,
+        0,
+        reservoirSize,
+        nFeatures,
+        input,
+        inputOffset,
+        this.temp1,
+        0,
+      );
+    } else {
+      TensorOps.sparseMatVecByIndices(
+        this.Win,
+        0,
+        nFeatures,
+        this.WinSparse.rowIndices,
+        this.WinSparse.colIndices,
+        this.WinSparse.nnz,
+        input,
+        inputOffset,
+        this.temp1,
+        0,
+        reservoirSize,
+      );
+    }
+
+    TensorOps.sparseMatVecByIndices(
       this.W,
       0,
       reservoirSize,
-      reservoirSize,
-      this.Wmask,
-      0,
+      this.Wsparse.rowIndices,
+      this.Wsparse.colIndices,
+      this.Wsparse.nnz,
       scratchState,
       scratchOffset,
       this.temp2,
       0,
+      reservoirSize,
     );
 
     for (let i = 0; i < reservoirSize; i++) {
@@ -1080,9 +1214,12 @@ class ESNReservoir {
 
     const oneMinusLeak = 1.0 - leakRate;
     for (let i = 0; i < reservoirSize; i++) {
-      scratchState[scratchOffset + i] =
-        oneMinusLeak * scratchState[scratchOffset + i] +
+      let newState = oneMinusLeak * scratchState[scratchOffset + i] +
         leakRate * this.temp1[i];
+      if (!Number.isFinite(newState)) {
+        newState = 0.0;
+      }
+      scratchState[scratchOffset + i] = newState;
     }
   }
 
@@ -1114,12 +1251,12 @@ class ESNReservoir {
     return this.bias;
   }
 
-  getWmask(): Uint8Array {
-    return this.Wmask;
+  getWsparse(): SparseIndices {
+    return this.Wsparse;
   }
 
-  getWinMask(): Uint8Array {
-    return this.WinMask;
+  getWinSparse(): SparseIndices {
+    return this.WinSparse;
   }
 
   serialize(): object {
@@ -1128,8 +1265,8 @@ class ESNReservoir {
       W: Array.from(this.W),
       Win: Array.from(this.Win),
       bias: Array.from(this.bias),
-      Wmask: Array.from(this.Wmask),
-      WinMask: Array.from(this.WinMask),
+      Wsparse: this.Wsparse.serialize(),
+      WinSparse: this.WinSparse.serialize(),
       state: Array.from(this.state),
     };
   }
@@ -1139,8 +1276,8 @@ class ESNReservoir {
     reservoir.W = new Float64Array(data.W);
     reservoir.Win = new Float64Array(data.Win);
     reservoir.bias = new Float64Array(data.bias);
-    reservoir.Wmask = new Uint8Array(data.Wmask);
-    reservoir.WinMask = new Uint8Array(data.WinMask);
+    reservoir.Wsparse = SparseIndices.deserialize(data.Wsparse);
+    reservoir.WinSparse = SparseIndices.deserialize(data.WinSparse);
     reservoir.state = new Float64Array(data.state);
     return reservoir;
   }
@@ -1149,10 +1286,12 @@ class ESNReservoir {
 class RLSState {
   P: Float64Array;
   zDim: number;
+  updateCount: number;
 
   constructor(zDim: number, delta: number) {
     this.zDim = zDim;
     this.P = new Float64Array(zDim * zDim);
+    this.updateCount = 0;
     const invDelta = 1.0 / Math.max(delta, 1e-10);
     for (let i = 0; i < zDim; i++) {
       this.P[i * zDim + i] = invDelta;
@@ -1163,12 +1302,14 @@ class RLSState {
     return {
       zDim: this.zDim,
       P: Array.from(this.P),
+      updateCount: this.updateCount,
     };
   }
 
   static deserialize(data: any): RLSState {
     const state = new RLSState(data.zDim, 1.0);
     state.P = new Float64Array(data.P);
+    state.updateCount = data.updateCount || 0;
     return state;
   }
 }
@@ -1178,8 +1319,13 @@ class RLSOptimizer {
   private lambda: number;
   private l2Lambda: number;
   private epsilon: number;
+  private gradientClipNorm: number;
   private Pz: Float64Array;
   private gain: Float64Array;
+  private tempRow: Float64Array;
+  private readonly symmetrizeInterval: number = 100;
+  private readonly traceResetThreshold: number = 1e10;
+  private readonly traceMinThreshold: number = 1e-10;
 
   constructor(
     zDim: number,
@@ -1187,13 +1333,64 @@ class RLSOptimizer {
     delta: number,
     l2Lambda: number,
     epsilon: number,
+    gradientClipNorm: number,
   ) {
     this.state = new RLSState(zDim, delta);
-    this.lambda = lambda;
+    this.lambda = Math.max(lambda, 0.9);
     this.l2Lambda = l2Lambda;
     this.epsilon = epsilon;
+    this.gradientClipNorm = gradientClipNorm;
     this.Pz = new Float64Array(zDim);
     this.gain = new Float64Array(zDim);
+    this.tempRow = new Float64Array(zDim);
+  }
+
+  private symmetrizeP(): void {
+    const zDim = this.state.zDim;
+    const P = this.state.P;
+    for (let i = 0; i < zDim; i++) {
+      for (let j = i + 1; j < zDim; j++) {
+        const avg = 0.5 * (P[i * zDim + j] + P[j * zDim + i]);
+        P[i * zDim + j] = avg;
+        P[j * zDim + i] = avg;
+      }
+    }
+  }
+
+  private checkAndStabilizeP(delta: number): boolean {
+    const zDim = this.state.zDim;
+    const P = this.state.P;
+    let trace = 0.0;
+    let hasNonFinite = false;
+
+    for (let i = 0; i < zDim; i++) {
+      const diag = P[i * zDim + i];
+      if (!Number.isFinite(diag)) {
+        hasNonFinite = true;
+        break;
+      }
+      trace += diag;
+    }
+
+    if (
+      hasNonFinite || trace > this.traceResetThreshold ||
+      trace < this.traceMinThreshold
+    ) {
+      const invDelta = 1.0 / Math.max(delta, 1e-10);
+      P.fill(0);
+      for (let i = 0; i < zDim; i++) {
+        P[i * zDim + i] = invDelta;
+      }
+      return true;
+    }
+
+    for (let i = 0; i < zDim; i++) {
+      if (P[i * zDim + i] < this.epsilon) {
+        P[i * zDim + i] = this.epsilon;
+      }
+    }
+
+    return false;
   }
 
   update(
@@ -1207,31 +1404,61 @@ class RLSOptimizer {
     woutOffset: number,
     nTargets: number,
     sampleWeight: number,
+    delta: number,
   ): number {
     const zDim = this.state.zDim;
     const P = this.state.P;
 
+    this.state.updateCount++;
+
+    if (this.state.updateCount % this.symmetrizeInterval === 0) {
+      this.symmetrizeP();
+      this.checkAndStabilizeP(delta);
+    }
+
     TensorOps.matVec(P, 0, zDim, zDim, z, zOffset, this.Pz, 0);
 
     let gamma = TensorOps.dot(z, zOffset, this.Pz, 0, zDim);
-    let denom = this.lambda + gamma;
 
-    if (Math.abs(denom) < this.epsilon) {
-      denom = denom >= 0 ? this.epsilon : -this.epsilon;
+    if (!Number.isFinite(gamma) || gamma < 0) {
+      gamma = this.epsilon;
+    }
+
+    let denom = this.lambda + gamma;
+    if (denom < this.epsilon) {
+      denom = this.epsilon;
     }
 
     const invDenom = sampleWeight / denom;
     for (let i = 0; i < zDim; i++) {
       this.gain[i] = this.Pz[i] * invDenom;
+      if (!Number.isFinite(this.gain[i])) {
+        this.gain[i] = 0.0;
+      }
+    }
+
+    const gainNorm = TensorOps.norm(this.gain, 0, zDim);
+    if (gainNorm > this.gradientClipNorm) {
+      const scale = this.gradientClipNorm / gainNorm;
+      for (let i = 0; i < zDim; i++) {
+        this.gain[i] *= scale;
+      }
     }
 
     let gradNormSum = 0.0;
     for (let k = 0; k < nTargets; k++) {
-      const error = target[targetOffset + k] - prediction[predOffset + k];
+      let error = target[targetOffset + k] - prediction[predOffset + k];
+      if (!Number.isFinite(error)) {
+        error = 0.0;
+      }
+      error = Math.max(-10.0, Math.min(10.0, error));
       gradNormSum += error * error;
       const rowOffset = woutOffset + k * zDim;
       for (let j = 0; j < zDim; j++) {
-        Wout[rowOffset + j] += this.gain[j] * error;
+        const update = this.gain[j] * error;
+        if (Number.isFinite(update)) {
+          Wout[rowOffset + j] += update;
+        }
       }
     }
 
@@ -1248,11 +1475,15 @@ class RLSOptimizer {
       const gainI = this.gain[i];
       const rowOffset = i * zDim;
       for (let j = 0; j < zDim; j++) {
-        P[rowOffset + j] = (P[rowOffset + j] - gainI * this.Pz[j]) * invLambda;
+        let newVal = (P[rowOffset + j] - gainI * this.Pz[j]) * invLambda;
+        if (!Number.isFinite(newVal)) {
+          newVal = (i === j) ? 1.0 / Math.max(delta, 1e-10) : 0.0;
+        }
+        P[rowOffset + j] = newVal;
       }
     }
 
-    return Math.sqrt(gradNormSum / nTargets);
+    return Math.sqrt(gradNormSum / Math.max(nTargets, 1));
   }
 
   getState(): RLSState {
@@ -1266,6 +1497,7 @@ class RLSOptimizer {
   reset(delta: number): void {
     const zDim = this.state.zDim;
     this.state.P.fill(0);
+    this.state.updateCount = 0;
     const invDelta = 1.0 / Math.max(delta, 1e-10);
     for (let i = 0; i < zDim; i++) {
       this.state.P[i * zDim + i] = invDelta;
@@ -1278,6 +1510,7 @@ class RLSOptimizer {
       lambda: this.lambda,
       l2Lambda: this.l2Lambda,
       epsilon: this.epsilon,
+      gradientClipNorm: this.gradientClipNorm,
     };
   }
 
@@ -1289,6 +1522,7 @@ class RLSOptimizer {
       1.0,
       data.l2Lambda,
       data.epsilon,
+      data.gradientClipNorm || 1.0,
     );
     opt.state = RLSState.deserialize(data.state);
     return opt;
@@ -1371,6 +1605,14 @@ class LinearReadout {
       y,
       yOffset,
     );
+    for (let i = 0; i < this.config.nTargets; i++) {
+      let v = y[yOffset + i];
+      if (!Number.isFinite(v)) {
+        v = 0.0;
+      }
+      v = Math.max(-100.0, Math.min(100.0, v));
+      y[yOffset + i] = v;
+    }
   }
 
   getZDim(): number {
@@ -1444,6 +1686,7 @@ export class ESNRegression {
   private scratchZ: Float64Array | null = null;
   private scratchOutput: Float64Array | null = null;
   private tempTarget: Float64Array | null = null;
+  private lastValidPrediction: Float64Array | null = null;
   private fitResult: FitResult = {
     samplesProcessed: 0,
     averageLoss: 0,
@@ -1497,6 +1740,7 @@ export class ESNRegression {
       this.config.rlsDelta,
       this.config.l2Lambda,
       this.config.epsilon,
+      this.config.gradientClipNorm,
     );
 
     this.normalizer = new WelfordNormalizer(
@@ -1515,6 +1759,7 @@ export class ESNRegression {
     this.scratchZ = new Float64Array(this.readout.getZDim());
     this.scratchOutput = new Float64Array(nFeatures);
     this.tempTarget = new Float64Array(nFeatures);
+    this.lastValidPrediction = new Float64Array(nFeatures);
 
     this.initialized = true;
   }
@@ -1573,12 +1818,14 @@ export class ESNRegression {
     }
 
     for (let j = 0; j < nFeatures; j++) {
-      this.scratchInput![j] = coordinates[n - 1][j];
+      const v = coordinates[n - 1][j];
+      this.scratchInput![j] = Number.isFinite(v) ? v : 0;
     }
     this.normalizer!.update(this.scratchInput!, 0);
 
     for (let j = 0; j < nFeatures; j++) {
-      this.latestCoordinates![j] = coordinates[n - 1][j];
+      this.latestCoordinates![j] = this.scratchInput![j];
+      this.lastValidPrediction![j] = this.scratchInput![j];
     }
 
     this.sampleCount += n - 1;
@@ -1596,11 +1843,12 @@ export class ESNRegression {
     const nFeatures = this.nFeatures;
 
     for (let j = 0; j < nFeatures; j++) {
-      this.scratchInput![j] = input[j];
+      const v = input[j];
+      this.scratchInput![j] = Number.isFinite(v) ? v : 0;
     }
 
-    this.normalizer!.normalize(this.scratchInput!, 0, this.normalizedInput!, 0);
     this.normalizer!.update(this.scratchInput!, 0);
+    this.normalizer!.normalize(this.scratchInput!, 0, this.normalizedInput!, 0);
 
     this.reservoir!.update(this.normalizedInput!, 0);
 
@@ -1616,7 +1864,8 @@ export class ESNRegression {
     this.readout!.forward(this.scratchZ!, 0, this.scratchOutput!, 0);
 
     for (let j = 0; j < nFeatures; j++) {
-      this.tempTarget![j] = target[j];
+      const v = target[j];
+      this.tempTarget![j] = Number.isFinite(v) ? v : 0;
     }
     this.normalizer!.normalize(this.tempTarget!, 0, this.normalizedTarget!, 0);
 
@@ -1656,6 +1905,7 @@ export class ESNRegression {
       0,
       nFeatures,
       sampleWeight,
+      this.config.rlsDelta,
     );
     this.metricsAccumulator.setGradientNorm(gradNorm);
 
@@ -1705,6 +1955,9 @@ export class ESNRegression {
     const uncertaintyMultiplier = this.config.uncertaintyMultiplier;
     const normStds = this.normalizer!.getCachedStds();
 
+    const minObs = this.normalizer!.getMinObserved();
+    const maxObs = this.normalizer!.getMaxObserved();
+
     for (let step = 0; step < futureSteps; step++) {
       this.normalizer!.normalize(
         this.scratchInput!,
@@ -1737,14 +1990,51 @@ export class ESNRegression {
         0,
       );
 
+      let hasInvalidPrediction = false;
+      for (let j = 0; j < nFeatures; j++) {
+        if (!Number.isFinite(this.scratchInput![j])) {
+          hasInvalidPrediction = true;
+          break;
+        }
+      }
+
+      if (hasInvalidPrediction) {
+        for (let j = 0; j < nFeatures; j++) {
+          this.scratchInput![j] = this.lastValidPrediction![j];
+        }
+      } else {
+        for (let j = 0; j < nFeatures; j++) {
+          this.lastValidPrediction![j] = this.scratchInput![j];
+        }
+      }
+
       const horizonFactor = Math.sqrt(step + 1);
 
       for (let j = 0; j < nFeatures; j++) {
-        const pred = this.scratchInput![j];
+        let pred = this.scratchInput![j];
+
+        const range = maxObs[j] - minObs[j];
+        const margin = Math.max(
+          range * 5.0,
+          Math.abs((minObs[j] + maxObs[j]) * 0.5) * 10.0,
+          100.0,
+        );
+        const lb = Number.isFinite(minObs[j])
+          ? minObs[j] - margin
+          : pred - 1000;
+        const ub = Number.isFinite(maxObs[j])
+          ? maxObs[j] + margin
+          : pred + 1000;
+        pred = Math.max(lb, Math.min(ub, pred));
+
         predictions[step][j] = pred;
-        const sigma = residualStds[j] * normStds[j] * horizonFactor;
-        lowerBounds[step][j] = pred - uncertaintyMultiplier * sigma;
-        upperBounds[step][j] = pred + uncertaintyMultiplier * sigma;
+        this.scratchInput![j] = pred;
+
+        const baseStd = residualStds[j];
+        const sigma = baseStd * normStds[j] * horizonFactor;
+        const safeSigma = Number.isFinite(sigma) ? sigma : 0;
+        lowerBounds[step][j] = pred - uncertaintyMultiplier * safeSigma;
+        upperBounds[step][j] = pred + uncertaintyMultiplier * safeSigma;
       }
     }
 
@@ -1765,10 +2055,16 @@ export class ESNRegression {
 
     const residualStds = this.residualTracker.getStds();
     let meanStd = 0;
+    let validCount = 0;
     for (let i = 0; i < this.nFeatures; i++) {
-      meanStd += residualStds[i];
+      const std = residualStds[i];
+      if (Number.isFinite(std)) {
+        meanStd += std;
+        validCount++;
+      }
     }
-    meanStd /= this.nFeatures;
+    if (validCount === 0) return 0.5;
+    meanStd /= validCount;
 
     const confidence = 1.0 / (1.0 + meanStd);
     return Math.max(0, Math.min(1, confidence));
@@ -1893,6 +2189,7 @@ export class ESNRegression {
     this.scratchZ = null;
     this.scratchOutput = null;
     this.tempTarget = null;
+    this.lastValidPrediction = null;
     this.metricsAccumulator.reset();
     this.fitResult = {
       samplesProcessed: 0,
@@ -1923,6 +2220,9 @@ export class ESNRegression {
         : null,
       latestCoordinates: this.latestCoordinates
         ? Array.from(this.latestCoordinates)
+        : null,
+      lastValidPrediction: this.lastValidPrediction
+        ? Array.from(this.lastValidPrediction)
         : null,
     };
     return SerializationHelper.serialize(state);
@@ -1967,6 +2267,12 @@ export class ESNRegression {
       this.latestCoordinates = new Float64Array(state.latestCoordinates);
     }
 
+    if (state.lastValidPrediction) {
+      this.lastValidPrediction = new Float64Array(state.lastValidPrediction);
+    } else if (this.latestCoordinates) {
+      this.lastValidPrediction = new Float64Array(this.latestCoordinates);
+    }
+
     if (this.initialized && this.nFeatures > 0) {
       this.normalizedInput = new Float64Array(this.nFeatures);
       this.normalizedTarget = new Float64Array(this.nFeatures);
@@ -1975,6 +2281,9 @@ export class ESNRegression {
       this.scratchZ = new Float64Array(this.readout!.getZDim());
       this.scratchOutput = new Float64Array(this.nFeatures);
       this.tempTarget = new Float64Array(this.nFeatures);
+      if (!this.lastValidPrediction) {
+        this.lastValidPrediction = new Float64Array(this.nFeatures);
+      }
     }
 
     this.outlierDownweighter = new OutlierDownweighter(
