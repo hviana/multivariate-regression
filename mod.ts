@@ -1,6 +1,3 @@
-// ESNRegression: Echo State Network for Multivariate Autoregressive Regression
-// with RLS Online Learning and Welford Normalization
-
 export interface ESNRegressionConfig {
   reservoirSize: number;
   spectralRadius: number;
@@ -243,7 +240,7 @@ class TensorOps {
     yOffset: number,
   ): void {
     for (let i = 0; i < rows; i++) {
-      let sum = 0;
+      let sum = 0.0;
       const rowStart = aOffset + i * cols;
       for (let j = 0; j < cols; j++) {
         sum += A[rowStart + j] * x[xOffset + j];
@@ -259,7 +256,7 @@ class TensorOps {
     bOffset: number,
     length: number,
   ): number {
-    let sum = 0;
+    let sum = 0.0;
     for (let i = 0; i < length; i++) {
       sum += a[aOffset + i] * b[bOffset + i];
     }
@@ -319,7 +316,7 @@ class TensorOps {
   }
 
   static norm(x: Float64Array, offset: number, length: number): number {
-    let sum = 0;
+    let sum = 0.0;
     for (let i = 0; i < length; i++) {
       const v = x[offset + i];
       sum += v * v;
@@ -351,7 +348,7 @@ class TensorOps {
     yOffset: number,
   ): void {
     for (let i = 0; i < rows; i++) {
-      let sum = 0;
+      let sum = 0.0;
       const rowStart = aOffset + i * cols;
       const maskRowStart = maskOffset + i * cols;
       for (let j = 0; j < cols; j++) {
@@ -368,8 +365,8 @@ class RandomGenerator {
   private state: number;
 
   constructor(seed: number) {
-    this.state = seed >>> 0;
-    for (let i = 0; i < 10; i++) {
+    this.state = (seed >>> 0) || 1;
+    for (let i = 0; i < 20; i++) {
       this.next();
     }
   }
@@ -388,10 +385,10 @@ class RandomGenerator {
   }
 
   normal(): number {
-    const u1 = this.uniform();
+    const u1 = Math.max(this.uniform(), 1e-15);
     const u2 = this.uniform();
-    const r = Math.sqrt(-2 * Math.log(Math.max(u1, 1e-10)));
-    const theta = 2 * Math.PI * u2;
+    const r = Math.sqrt(-2.0 * Math.log(u1));
+    const theta = 6.283185307179586 * u2;
     return r * Math.cos(theta);
   }
 
@@ -404,7 +401,7 @@ class RandomGenerator {
   }
 
   setState(state: number): void {
-    this.state = state >>> 0;
+    this.state = (state >>> 0) || 1;
   }
 }
 
@@ -429,7 +426,8 @@ class ActivationOps {
     length: number,
   ): void {
     for (let i = 0; i < length; i++) {
-      y[yOffset + i] = Math.max(0, x[xOffset + i]);
+      const v = x[xOffset + i];
+      y[yOffset + i] = v > 0 ? v : 0;
     }
   }
 
@@ -455,6 +453,7 @@ class WelfordAccumulator {
   m2: number = 0;
 
   update(value: number): void {
+    if (!Number.isFinite(value)) return;
     this.count++;
     const delta = value - this.mean;
     this.mean += delta / this.count;
@@ -464,7 +463,7 @@ class WelfordAccumulator {
 
   getVariance(): number {
     if (this.count < 2) return 0;
-    return this.m2 / (this.count - 1);
+    return Math.max(0, this.m2 / (this.count - 1));
   }
 
   getStd(): number {
@@ -483,28 +482,40 @@ class WelfordNormalizer {
   private nFeatures: number;
   private epsilon: number;
   private warmup: number;
+  private cachedStds: Float64Array;
+  private cachedMeans: Float64Array;
 
   constructor(nFeatures: number, epsilon: number, warmup: number) {
     this.nFeatures = nFeatures;
     this.epsilon = epsilon;
     this.warmup = warmup;
-    this.accumulators = [];
+    this.accumulators = new Array(nFeatures);
     for (let i = 0; i < nFeatures; i++) {
-      this.accumulators.push(new WelfordAccumulator());
+      this.accumulators[i] = new WelfordAccumulator();
     }
+    this.cachedStds = new Float64Array(nFeatures);
+    this.cachedMeans = new Float64Array(nFeatures);
+    this.cachedStds.fill(1.0);
   }
 
   update(input: Float64Array, offset: number): void {
     for (let i = 0; i < this.nFeatures; i++) {
       this.accumulators[i].update(input[offset + i]);
     }
+    this.updateCache();
   }
 
-  private getEffectiveStd(idx: number): number {
-    const acc = this.accumulators[idx];
-    const rawStd = acc.getStd();
-    const minStd = acc.count < this.warmup ? 1.0 : this.epsilon;
-    return Math.max(rawStd, minStd);
+  private updateCache(): void {
+    const count = this.accumulators[0].count;
+    for (let i = 0; i < this.nFeatures; i++) {
+      this.cachedMeans[i] = this.accumulators[i].mean;
+      const rawStd = this.accumulators[i].getStd();
+      if (count < this.warmup) {
+        this.cachedStds[i] = Math.max(rawStd, 1.0);
+      } else {
+        this.cachedStds[i] = Math.max(rawStd, this.epsilon);
+      }
+    }
   }
 
   normalize(
@@ -514,9 +525,8 @@ class WelfordNormalizer {
     outputOffset: number,
   ): void {
     for (let i = 0; i < this.nFeatures; i++) {
-      const mean = this.accumulators[i].mean;
-      const std = this.getEffectiveStd(i);
-      output[outputOffset + i] = (input[inputOffset + i] - mean) / std;
+      output[outputOffset + i] =
+        (input[inputOffset + i] - this.cachedMeans[i]) / this.cachedStds[i];
     }
   }
 
@@ -527,15 +537,16 @@ class WelfordNormalizer {
     outputOffset: number,
   ): void {
     for (let i = 0; i < this.nFeatures; i++) {
-      const mean = this.accumulators[i].mean;
-      const std = this.getEffectiveStd(i);
-      output[outputOffset + i] = input[inputOffset + i] * std + mean;
+      output[outputOffset + i] = input[inputOffset + i] * this.cachedStds[i] +
+        this.cachedMeans[i];
     }
   }
 
   isActive(): boolean {
-    return this.accumulators.length > 0 &&
-      this.accumulators[0].count >= this.warmup;
+    return (
+      this.accumulators.length > 0 &&
+      this.accumulators[0].count >= this.warmup
+    );
   }
 
   getCount(): number {
@@ -545,7 +556,7 @@ class WelfordNormalizer {
   getMeans(): number[] {
     const means: number[] = new Array(this.nFeatures);
     for (let i = 0; i < this.nFeatures; i++) {
-      means[i] = this.accumulators[i].mean;
+      means[i] = this.cachedMeans[i];
     }
     return means;
   }
@@ -553,15 +564,21 @@ class WelfordNormalizer {
   getStds(): number[] {
     const stds: number[] = new Array(this.nFeatures);
     for (let i = 0; i < this.nFeatures; i++) {
-      stds[i] = this.getEffectiveStd(i);
+      stds[i] = this.cachedStds[i];
     }
     return stds;
+  }
+
+  getCachedStds(): Float64Array {
+    return this.cachedStds;
   }
 
   reset(): void {
     for (let i = 0; i < this.nFeatures; i++) {
       this.accumulators[i].reset();
     }
+    this.cachedStds.fill(1.0);
+    this.cachedMeans.fill(0);
   }
 
   serialize(): object {
@@ -588,6 +605,7 @@ class WelfordNormalizer {
       normalizer.accumulators[i].mean = data.accumulators[i].mean;
       normalizer.accumulators[i].m2 = data.accumulators[i].m2;
     }
+    normalizer.updateCache();
     return normalizer;
   }
 }
@@ -595,13 +613,15 @@ class WelfordNormalizer {
 class ResidualStatsTracker {
   private accumulators: WelfordAccumulator[];
   private nTargets: number;
+  private cachedStds: Float64Array;
 
   constructor(nTargets: number) {
     this.nTargets = nTargets;
-    this.accumulators = [];
+    this.accumulators = new Array(nTargets);
     for (let i = 0; i < nTargets; i++) {
-      this.accumulators.push(new WelfordAccumulator());
+      this.accumulators[i] = new WelfordAccumulator();
     }
+    this.cachedStds = new Float64Array(nTargets);
   }
 
   update(
@@ -613,15 +633,16 @@ class ResidualStatsTracker {
     for (let i = 0; i < this.nTargets; i++) {
       const residual = prediction[predOffset + i] - target[targetOffset + i];
       this.accumulators[i].update(residual);
+      this.cachedStds[i] = this.accumulators[i].getStd();
     }
   }
 
   getStds(): Float64Array {
-    const stds = new Float64Array(this.nTargets);
-    for (let i = 0; i < this.nTargets; i++) {
-      stds[i] = this.accumulators[i].getStd();
-    }
-    return stds;
+    return this.cachedStds;
+  }
+
+  getStdAt(idx: number): number {
+    return this.cachedStds[idx];
   }
 
   getMeans(): Float64Array {
@@ -639,6 +660,7 @@ class ResidualStatsTracker {
   reset(): void {
     for (let i = 0; i < this.nTargets; i++) {
       this.accumulators[i].reset();
+      this.cachedStds[i] = 0;
     }
   }
 
@@ -659,6 +681,7 @@ class ResidualStatsTracker {
       tracker.accumulators[i].count = data.accumulators[i].count;
       tracker.accumulators[i].mean = data.accumulators[i].mean;
       tracker.accumulators[i].m2 = data.accumulators[i].m2;
+      tracker.cachedStds[i] = tracker.accumulators[i].getStd();
     }
     return tracker;
   }
@@ -687,7 +710,7 @@ class OutlierDownweighter {
       const residual = Math.abs(
         prediction[predOffset + i] - target[targetOffset + i],
       );
-      const std = Math.max(residualStds[i], epsilon);
+      const std = residualStds[i] > epsilon ? residualStds[i] : 1.0;
       const zScore = residual / std;
       if (zScore > maxZScore) {
         maxZScore = zScore;
@@ -710,7 +733,7 @@ class LossFunction {
     targetOffset: number,
     length: number,
   ): number {
-    let sum = 0;
+    let sum = 0.0;
     for (let i = 0; i < length; i++) {
       const diff = prediction[predOffset + i] - target[targetOffset + i];
       sum += diff * diff;
@@ -741,12 +764,14 @@ class MetricsAccumulator {
   private lastSampleWeight: number = 1;
 
   addLoss(loss: number): void {
-    this.lossSum += loss;
-    this.lossCount++;
+    if (Number.isFinite(loss)) {
+      this.lossSum += loss;
+      this.lossCount++;
+    }
   }
 
   setGradientNorm(norm: number): void {
-    this.lastGradientNorm = norm;
+    this.lastGradientNorm = Number.isFinite(norm) ? norm : 0;
   }
 
   setSampleWeight(weight: number): void {
@@ -786,7 +811,7 @@ class ReservoirInitMask {
     rng: RandomGenerator,
   ): Uint8Array {
     const mask = new Uint8Array(rows * cols);
-    const threshold = 1 - sparsity;
+    const threshold = 1.0 - sparsity;
     for (let i = 0; i < rows * cols; i++) {
       mask[i] = rng.uniform() < threshold ? 1 : 0;
     }
@@ -803,7 +828,8 @@ class SpectralRadiusScaler {
     maskOffset: number,
     targetRadius: number,
     rng: RandomGenerator,
-    iterations: number = 20,
+    epsilon: number,
+    iterations: number = 30,
   ): number {
     const v = new Float64Array(size);
     const vNew = new Float64Array(size);
@@ -813,12 +839,18 @@ class SpectralRadiusScaler {
     }
 
     let norm = TensorOps.norm(v, 0, size);
-    if (norm < 1e-10) norm = 1;
-    for (let i = 0; i < size; i++) {
-      v[i] /= norm;
+    if (norm < epsilon) {
+      for (let i = 0; i < size; i++) {
+        v[i] = 1.0 / Math.sqrt(size);
+      }
+      norm = 1.0;
+    } else {
+      for (let i = 0; i < size; i++) {
+        v[i] /= norm;
+      }
     }
 
-    let eigenvalue = 1;
+    let eigenvalue = 1.0;
 
     for (let iter = 0; iter < iterations; iter++) {
       TensorOps.sparseMatVec(
@@ -834,16 +866,17 @@ class SpectralRadiusScaler {
         0,
       );
       eigenvalue = TensorOps.norm(vNew, 0, size);
-      if (eigenvalue < 1e-10) {
-        eigenvalue = 1e-10;
+      if (eigenvalue < epsilon) {
+        eigenvalue = epsilon;
         break;
       }
+      const invEig = 1.0 / eigenvalue;
       for (let i = 0; i < size; i++) {
-        v[i] = vNew[i] / eigenvalue;
+        v[i] = vNew[i] * invEig;
       }
     }
 
-    if (eigenvalue > 1e-10) {
+    if (eigenvalue > epsilon) {
       const scaleFactor = targetRadius / eigenvalue;
       const n = size * size;
       for (let i = 0; i < n; i++) {
@@ -868,6 +901,7 @@ interface ESNReservoirParams {
   inputSparsity: number;
   activation: "tanh" | "relu";
   seed: number;
+  epsilon: number;
 }
 
 class ESNReservoir {
@@ -907,6 +941,7 @@ class ESNReservoir {
       reservoirSparsity,
       inputSparsity,
       seed,
+      epsilon,
     } = this.params;
 
     const rng = new RandomGenerator(seed);
@@ -938,10 +973,11 @@ class ESNReservoir {
       0,
       spectralRadius,
       rng,
+      epsilon,
     );
 
     for (let i = 0; i < reservoirSize * nFeatures; i++) {
-      if (this.WinMask[i] || inputSparsity === 0) {
+      if (this.WinMask[i]) {
         this.Win[i] = rng.range(-1, 1) * inputScale;
       }
     }
@@ -992,7 +1028,7 @@ class ESNReservoir {
       reservoirSize,
     );
 
-    const oneMinusLeak = 1 - leakRate;
+    const oneMinusLeak = 1.0 - leakRate;
     for (let i = 0; i < reservoirSize; i++) {
       this.state[i] = oneMinusLeak * this.state[i] + leakRate * this.temp1[i];
     }
@@ -1042,7 +1078,7 @@ class ESNReservoir {
       reservoirSize,
     );
 
-    const oneMinusLeak = 1 - leakRate;
+    const oneMinusLeak = 1.0 - leakRate;
     for (let i = 0; i < reservoirSize; i++) {
       scratchState[scratchOffset + i] =
         oneMinusLeak * scratchState[scratchOffset + i] +
@@ -1117,8 +1153,9 @@ class RLSState {
   constructor(zDim: number, delta: number) {
     this.zDim = zDim;
     this.P = new Float64Array(zDim * zDim);
+    const invDelta = 1.0 / Math.max(delta, 1e-10);
     for (let i = 0; i < zDim; i++) {
-      this.P[i * zDim + i] = 1.0 / delta;
+      this.P[i * zDim + i] = invDelta;
     }
   }
 
@@ -1143,7 +1180,6 @@ class RLSOptimizer {
   private epsilon: number;
   private Pz: Float64Array;
   private gain: Float64Array;
-  private outer: Float64Array;
 
   constructor(
     zDim: number,
@@ -1158,7 +1194,6 @@ class RLSOptimizer {
     this.epsilon = epsilon;
     this.Pz = new Float64Array(zDim);
     this.gain = new Float64Array(zDim);
-    this.outer = new Float64Array(zDim * zDim);
   }
 
   update(
@@ -1178,9 +1213,11 @@ class RLSOptimizer {
 
     TensorOps.matVec(P, 0, zDim, zDim, z, zOffset, this.Pz, 0);
 
-    let denom = this.lambda + TensorOps.dot(z, zOffset, this.Pz, 0, zDim);
+    let gamma = TensorOps.dot(z, zOffset, this.Pz, 0, zDim);
+    let denom = this.lambda + gamma;
+
     if (Math.abs(denom) < this.epsilon) {
-      denom = denom > 0 ? this.epsilon : -this.epsilon;
+      denom = denom >= 0 ? this.epsilon : -this.epsilon;
     }
 
     const invDenom = sampleWeight / denom;
@@ -1188,7 +1225,7 @@ class RLSOptimizer {
       this.gain[i] = this.Pz[i] * invDenom;
     }
 
-    let gradNormSum = 0;
+    let gradNormSum = 0.0;
     for (let k = 0; k < nTargets; k++) {
       const error = target[targetOffset + k] - prediction[predOffset + k];
       gradNormSum += error * error;
@@ -1199,33 +1236,20 @@ class RLSOptimizer {
     }
 
     if (this.l2Lambda > 0) {
-      const decay = 1 - this.l2Lambda;
+      const decay = 1.0 - this.l2Lambda * sampleWeight;
       const n = nTargets * zDim;
       for (let i = 0; i < n; i++) {
         Wout[woutOffset + i] *= decay;
       }
     }
 
-    for (let i = 0; i < zDim; i++) {
-      for (let j = 0; j < zDim; j++) {
-        this.outer[i * zDim + j] = this.gain[i] * z[zOffset + j];
-      }
-    }
-
     const invLambda = 1.0 / this.lambda;
     for (let i = 0; i < zDim; i++) {
+      const gainI = this.gain[i];
+      const rowOffset = i * zDim;
       for (let j = 0; j < zDim; j++) {
-        let outerPij = 0;
-        for (let k = 0; k < zDim; k++) {
-          outerPij += this.outer[i * zDim + k] * P[k * zDim + j];
-        }
-        P[i * zDim + j] = (P[i * zDim + j] - outerPij) * invLambda;
+        P[rowOffset + j] = (P[rowOffset + j] - gainI * this.Pz[j]) * invLambda;
       }
-    }
-
-    const diagReg = this.l2Lambda * invLambda;
-    for (let i = 0; i < zDim; i++) {
-      P[i * zDim + i] += diagReg;
     }
 
     return Math.sqrt(gradNormSum / nTargets);
@@ -1242,8 +1266,9 @@ class RLSOptimizer {
   reset(delta: number): void {
     const zDim = this.state.zDim;
     this.state.P.fill(0);
+    const invDelta = 1.0 / Math.max(delta, 1e-10);
     for (let i = 0; i < zDim; i++) {
-      this.state.P[i * zDim + i] = 1.0 / delta;
+      this.state.P[i * zDim + i] = invDelta;
     }
   }
 
@@ -1451,6 +1476,7 @@ export class ESNRegression {
       inputSparsity: this.config.inputSparsity,
       activation: this.config.activation,
       seed: this.config.seed,
+      epsilon: this.config.epsilon,
     });
 
     this.readout = new LinearReadout(
@@ -1523,7 +1549,8 @@ export class ESNRegression {
 
     for (let i = 1; i < coordinates.length; i++) {
       if (
-        !Array.isArray(coordinates[i]) || coordinates[i].length !== nFeatures
+        !Array.isArray(coordinates[i]) ||
+        coordinates[i].length !== nFeatures
       ) {
         throw new Error(`fitOnline: row ${i} has inconsistent dimension`);
       }
@@ -1544,6 +1571,11 @@ export class ESNRegression {
     for (let i = 0; i < n - 1; i++) {
       this.processSingleStep(coordinates[i], coordinates[i + 1]);
     }
+
+    for (let j = 0; j < nFeatures; j++) {
+      this.scratchInput![j] = coordinates[n - 1][j];
+    }
+    this.normalizer!.update(this.scratchInput!, 0);
 
     for (let j = 0; j < nFeatures; j++) {
       this.latestCoordinates![j] = coordinates[n - 1][j];
@@ -1567,8 +1599,9 @@ export class ESNRegression {
       this.scratchInput![j] = input[j];
     }
 
-    this.normalizer!.update(this.scratchInput!, 0);
     this.normalizer!.normalize(this.scratchInput!, 0, this.normalizedInput!, 0);
+    this.normalizer!.update(this.scratchInput!, 0);
+
     this.reservoir!.update(this.normalizedInput!, 0);
 
     this.readout!.buildExtendedState(
@@ -1597,15 +1630,19 @@ export class ESNRegression {
     this.metricsAccumulator.addLoss(loss);
 
     const residualStds = this.residualTracker!.getStds();
-    const sampleWeight = this.outlierDownweighter.computeWeight(
-      this.scratchOutput!,
-      0,
-      this.normalizedTarget!,
-      0,
-      residualStds,
-      nFeatures,
-      this.config.epsilon,
-    );
+    let sampleWeight = 1.0;
+
+    if (this.residualTracker!.getCount() >= 5) {
+      sampleWeight = this.outlierDownweighter.computeWeight(
+        this.scratchOutput!,
+        0,
+        this.normalizedTarget!,
+        0,
+        residualStds,
+        nFeatures,
+        this.config.epsilon,
+      );
+    }
     this.metricsAccumulator.setSampleWeight(sampleWeight);
 
     const gradNorm = this.rlsOptimizer!.update(
@@ -1666,7 +1703,7 @@ export class ESNRegression {
 
     const residualStds = this.residualTracker!.getStds();
     const uncertaintyMultiplier = this.config.uncertaintyMultiplier;
-    const stds = this.normalizer!.getStds();
+    const normStds = this.normalizer!.getCachedStds();
 
     for (let step = 0; step < futureSteps; step++) {
       this.normalizer!.normalize(
@@ -1705,7 +1742,7 @@ export class ESNRegression {
       for (let j = 0; j < nFeatures; j++) {
         const pred = this.scratchInput![j];
         predictions[step][j] = pred;
-        const sigma = residualStds[j] * stds[j] * horizonFactor;
+        const sigma = residualStds[j] * normStds[j] * horizonFactor;
         lowerBounds[step][j] = pred - uncertaintyMultiplier * sigma;
         upperBounds[step][j] = pred + uncertaintyMultiplier * sigma;
       }
@@ -1733,7 +1770,7 @@ export class ESNRegression {
     }
     meanStd /= this.nFeatures;
 
-    const confidence = 1 / (1 + meanStd);
+    const confidence = 1.0 / (1.0 + meanStd);
     return Math.max(0, Math.min(1, confidence));
   }
 
@@ -1756,8 +1793,9 @@ export class ESNRegression {
     const wParams = reservoirSize * reservoirSize;
     const biasParams = reservoirSize;
 
-    const effectiveMemory = this.config.spectralRadius < 1
-      ? Math.ceil(-Math.log(0.01) / Math.log(1 / this.config.spectralRadius))
+    const sr = this.config.spectralRadius;
+    const effectiveMemory = sr < 1.0 && sr > 0
+      ? Math.ceil(-Math.log(0.01) / -Math.log(sr))
       : 1000;
 
     return {
