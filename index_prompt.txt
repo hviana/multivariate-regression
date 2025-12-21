@@ -10,7 +10,6 @@ The interface must expose ALL configuration parameters of the ESNRegression mode
 MODEL CONFIGURATION PARAMETERS BY SECTION
 
 Section: Reservoir Architecture
-maxSequenceLength: number, default 64, description: Maximum temporal context window and prediction horizon limit
 reservoirSize: number, default 256, description: Number of neurons in the reservoir hidden layer
 spectralRadius: number, default 0.9, description: Controls memory length, largest eigenvalue of reservoir weights
 leakRate: number, default 0.3, description: Temporal smoothing factor, 1 means fast updates, 0 means more smoothing
@@ -41,14 +40,12 @@ outlierThreshold: number, default 3.0, description: Z-score threshold above whic
 outlierMinWeight: number, default 0.1, description: Minimum weight assigned to detected outliers
 
 Section: Uncertainty
-residualWindowSize: number, default 100, description: Number of recent residuals used to estimate prediction uncertainty
 uncertaintyMultiplier: number, default 1.96, description: Multiplier for confidence interval width, 1.96 equals 95 percent CI
 
 Section: Initialization
 weightInitScale: number, default 0.1, description: Scale factor for initial weight values
 seed: number, default 42, description: Random seed for deterministic reproducible initialization
 verbose: boolean, default false, description: Enable detailed logging output
-rollforwardMode: select from holdLastX or autoregressive, default holdLastX, description: Multi-step prediction strategy
 
 Every worker action must display a clear loading indicator and disable relevant controls while the operation is running.
 For long operations like bulk training, show progress with processed count, percentage, estimated time remaining, and provide a cancel button.
@@ -104,7 +101,7 @@ Never fail silently. Always surface errors to the user with clear descriptions.
 DATA FORMAT SPECIFICATIONS
 
 Training dataset JSON must be accepted in this format:
-Object with xCoordinates as array of arrays of numbers representing samples by features, and yCoordinates as array of arrays of numbers representing samples by targets. Both outer arrays must have the same length.
+Object with coordinates as array of arrays of numbers representing samples by features, and yCoordinates as array of arrays of numbers representing samples by targets. Both outer arrays must have the same length.
 
 Prediction request format:
 Object with futureSteps as positive integer.
@@ -158,7 +155,7 @@ Show a brief summary of the generated ground-truth function characteristics.
 TRAINING AND PREDICTION FLOWS
 Support online incremental training via fitOnline for single sample insert and batch training from uploaded dataset.
 Bulk training must stream progress updates to the UI and be cancelable mid-operation.
-Prediction controls: futureSteps input with slider and number field, reasonable min of 1 and max of maxSequenceLength, with validation.
+Prediction controls: futureSteps input with slider and number field.
 When prediction runs, display the full results including predictions array, lowerBounds array, upperBounds array, and confidence score.
 Display model summary statistics: total samples processed, running average loss, last gradient norm, last sample weight for outlier indication.
 

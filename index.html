@@ -232,7 +232,7 @@
               <p
                 class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 hidden xs:block truncate"
               >
-                Multivariate Forecasting
+                Autoregressive Forecasting
               </p>
             </div>
           </div>
@@ -555,8 +555,8 @@
                     class="text-sm text-slate-500 dark:text-slate-400 mb-6"
                     id="empty-subtitle"
                   >
-                    Configure your Echo State Network for multivariate
-                    regression and forecasting
+                    Configure your Echo State Network for autoregressive time
+                    series forecasting
                   </p>
                   <div
                     id="onboarding-actions"
@@ -687,7 +687,7 @@
                 type="range"
                 id="future-steps-range-mobile"
                 min="1"
-                max="64"
+                max="10000"
                 value="10"
                 class="flex-1 h-2"
                 oninput="syncFutureSteps(this.value)"
@@ -729,7 +729,7 @@
               >
                 <span
                   class="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap flex-shrink-0"
-                >Target:</span>
+                >Dimension:</span>
                 <div
                   id="dim-buttons"
                   class="flex items-center gap-1.5 sm:gap-2"
@@ -916,7 +916,7 @@
                       type="range"
                       id="future-steps-range"
                       min="1"
-                      max="64"
+                      max="10000"
                       value="10"
                       class="flex-1 h-2 accent-blue-500"
                       oninput="syncFutureSteps(this.value)"
@@ -925,7 +925,7 @@
                       type="number"
                       id="future-steps-input"
                       min="1"
-                      max="64"
+                      max="10000"
                       value="10"
                       class="w-16 px-2 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-lg text-sm text-center font-semibold focus-ring"
                       oninput="syncFutureSteps(this.value)"
@@ -1124,7 +1124,7 @@
                 <span class="font-medium">Upload Dataset</span><p
                   class="text-xs text-slate-500"
                 >
-                  Import training data
+                  Import time series data
                 </p>
               </div>
               <kbd
@@ -1156,7 +1156,7 @@
                 <span class="font-medium">Manual Insert</span><p
                   class="text-xs text-slate-500"
                 >
-                  Add individual samples
+                  Add individual time steps
                 </p>
               </div>
             </button>
@@ -1196,7 +1196,7 @@
                 <span class="font-medium">Random Test</span><p
                   class="text-xs text-slate-500"
                 >
-                  Generate synthetic data
+                  Generate synthetic time series
                 </p>
               </div>
             </button>
@@ -1524,7 +1524,7 @@
             <textarea
               id="upload-json-input"
               class="w-full h-32 sm:h-40 px-4 py-3 bg-slate-100 dark:bg-slate-700 rounded-xl text-sm font-mono resize-none focus-ring"
-              placeholder='{"xCoordinates": [[1,2],[3,4]], "yCoordinates": [[5],[6]]}'
+              placeholder='{"coordinates": [[1.0, 2.0, 3.0], [1.1, 2.1, 3.1], ...]}'
             ></textarea>
           </div>
 
@@ -1537,15 +1537,16 @@
                 class="text-xs bg-slate-100 dark:bg-slate-700 p-3 rounded-lg overflow-x-auto"
               >
 <code>{
-  "xCoordinates": [
+  "coordinates": [
     [1.0, 2.0, 3.0],
-    [1.1, 2.1, 3.1]
-  ],
-  "yCoordinates": [
-    [4.0, 5.0],
-    [4.1, 5.1]
+    [1.1, 2.1, 3.1],
+    [1.2, 2.2, 3.2],
+    [1.3, 2.3, 3.3]
   ]
 }</code></pre>
+              <p class="text-xs text-slate-500 mt-2">
+                Each row is a time step, each column is a dimension.
+              </p>
               <button
                 onclick="copyFormatExample()"
                 class="mt-2 text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium"
@@ -1678,7 +1679,7 @@
         </div>
         <div class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
           <p class="text-sm text-slate-500 dark:text-slate-400">
-            Add a single sample or small batch to the training data.
+            Add time steps to the training data.
           </p>
           <div>
             <div class="flex items-center justify-between mb-2">
@@ -1693,7 +1694,7 @@
             <textarea
               id="insert-json-input"
               class="w-full h-40 sm:h-48 px-4 py-3 bg-slate-100 dark:bg-slate-700 rounded-xl text-sm font-mono resize-none focus-ring"
-              placeholder='{"xCoordinates": [[...]], "yCoordinates": [[...]]}'
+              placeholder='{"coordinates": [[...], [...]]}'
             ></textarea>
           </div>
           <div id="insert-validation" class="text-sm"></div>
@@ -1885,7 +1886,7 @@
         </div>
         <div class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
           <p class="text-sm text-slate-500 dark:text-slate-400">
-            Generate synthetic data to test model capabilities.
+            Generate synthetic time series data to test model capabilities.
           </p>
           <div class="grid grid-cols-2 gap-3 sm:gap-4">
             <div>
@@ -1899,10 +1900,10 @@
             </div>
             <div>
               <label class="block text-xs sm:text-sm font-semibold mb-1.5"
-              >Features</label><input
+              >Dimensions</label><input
                 type="number"
-                id="test-features"
-                value="5"
+                id="test-dimensions"
+                value="3"
                 min="1"
                 max="50"
                 class="touch-target w-full px-3 py-2.5 bg-slate-100 dark:bg-slate-700 rounded-xl text-sm focus-ring"
@@ -1910,18 +1911,7 @@
             </div>
             <div>
               <label class="block text-xs sm:text-sm font-semibold mb-1.5"
-              >Targets</label><input
-                type="number"
-                id="test-targets"
-                value="3"
-                min="1"
-                max="20"
-                class="touch-target w-full px-3 py-2.5 bg-slate-100 dark:bg-slate-700 rounded-xl text-sm focus-ring"
-              >
-            </div>
-            <div>
-              <label class="block text-xs sm:text-sm font-semibold mb-1.5"
-              >Samples</label><input
+              >Time Steps</label><input
                 type="number"
                 id="test-samples"
                 value="200"
@@ -1962,9 +1952,9 @@
               id="test-difficulty"
               class="touch-target w-full px-3 py-2.5 bg-slate-100 dark:bg-slate-700 rounded-xl text-sm focus-ring"
             >
-              <option value="easy">Easy (Linear + Noise)</option>
+              <option value="easy">Easy (Simple patterns)</option>
               <option value="medium" selected>Medium (Nonlinear)</option>
-              <option value="hard">Hard (Multi-scale)</option>
+              <option value="hard">Hard (Multi-scale + interactions)</option>
             </select>
           </div>
         </div>
@@ -2033,7 +2023,7 @@
             <input
               type="text"
               id="module-url-input"
-              value="https://cdn.esm.sh/jsr/@hviana/multivariate-regression@1.3.1"
+              value="https://cdn.esm.sh/jsr/@hviana/multivariate-regression@1.3.2"
               class="w-full px-3 py-2.5 bg-slate-100 dark:bg-slate-700 rounded-xl text-xs sm:text-sm font-mono focus-ring"
             >
             <p class="text-xs text-slate-500 mt-1.5">
@@ -2206,8 +2196,9 @@
         "#14B8A6",
       ];
 
+      const MAX_FUTURE_STEPS = 10000;
+
       const DEFAULT_CONFIG = {
-        maxSequenceLength: 64,
         reservoirSize: 256,
         spectralRadius: 0.9,
         leakRate: 0.3,
@@ -2228,12 +2219,10 @@
         normalizationWarmup: 10,
         outlierThreshold: 3.0,
         outlierMinWeight: 0.1,
-        residualWindowSize: 100,
         uncertaintyMultiplier: 1.96,
         weightInitScale: 0.1,
         seed: 42,
         verbose: false,
-        rollforwardMode: "holdLastX",
       };
 
       const PRESETS = {
@@ -2241,7 +2230,6 @@
         "fast": {
           ...DEFAULT_CONFIG,
           reservoirSize: 64,
-          maxSequenceLength: 32,
           reservoirSparsity: 0.95,
         },
         "balanced": {
@@ -2252,7 +2240,6 @@
         "accurate": {
           ...DEFAULT_CONFIG,
           reservoirSize: 512,
-          maxSequenceLength: 128,
           spectralRadius: 0.95,
           leakRate: 0.2,
         },
@@ -2276,15 +2263,6 @@
           id: "reservoir",
           title: "Reservoir Architecture",
           params: [
-            {
-              key: "maxSequenceLength",
-              type: "number",
-              label: "Max Sequence",
-              min: 8,
-              max: 512,
-              step: 8,
-              desc: "Maximum context window",
-            },
             {
               key: "reservoirSize",
               type: "number",
@@ -2486,15 +2464,6 @@
           title: "Uncertainty",
           params: [
             {
-              key: "residualWindowSize",
-              type: "number",
-              label: "Window Size",
-              min: 10,
-              max: 500,
-              step: 10,
-              desc: "Residual window",
-            },
-            {
               key: "uncertaintyMultiplier",
               type: "number",
               label: "CI Multiplier",
@@ -2533,13 +2502,6 @@
               label: "Verbose",
               desc: "Detailed logging",
             },
-            {
-              key: "rollforwardMode",
-              type: "select",
-              label: "Rollforward",
-              options: ["holdLastX", "autoregressive"],
-              desc: "Prediction strategy",
-            },
           ],
         },
       ];
@@ -2547,8 +2509,7 @@
       let state = {
         config: { ...DEFAULT_CONFIG },
         modelExists: false,
-        nFeatures: 0,
-        nTargets: 0,
+        nDimensions: 0,
         sampleCount: 0,
         predictions: null,
         vizMode: "focus",
@@ -2713,8 +2674,8 @@ self.onmessage = async function(e) {
         self.postMessage({ requestId, type: 'error', payload: { error: 'No model exists' }});
         return;
       }
-      const { xCoordinates, yCoordinates } = payload;
-      const total = xCoordinates.length;
+      const { coordinates } = payload;
+      const total = coordinates.length;
       let lastResult = null;
       
       for (let i = 0; i < total; i++) {
@@ -2723,7 +2684,7 @@ self.onmessage = async function(e) {
           self.postMessage({ requestId, type: 'cancelled', payload: { processed: i }});
           return;
         }
-        lastResult = model.fitOnline({ xCoordinates: [xCoordinates[i]], yCoordinates: [yCoordinates[i]] });
+        lastResult = model.fitOnline({ coordinates: [coordinates[i]] });
         if (total > 10 && i % Math.max(1, Math.floor(total/50)) === 0) {
           emitProgress(requestId, i+1, total, 'Training');
         }
@@ -2748,7 +2709,7 @@ self.onmessage = async function(e) {
       }
       const savedState = model.save();
       const summary = model.getModelSummary();
-      result = { modelState: savedState, meta: { config: modelConfig, nFeatures: summary.nFeatures, nTargets: summary.nTargets, sampleCount: summary.sampleCount, createdAt: new Date().toISOString(), appVersion: '1.0.0' }};
+      result = { modelState: savedState, meta: { config: modelConfig, nDimensions: summary.nDimensions, sampleCount: summary.sampleCount, createdAt: new Date().toISOString(), appVersion: '1.0.0' }};
     }
     
     else if (type === 'load') {
@@ -3046,8 +3007,7 @@ self.onmessage = async function(e) {
           ...state,
           config: { ...DEFAULT_CONFIG },
           modelExists: false,
-          nFeatures: 0,
-          nTargets: 0,
+          nDimensions: 0,
           sampleCount: 0,
           predictions: null,
           logs: [],
@@ -3273,7 +3233,7 @@ self.onmessage = async function(e) {
 
         if (state.modelExists) {
           statusDot.className = "w-2 h-2 rounded-full bg-emerald-500";
-          statusText.textContent = `${state.sampleCount} samples`;
+          statusText.textContent = `${state.sampleCount} steps`;
           emptyState.classList.add("hidden");
           if (predictBtnHeader) {
             predictBtnHeader.classList.remove("hidden");
@@ -3309,27 +3269,14 @@ self.onmessage = async function(e) {
             ? state.metrics.sampleWeight.toFixed(3)
             : "-";
 
-        updateFutureStepsMax();
         updateDimensionButtons();
         updateStatsBar();
-      }
-
-      function updateFutureStepsMax() {
-        const max = state.config.maxSequenceLength;
-        [
-          "future-steps-range",
-          "future-steps-input",
-          "future-steps-range-mobile",
-        ].forEach((id) => {
-          const el = document.getElementById(id);
-          if (el) el.max = max;
-        });
       }
 
       function syncFutureSteps(val) {
         const v = Math.max(
           1,
-          Math.min(parseInt(val) || 1, state.config.maxSequenceLength),
+          Math.min(parseInt(val) || 1, MAX_FUTURE_STEPS),
         );
         [
           "future-steps-range",
@@ -3370,12 +3317,12 @@ self.onmessage = async function(e) {
 
       function updateDimensionButtons() {
         const container = document.getElementById("dim-buttons");
-        if (!state.predictions || state.nTargets === 0) {
+        if (!state.predictions || state.nDimensions === 0) {
           container.innerHTML = "";
           return;
         }
         container.innerHTML = Array.from(
-          { length: state.nTargets },
+          { length: state.nDimensions },
           (_, i) => `
         <button onclick="selectDimension(${i})" class="touch-target px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all flex-shrink-0 ${
             state.selectedDim === i
@@ -3384,7 +3331,7 @@ self.onmessage = async function(e) {
           }" style="${
             state.selectedDim === i ? "background:" + getColor(i) : ""
           }">
-          T${i + 1}
+          D${i + 1}
         </button>
       `,
         ).join("");
@@ -3725,11 +3672,13 @@ self.onmessage = async function(e) {
         );
         const cellH = Math.min(
           isMobile ? 80 : 110,
-          Math.floor((h - gap * 2) / Math.ceil(state.nTargets / cols)) -
+          Math.floor(
+            (h - gap * 2) / Math.ceil(state.nDimensions / cols),
+          ) -
             gap,
         );
 
-        for (let d = 0; d < state.nTargets; d++) {
+        for (let d = 0; d < state.nDimensions; d++) {
           const col = d % cols;
           const row = Math.floor(d / cols);
           const x = gap + col * (cellW + gap);
@@ -3789,7 +3738,7 @@ self.onmessage = async function(e) {
           ctx.fillStyle = isDark ? "#94A3B8" : "#64748B";
           ctx.font = "600 9px system-ui";
           ctx.textAlign = "left";
-          ctx.fillText(`T${d + 1}`, x + 5, y + 12);
+          ctx.fillText(`D${d + 1}`, x + 5, y + 12);
 
           ctx.textAlign = "right";
           ctx.fillStyle = color;
@@ -3813,7 +3762,7 @@ self.onmessage = async function(e) {
         const plotH = h - margin.top - margin.bottom;
 
         const steps = state.predictions.predictions.length;
-        const dims = state.nTargets;
+        const dims = state.nDimensions;
 
         const cellW = Math.max(8, plotW / steps);
         const cellH = Math.max(8, plotH / dims);
@@ -3844,7 +3793,7 @@ self.onmessage = async function(e) {
         ctx.textAlign = "right";
         for (let d = 0; d < dims; d++) {
           ctx.fillText(
-            `T${d + 1}`,
+            `D${d + 1}`,
             margin.left - 5,
             margin.top + d * cellH + cellH / 2 + 3,
           );
@@ -3878,11 +3827,11 @@ self.onmessage = async function(e) {
         const uncertainties = state.predictions.predictions.map(
           (_, i) => {
             let sum = 0;
-            for (let d = 0; d < state.nTargets; d++) {
+            for (let d = 0; d < state.nDimensions; d++) {
               sum += state.predictions.upperBounds[i][d] -
                 state.predictions.lowerBounds[i][d];
             }
-            return sum / state.nTargets;
+            return sum / state.nDimensions;
           },
         );
 
@@ -4006,10 +3955,10 @@ self.onmessage = async function(e) {
 
         const barH = Math.min(
           isMobile ? 20 : 28,
-          plotH / state.nTargets - 3,
+          plotH / state.nDimensions - 3,
         );
 
-        for (let d = 0; d < state.nTargets; d++) {
+        for (let d = 0; d < state.nDimensions; d++) {
           const y = margin.top + d * (barH + 3);
           const val = preds[d];
           const lower = lowers[d];
@@ -4041,7 +3990,7 @@ self.onmessage = async function(e) {
           ctx.fillStyle = isDark ? "#94A3B8" : "#64748B";
           ctx.font = `500 ${isMobile ? 9 : 11}px system-ui`;
           ctx.textAlign = "right";
-          ctx.fillText(`T${d + 1}`, margin.left - 6, y + barH / 2 + 4);
+          ctx.fillText(`D${d + 1}`, margin.left - 6, y + barH / 2 + 4);
 
           ctx.textAlign = "left";
           ctx.fillText(
@@ -4079,7 +4028,7 @@ self.onmessage = async function(e) {
           <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:${
           getColor(dim)
         }"></span>
-          <span class="text-sm font-medium">Target ${dim + 1}</span>
+          <span class="text-sm font-medium">Dim ${dim + 1}</span>
           <span class="ml-auto font-bold">${formatNumber(pred)}</span>
         </div>
         <div class="text-[11px] text-slate-500 dark:text-slate-400 space-y-0.5">
@@ -4208,7 +4157,7 @@ self.onmessage = async function(e) {
           const cellH = Math.min(
             isMobile ? 80 : 110,
             Math.floor(
-              (h - gap * 2) / Math.ceil(state.nTargets / cols),
+              (h - gap * 2) / Math.ceil(state.nDimensions / cols),
             ) - gap,
           );
 
@@ -4216,7 +4165,7 @@ self.onmessage = async function(e) {
           const row = Math.floor((y - gap) / (cellH + gap));
           const idx = row * cols + col;
 
-          if (idx >= 0 && idx < state.nTargets) {
+          if (idx >= 0 && idx < state.nDimensions) {
             state.selectedDim = idx;
             setVisualizationMode("focus");
           }
@@ -4280,44 +4229,28 @@ self.onmessage = async function(e) {
         if (!data || typeof data !== "object") {
           return { valid: false, errors: ["Invalid JSON format"] };
         }
-        if (!Array.isArray(data.xCoordinates)) {
-          errors.push("Missing xCoordinates array");
-        }
-        if (!Array.isArray(data.yCoordinates)) {
-          errors.push("Missing yCoordinates array");
+        if (!Array.isArray(data.coordinates)) {
+          errors.push("Missing coordinates array");
         }
         if (errors.length) return { valid: false, errors };
 
-        const xLen = data.xCoordinates.length;
-        const yLen = data.yCoordinates.length;
+        const coordLen = data.coordinates.length;
 
-        if (xLen === 0) errors.push("xCoordinates is empty");
-        if (yLen === 0) errors.push("yCoordinates is empty");
-        if (xLen !== yLen) {
-          errors.push(`Length mismatch: x=${xLen}, y=${yLen}`);
-        }
+        if (coordLen === 0) errors.push("coordinates is empty");
         if (errors.length) return { valid: false, errors };
 
-        let nFeatures = null, nTargets = null;
+        let nDimensions = null;
 
-        for (let i = 0; i < Math.min(xLen, 20); i++) {
-          if (!Array.isArray(data.xCoordinates[i])) {
-            errors.push(`x[${i}] not array`);
+        for (let i = 0; i < Math.min(coordLen, 20); i++) {
+          if (!Array.isArray(data.coordinates[i])) {
+            errors.push(`coordinates[${i}] not array`);
             continue;
           }
-          if (!Array.isArray(data.yCoordinates[i])) {
-            errors.push(`y[${i}] not array`);
-            continue;
+          if (nDimensions === null) {
+            nDimensions = data.coordinates[i].length;
           }
-          if (nFeatures === null) {
-            nFeatures = data.xCoordinates[i].length;
-          }
-          if (nTargets === null) nTargets = data.yCoordinates[i].length;
-          if (data.xCoordinates[i].length !== nFeatures) {
-            errors.push(`x[${i}] dimension mismatch`);
-          }
-          if (data.yCoordinates[i].length !== nTargets) {
-            errors.push(`y[${i}] dimension mismatch`);
+          if (data.coordinates[i].length !== nDimensions) {
+            errors.push(`coordinates[${i}] dimension mismatch`);
           }
           if (errors.length > 5) {
             errors.push("...more errors");
@@ -4326,7 +4259,7 @@ self.onmessage = async function(e) {
         }
 
         if (errors.length) return { valid: false, errors };
-        return { valid: true, nFeatures, nTargets, sampleCount: xLen };
+        return { valid: true, nDimensions, sampleCount: coordLen };
       }
 
       function handleDragOver(e) {
@@ -4410,9 +4343,8 @@ self.onmessage = async function(e) {
 
         preview.classList.remove("hidden");
         document.getElementById("preview-stats").innerHTML = `
-        <div><span class="text-slate-500">Features:</span> <strong>${result.nFeatures}</strong></div>
-        <div><span class="text-slate-500">Targets:</span> <strong>${result.nTargets}</strong></div>
-        <div><span class="text-slate-500">Samples:</span> <strong>${result.sampleCount}</strong></div>
+        <div><span class="text-slate-500">Dimensions:</span> <strong>${result.nDimensions}</strong></div>
+        <div><span class="text-slate-500">Time Steps:</span> <strong>${result.sampleCount}</strong></div>
         <div><span class="text-slate-500">Status:</span> <strong class="text-emerald-600">OK ✓</strong></div>
       `;
 
@@ -4440,8 +4372,7 @@ self.onmessage = async function(e) {
           }
 
           state.sampleCount = result.summary.sampleCount;
-          state.nFeatures = result.summary.nFeatures;
-          state.nTargets = result.summary.nTargets;
+          state.nDimensions = result.summary.nDimensions;
           state.metrics = {
             avgLoss: result.fitResult?.averageLoss || null,
             gradientNorm: result.fitResult?.gradientNorm || null,
@@ -4453,11 +4384,11 @@ self.onmessage = async function(e) {
           log(
             "success",
             "Training",
-            `Trained on ${result.samplesProcessed} samples`,
+            `Trained on ${result.samplesProcessed} time steps`,
           );
           showToast(
             "success",
-            `Trained on ${result.samplesProcessed} samples`,
+            `Trained on ${result.samplesProcessed} time steps`,
           );
 
           await runPrediction();
@@ -4469,17 +4400,15 @@ self.onmessage = async function(e) {
 
       function copyFormatExample() {
         const example =
-          `{"xCoordinates": [[1.0, 2.0, 3.0], [1.1, 2.1, 3.1]], "yCoordinates": [[4.0, 5.0], [4.1, 5.1]]}`;
+          `{"coordinates": [[1.0, 2.0, 3.0], [1.1, 2.1, 3.1], [1.2, 2.2, 3.2]]}`;
         navigator.clipboard.writeText(example);
         showToast("success", "Copied to clipboard");
       }
 
       function generateInsertTemplate() {
-        const nF = state.nFeatures || 3;
-        const nT = state.nTargets || 2;
+        const nD = state.nDimensions || 3;
         const template = {
-          xCoordinates: [Array(nF).fill(0)],
-          yCoordinates: [Array(nT).fill(0)],
+          coordinates: [Array(nD).fill(0)],
         };
         document.getElementById("insert-json-input").value = JSON
           .stringify(template, null, 2);
@@ -4507,13 +4436,12 @@ self.onmessage = async function(e) {
           return;
         }
 
-        showLoading("Inserting samples...");
+        showLoading("Inserting time steps...");
 
         try {
           const trainResult = await workerRequest("train", data);
           state.sampleCount = trainResult.summary.sampleCount;
-          state.nFeatures = trainResult.summary.nFeatures;
-          state.nTargets = trainResult.summary.nTargets;
+          state.nDimensions = trainResult.summary.nDimensions;
           state.metrics = {
             avgLoss: trainResult.fitResult?.averageLoss || null,
             gradientNorm: trainResult.fitResult?.gradientNorm || null,
@@ -4524,9 +4452,12 @@ self.onmessage = async function(e) {
           log(
             "success",
             "Insert",
-            `Added ${result.sampleCount} samples`,
+            `Added ${result.sampleCount} time steps`,
           );
-          showToast("success", `Added ${result.sampleCount} samples`);
+          showToast(
+            "success",
+            `Added ${result.sampleCount} time steps`,
+          );
         } catch (err) {
           log("error", "Insert", err.message);
           showToast("error", err.message);
@@ -4549,8 +4480,7 @@ self.onmessage = async function(e) {
 
           const summary = await workerRequest("getSummary");
           if (summary.exists) {
-            state.nTargets = summary.summary.nTargets;
-            state.nFeatures = summary.summary.nFeatures;
+            state.nDimensions = summary.summary.nDimensions;
           }
 
           document.getElementById("empty-state").classList.add(
@@ -4660,8 +4590,8 @@ self.onmessage = async function(e) {
           <div class="min-w-0 flex-1">
             <p class="font-semibold text-sm truncate">${name}</p>
             <p class="text-xs text-slate-500">${
-            model.meta?.nFeatures || "?"
-          } features, ${model.meta?.nTargets || "?"} targets</p>
+            model.meta?.nDimensions || "?"
+          } dimensions</p>
           </div>
           <button onclick="loadFromLocalStorage('${name}')" class="touch-target ml-2 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-semibold hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors flex-shrink-0">Load</button>
         </div>`;
@@ -4684,8 +4614,7 @@ self.onmessage = async function(e) {
           const result = await workerRequest("load", { data: model });
           state.modelExists = true;
           state.sampleCount = result.summary.sampleCount;
-          state.nFeatures = result.summary.nFeatures;
-          state.nTargets = result.summary.nTargets;
+          state.nDimensions = result.summary.nDimensions;
           if (result.meta?.config) {
             state.config = { ...DEFAULT_CONFIG, ...result.meta.config };
           }
@@ -4719,8 +4648,7 @@ self.onmessage = async function(e) {
             const result = await workerRequest("load", { data });
             state.modelExists = true;
             state.sampleCount = result.summary.sampleCount;
-            state.nFeatures = result.summary.nFeatures;
-            state.nTargets = result.summary.nTargets;
+            state.nDimensions = result.summary.nDimensions;
             if (result.meta?.config) {
               state.config = {
                 ...DEFAULT_CONFIG,
@@ -4759,10 +4687,9 @@ self.onmessage = async function(e) {
       async function runRandomTest() {
         const seed =
           parseInt(document.getElementById("test-seed").value) || 42;
-        const nFeatures =
-          parseInt(document.getElementById("test-features").value) || 5;
-        const nTargets =
-          parseInt(document.getElementById("test-targets").value) || 3;
+        const nDimensions =
+          parseInt(document.getElementById("test-dimensions").value) ||
+          3;
         const nSamples =
           parseInt(document.getElementById("test-samples").value) ||
           200;
@@ -4777,42 +4704,29 @@ self.onmessage = async function(e) {
 
         const rand = seededRandom(seed);
 
-        const xCoordinates = [];
-        const yCoordinates = [];
+        const coordinates = [];
 
-        const weights = Array.from(
-          { length: nTargets },
-          () =>
-            Array.from({ length: nFeatures }, () => (rand() - 0.5) * 2),
-        );
+        for (let t = 0; t < nSamples; t++) {
+          const point = [];
+          for (let d = 0; d < nDimensions; d++) {
+            let val = Math.sin(t * 0.1 * (d + 1) + d);
 
-        for (let i = 0; i < nSamples; i++) {
-          const x = Array.from(
-            { length: nFeatures },
-            (_, j) => Math.sin(i * 0.1 + j) + rand() * 0.5,
-          );
-
-          const y = Array.from({ length: nTargets }, (_, t) => {
-            let val = 0;
-            for (let f = 0; f < nFeatures; f++) {
-              val += weights[t][f] * x[f];
-              if (difficulty !== "easy") {
-                val += 0.3 * Math.sin(x[f] * 3) * weights[t][f];
-              }
-              if (difficulty === "hard") {
-                val += 0.2 *
-                  Math.cos(x[f] * x[(f + 1) % nFeatures] * 2);
-              }
+            if (difficulty !== "easy" && t > 0) {
+              val += 0.2 * coordinates[t - 1][(d + 1) % nDimensions];
             }
+            if (difficulty === "hard" && t > 1) {
+              val += 0.1 *
+                Math.cos(coordinates[t - 1][d] * coordinates[t - 2][d]);
+            }
+
             val += (rand() - 0.5) * noise * 2;
+
             if (rand() < outlierRate) {
               val += (rand() > 0.5 ? 1 : -1) * (3 + rand() * 2);
             }
-            return val;
-          });
-
-          xCoordinates.push(x);
-          yCoordinates.push(y);
+            point.push(val);
+          }
+          coordinates.push(point);
         }
 
         applyPreset("balanced");
@@ -4824,14 +4738,12 @@ self.onmessage = async function(e) {
           state.modelExists = true;
 
           const trainResult = await workerRequest("train", {
-            xCoordinates,
-            yCoordinates,
+            coordinates,
           });
           if (trainResult.cancelled) return;
 
           state.sampleCount = trainResult.summary.sampleCount;
-          state.nFeatures = trainResult.summary.nFeatures;
-          state.nTargets = trainResult.summary.nTargets;
+          state.nDimensions = trainResult.summary.nDimensions;
           state.metrics = {
             avgLoss: trainResult.fitResult?.averageLoss || null,
             gradientNorm: trainResult.fitResult?.gradientNorm || null,
@@ -4840,7 +4752,7 @@ self.onmessage = async function(e) {
 
           updateUI();
 
-          const steps = Math.min(20, state.config.maxSequenceLength);
+          const steps = Math.min(20, MAX_FUTURE_STEPS);
           const predResult = await workerRequest("predict", {
             futureSteps: steps,
           });
@@ -4861,7 +4773,7 @@ self.onmessage = async function(e) {
           log(
             "success",
             "Demo",
-            `Generated ${nSamples} samples, trained, predicted ${steps} steps`,
+            `Generated ${nSamples} time steps, trained, predicted ${steps} steps`,
           );
           showToast("success", "Demo complete!");
         } catch (err) {
@@ -4882,15 +4794,15 @@ self.onmessage = async function(e) {
         const headers = [
           "Step",
           ...Array.from(
-            { length: state.nTargets },
+            { length: state.nDimensions },
             (_, i) => `P${i + 1}`,
           ),
           ...Array.from(
-            { length: state.nTargets },
+            { length: state.nDimensions },
             (_, i) => `L${i + 1}`,
           ),
           ...Array.from(
-            { length: state.nTargets },
+            { length: state.nDimensions },
             (_, i) => `U${i + 1}`,
           ),
         ];
