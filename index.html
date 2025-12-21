@@ -2023,7 +2023,7 @@
             <input
               type="text"
               id="module-url-input"
-              value="https://cdn.esm.sh/jsr/@hviana/multivariate-regression@1.3.3"
+              value="https://cdn.esm.sh/jsr/@hviana/multivariate-regression@1.3.4"
               class="w-full px-3 py-2.5 bg-slate-100 dark:bg-slate-700 rounded-xl text-xs sm:text-sm font-mono focus-ring"
             >
             <p class="text-xs text-slate-500 mt-1.5">
@@ -2678,13 +2678,13 @@ self.onmessage = async function(e) {
       const total = coordinates.length;
       let lastResult = null;
       
-      for (let i = 0; i < total; i++) {
+      for (let i = 0; i < total-1; i++) {
         if (cancelled.has(requestId)) {
           cancelled.delete(requestId);
           self.postMessage({ requestId, type: 'cancelled', payload: { processed: i }});
           return;
         }
-        lastResult = model.fitOnline({ coordinates: [coordinates[i]] });
+        lastResult = model.fitOnline({ coordinates: [coordinates[i], coordinates[i+1]] });
         if (total > 10 && i % Math.max(1, Math.floor(total/50)) === 0) {
           emitProgress(requestId, i+1, total, 'Training');
         }
