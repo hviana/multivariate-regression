@@ -1,4 +1,4 @@
-Model: Generate a single, self-contained, premium-quality HTML web application in ONE HTML file that looks and feels like a polished commercial product, not a demo or prototype. The app must be beautiful, fast, responsive, accessible, and fully functional with exceptional attention to visual detail.
+Generate a single, self-contained, premium-quality HTML web application in ONE HTML file that looks and feels like a polished commercial product, not a demo or prototype. The app must be beautiful, fast, responsive, accessible, and fully functional with exceptional attention to visual detail.
 
 HARD CONSTRAINTS
 Use Tailwind CSS ONLY via CDN (no other CSS frameworks, no chart libraries like Chart.js or D3, no UI component libraries, no icon libraries, no JavaScript frameworks).

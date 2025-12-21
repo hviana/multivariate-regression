@@ -563,7 +563,7 @@
                     class="flex flex-col gap-3 sm:gap-2"
                   >
                     <button
-                      onclick="applyPreset('start-here');createModel()"
+                      onclick="startWithDefaults()"
                       class="touch-target w-full sm:w-auto px-5 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-xl font-semibold transition-all shadow-lg shadow-blue-500/30 focus-ring flex items-center justify-center gap-2"
                     >
                       <svg
@@ -1968,7 +1968,7 @@
             Cancel
           </button>
           <button
-            onclick="runRandomTest();closeModal('random-test-modal')"
+            onclick="runRandomTestFromModal()"
             class="touch-target px-6 py-2.5 text-sm rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold transition-all shadow-lg shadow-purple-500/25 focus-ring"
           >
             Generate & Run
@@ -2023,7 +2023,7 @@
             <input
               type="text"
               id="module-url-input"
-              value="https://cdn.esm.sh/jsr/@hviana/multivariate-regression@1.3.4"
+              value="https://cdn.esm.sh/jsr/@hviana/multivariate-regression@1.3.5"
               class="w-full px-3 py-2.5 bg-slate-100 dark:bg-slate-700 rounded-xl text-xs sm:text-sm font-mono focus-ring"
             >
             <p class="text-xs text-slate-500 mt-1.5">
@@ -2534,9 +2534,14 @@
         hover: { active: false, x: 0, y: 0, dataIndex: -1 },
         animation: { active: false, startTime: 0, duration: 0 },
         sidePanelOpen: false,
+        isLoading: false,
+        loadingCount: 0,
       };
 
       let worker = null;
+      let workerReady = false;
+      let workerReadyResolve = null;
+      let workerReadyPromise = null;
       let canvas, ctx;
       let resizeObserver;
       let touchStartY = 0;
@@ -2600,15 +2605,20 @@
         const input = document.getElementById("module-url-input");
         return input
           ? input.value
-          : "https://cdn.esm.sh/jsr/@hviana/multivariate-regression";
+          : "https://cdn.esm.sh/jsr/@hviana/multivariate-regression@1.3.4";
       }
 
       function initWorker() {
+        workerReady = false;
+        workerReadyPromise = new Promise((resolve) => {
+          workerReadyResolve = resolve;
+        });
+
         const workerCode = `
 let ESNRegression = null;
 let model = null;
 let modelConfig = null;
-let moduleUrl = 'https://cdn.esm.sh/jsr/@hviana/multivariate-regression';
+let moduleUrl = 'https://cdn.esm.sh/jsr/@hviana/multivariate-regression@1.3.4';
 let cancelled = new Set();
 
 async function loadModule(url) {
@@ -2630,7 +2640,7 @@ async function loadModule(url) {
       if (!ESNRegression) throw new Error('ESNRegression not found');
       return { success: true };
     } catch (e2) {
-      return { success: false, error: 'Failed to load ESNRegression: ' + e1.message };
+      return { success: false, error: 'Failed to load ESNRegression: ' + e1.message + ' / ' + e2.message };
     }
   }
 }
@@ -2745,6 +2755,7 @@ self.onmessage = async function(e) {
     
     else if (type === 'reset') {
       if (model) model.reset();
+      model = null;
       result = { reset: true };
     }
     
@@ -2765,11 +2776,11 @@ self.onmessage = async function(e) {
           const { requestId, type, payload } = e.data;
 
           if (type === "progress") {
-            if (payload) {
+            if (payload && payload.processed !== undefined) {
               updateProgress(
                 payload.processed,
                 payload.total,
-                payload.stage,
+                payload.stage || "Processing",
               );
             }
             return;
@@ -2779,24 +2790,32 @@ self.onmessage = async function(e) {
           if (pending) {
             state.pendingRequests.delete(requestId);
             if (type === "error") {
-              pending.reject(new Error(payload.error));
+              pending.reject(
+                new Error(payload?.error || "Unknown error"),
+              );
             } else if (type === "cancelled") {
               pending.resolve({ cancelled: true, ...payload });
-            } else pending.resolve(payload);
+            } else {
+              pending.resolve(payload);
+            }
           }
-          if (state.pendingRequests.size === 0) hideLoading();
         };
 
         worker.onerror = (e) => {
           console.error("Worker error:", e);
-          showToast("error", "Worker error: " + e.message);
-          hideLoading();
+          showToast(
+            "error",
+            "Worker error: " + (e.message || "Unknown"),
+          );
+          hideLoadingForce();
         };
 
         workerRequest("init", { moduleUrl: getModuleUrl() })
-          .then(() =>
-            log("success", "Worker", "ESNRegression module loaded")
-          )
+          .then(() => {
+            workerReady = true;
+            if (workerReadyResolve) workerReadyResolve();
+            log("success", "Worker", "ESNRegression module loaded");
+          })
           .catch((err) => {
             log("error", "Worker", err.message);
             showToast(
@@ -2806,14 +2825,27 @@ self.onmessage = async function(e) {
           });
       }
 
-      function reinitializeWorker() {
-        if (worker) worker.terminate();
+      async function reinitializeWorker() {
+        if (worker) {
+          worker.terminate();
+          state.pendingRequests.clear();
+        }
+        state.modelExists = false;
+        state.predictions = null;
+        state.sampleCount = 0;
+        state.nDimensions = 0;
+        hideLoadingForce();
         initWorker();
         showToast("info", "Worker reinitialized");
         closeModal("settings-modal");
+        updateUI();
+        renderChart();
       }
 
-      function workerRequest(type, payload = {}) {
+      async function workerRequest(type, payload = {}) {
+        if (type !== "init" && !workerReady) {
+          await workerReadyPromise;
+        }
         return new Promise((resolve, reject) => {
           const requestId = crypto.randomUUID();
           state.pendingRequests.set(requestId, { resolve, reject });
@@ -2830,7 +2862,7 @@ self.onmessage = async function(e) {
             payload: { requestId: state.currentRequestId },
           });
           log("warning", "Operation", "Cancelled by user");
-          hideLoading();
+          hideLoadingForce();
         }
       }
 
@@ -3001,7 +3033,7 @@ self.onmessage = async function(e) {
         log("info", "Config", "Reset to defaults");
       }
 
-      function resetEverything() {
+      async function resetEverything() {
         if (!confirm("Clear model, data, and settings?")) return;
         state = {
           ...state,
@@ -3018,12 +3050,19 @@ self.onmessage = async function(e) {
           },
         };
         localStorage.clear();
-        workerRequest("reset");
+        try {
+          await workerRequest("reset");
+        } catch (e) {}
         updateConfigValues();
         updateUI();
         renderChart();
         log("warning", "Reset", "All data cleared");
         showToast("warning", "All data cleared");
+      }
+
+      async function startWithDefaults() {
+        applyPreset("start-here");
+        await createModel();
       }
 
       async function createModel() {
@@ -3042,6 +3081,8 @@ self.onmessage = async function(e) {
         } catch (err) {
           log("error", "Model", err.message);
           showToast("error", "Failed: " + err.message);
+        } finally {
+          hideLoading();
         }
       }
 
@@ -3123,6 +3164,8 @@ self.onmessage = async function(e) {
       }
 
       function showLoading(text = "Processing...") {
+        state.loadingCount++;
+        state.isLoading = true;
         document.getElementById("loading-state").classList.remove(
           "hidden",
         );
@@ -3133,6 +3176,18 @@ self.onmessage = async function(e) {
       }
 
       function hideLoading() {
+        state.loadingCount = Math.max(0, state.loadingCount - 1);
+        if (state.loadingCount === 0) {
+          state.isLoading = false;
+          document.getElementById("loading-state").classList.add(
+            "hidden",
+          );
+        }
+      }
+
+      function hideLoadingForce() {
+        state.loadingCount = 0;
+        state.isLoading = false;
         document.getElementById("loading-state").classList.add(
           "hidden",
         );
@@ -4391,10 +4446,12 @@ self.onmessage = async function(e) {
             `Trained on ${result.samplesProcessed} time steps`,
           );
 
-          await runPrediction();
+          await runPredictionInternal();
         } catch (err) {
           log("error", "Training", err.message);
           showToast("error", "Training failed: " + err.message);
+        } finally {
+          hideLoading();
         }
       }
 
@@ -4461,16 +4518,27 @@ self.onmessage = async function(e) {
         } catch (err) {
           log("error", "Insert", err.message);
           showToast("error", err.message);
+        } finally {
+          hideLoading();
         }
       }
 
       async function runPrediction() {
         if (!state.modelExists) return;
+        if (state.isLoading) return;
 
+        showLoading("Running prediction...");
+        try {
+          await runPredictionInternal();
+        } finally {
+          hideLoading();
+        }
+      }
+
+      async function runPredictionInternal() {
         const steps = parseInt(
           document.getElementById("future-steps-input").value,
         ) || 10;
-        showLoading("Running prediction...");
 
         try {
           const result = await workerRequest("predict", {
@@ -4511,6 +4579,7 @@ self.onmessage = async function(e) {
           return;
         }
 
+        showLoading("Saving model...");
         try {
           const result = await workerRequest("save");
           const blob = new Blob([
@@ -4533,6 +4602,8 @@ self.onmessage = async function(e) {
         } catch (err) {
           log("error", "Save", err.message);
           showToast("error", err.message);
+        } finally {
+          hideLoading();
         }
       }
 
@@ -4548,6 +4619,7 @@ self.onmessage = async function(e) {
         );
         if (!name) return;
 
+        showLoading("Saving model...");
         try {
           const result = await workerRequest("save");
           const saved = JSON.parse(
@@ -4568,6 +4640,8 @@ self.onmessage = async function(e) {
         } catch (err) {
           log("error", "Save", err.message);
           showToast("error", err.message);
+        } finally {
+          hideLoading();
         }
       }
 
@@ -4627,6 +4701,8 @@ self.onmessage = async function(e) {
         } catch (err) {
           log("error", "Load", err.message);
           showToast("error", err.message);
+        } finally {
+          hideLoading();
         }
       }
 
@@ -4664,6 +4740,8 @@ self.onmessage = async function(e) {
           } catch (err) {
             log("error", "Load", err.message);
             showToast("error", err.message);
+          } finally {
+            hideLoading();
           }
         };
         reader.readAsText(file);
@@ -4684,23 +4762,33 @@ self.onmessage = async function(e) {
         };
       }
 
+      async function runRandomTestFromModal() {
+        closeModal("random-test-modal");
+        await runRandomTest();
+      }
+
       async function runRandomTest() {
-        const seed =
-          parseInt(document.getElementById("test-seed").value) || 42;
-        const nDimensions =
-          parseInt(document.getElementById("test-dimensions").value) ||
-          3;
-        const nSamples =
-          parseInt(document.getElementById("test-samples").value) ||
-          200;
-        const noise =
-          parseFloat(document.getElementById("test-noise").value) ||
-          0.1;
-        const outlierRate =
-          parseFloat(document.getElementById("test-outliers").value) ||
-          0.02;
-        const difficulty =
-          document.getElementById("test-difficulty").value || "medium";
+        const seedEl = document.getElementById("test-seed");
+        const dimEl = document.getElementById("test-dimensions");
+        const samplesEl = document.getElementById("test-samples");
+        const noiseEl = document.getElementById("test-noise");
+        const outliersEl = document.getElementById("test-outliers");
+        const diffEl = document.getElementById("test-difficulty");
+
+        const seed = seedEl ? (parseInt(seedEl.value) || 42) : 42;
+        const nDimensions = dimEl ? (parseInt(dimEl.value) || 3) : 3;
+        const nSamples = samplesEl
+          ? (parseInt(samplesEl.value) || 200)
+          : 200;
+        const noise = noiseEl
+          ? (parseFloat(noiseEl.value) || 0.1)
+          : 0.1;
+        const outlierRate = outliersEl
+          ? (parseFloat(outliersEl.value) || 0.02)
+          : 0.02;
+        const difficulty = diffEl
+          ? (diffEl.value || "medium")
+          : "medium";
 
         const rand = seededRandom(seed);
 
@@ -4740,7 +4828,10 @@ self.onmessage = async function(e) {
           const trainResult = await workerRequest("train", {
             coordinates,
           });
-          if (trainResult.cancelled) return;
+          if (trainResult.cancelled) {
+            log("warning", "Training", "Cancelled");
+            return;
+          }
 
           state.sampleCount = trainResult.summary.sampleCount;
           state.nDimensions = trainResult.summary.nDimensions;
@@ -4779,6 +4870,8 @@ self.onmessage = async function(e) {
         } catch (err) {
           log("error", "Demo", err.message);
           showToast("error", "Demo failed: " + err.message);
+        } finally {
+          hideLoading();
         }
       }
 
