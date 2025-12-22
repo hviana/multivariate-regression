@@ -1,6 +1,6 @@
-Develop the Single Page Web Application named ESN Regression Studio 
+Implement a Mobile Single Page Web Application named ESN Regression Studio
 
-GLOBAL REQUIREMENTS
+TECHNICAL REQUIREMENTS
 
 Tech Stack:
 - HTML, Tailwind CSS (CDN only), vanilla JavaScript
@@ -8,21 +8,36 @@ Tech Stack:
 - Standard number inputs only (no range sliders)
 - Native Tailwind utilities only (no custom CSS or animations)
 
-Design Principles:
+Web Worker:
+- Inline implementation with dynamic ESNRegression module import
+- Message types: init, createModel, train, predict, save, load, getSummary, reset, cancel
+- Progress events during training
+- Request ID tracking for results
+- Cancellation support for long-running operations
+
+Error Handling:
+- Try-catch wrapper on all async operations
+- Toast notifications for errors
+- Event log entries for all errors
+- Graceful degradation when worker fails
+- Validation feedback for all user inputs
+
+DESIGN SYSTEM
+
+Principles:
 - Mobile-first responsive design
 - Premium, high-end aesthetic with bold visual elements
 - Rich typography, generous spacing, polished components
 - Vibrant emoji usage throughout
 - Professional product styling
 
-Accessibility:
-- ARIA labels on all interactive elements
-- Role attributes on modals (dialog)
-- Focus management when opening/closing modals
-- Sufficient color contrast in both themes
-- Screen reader friendly structure
+Dimension Color Palette:
+#3B82F6, #10B981, #F59E0B, #EF4444, #8B5CF6, #EC4899, #06B6D4, #84CC16, #F97316, #14B8A6
 
-Dark Mode:
+Light Theme:
+- Default Tailwind light colors
+
+Dark Theme:
 - Background: gradient slate-900 via slate-800 to slate-900
 - Cards: slate-800 with transparency
 - Text: slate-100 primary, slate-400 secondary
@@ -32,12 +47,43 @@ Dark Mode:
 - Toggle via class on document element
 - Persist preference to localStorage
 
-Color Palette for Dimensions:
-#3B82F6, #10B981, #F59E0B, #EF4444, #8B5CF6, #EC4899, #06B6D4, #84CC16, #F97316, #14B8A6
+Status Colors:
+- Info: blue
+- Success: emerald
+- Warning: amber
+- Error: red
 
-HEADER
+ACCESSIBILITY
 
-Sticky glass-morphism header with blur backdrop and subtle transparent bottom border.
+- ARIA labels on all interactive elements
+- Role attributes on modals (dialog)
+- Focus management when opening/closing modals
+- Sufficient color contrast in both themes
+- Screen reader friendly structure
+
+STATE MANAGEMENT
+
+Application State Object:
+- config: all model configuration parameters
+- modelExists: boolean
+- nDimensions: number
+- sampleCount: number
+- predictions: current results
+- vizMode: current visualization mode
+- selectedDim: dimension index
+- selectedStep: step for snapshot view
+- isDark: boolean
+- logs: array (max 200 entries)
+- metrics: { avgLoss, gradientNorm, sampleWeight }
+- zoom: { level, offsetX, visibleStart, visibleCount }
+- hover: { active, x, y, dataIndex }
+
+Persist to localStorage: config, vizMode, isDark
+
+UI COMPONENTS
+
+Header:
+- Sticky glass-morphism with blur backdrop and subtle transparent bottom border
 
 Left Section:
 - Gradient logo container (blue-500 via indigo-500 to purple-600), rounded-xl, shadow-blue-500/30, containing 📊 emoji
@@ -50,22 +96,23 @@ Right Section:
 - Menu button: ☰ emoji, opens slide-out menu
 - Theme toggle: 🌙 (light mode) / ☀️ (dark mode)
 
-MAIN VISUALIZATION AREA
+Main Visualization Area:
 
 Tab Navigation:
-Horizontally scrollable container with five mode buttons:
+- Horizontally scrollable container with five mode buttons
+- Active: gradient blue-500 to indigo-600, white text, shadow
+- Inactive: slate-100 (light) / slate-700 (dark) background
+
+Modes:
 1. 📊 Small Multiples / Grid - all dimensions in grid layout
 2. 🔍 Focus View / Focus - single dimension with confidence intervals
 3. 🌡️ Heatmap - color-coded prediction matrix
 4. 📈 Uncertainty / CI - confidence visualization
 5. 📷 Snapshot - bar chart for single time step
 
-Tab Styling:
-- Active: gradient blue-500 to indigo-600, white text, shadow
-- Inactive: slate-100 (light) / slate-700 (dark) background
-
 Chart Container:
-White/dark rounded-2xl card with shadow-xl and subtle border containing HTML5 Canvas.
+- White/dark rounded-2xl card with shadow-xl and subtle border
+- HTML5 Canvas
 
 Floating Controls (visible when predictions exist):
 - Top-right: ➕ zoom in, ➖ zoom out, 🔄 reset zoom
@@ -82,7 +129,9 @@ Interaction Features:
 - Drag to pan when zoomed
 - Momentum scrolling on touch
 - Crosshair lines on focus view
+- Focus view with detailed information badge
 - Highlighted point with glow effect
+- Touch-and-hold triggers tooltip
 
 Tooltip (cursor/touch following):
 - Step number (prominent)
@@ -90,7 +139,6 @@ Tooltip (cursor/touch following):
 - Predicted value (bold)
 - Confidence interval (lower - upper)
 - Spread/uncertainty value
-- Touch-and-hold triggers tooltip
 
 Empty State:
 - Centered decorative layered containers with gradient backgrounds
@@ -98,7 +146,8 @@ Empty State:
 - Title "Create a Model to Begin"
 - Subtitle explaining ESN autoregressive forecasting
 - "Start with Defaults" primary button (⚡, gradient)
-- "Load" button (📤) and "Demo" button (✨, purple-to-pink gradient)
+- "Load" button (📤)
+- "Demo" button (✨, purple-to-pink gradient)
 
 Loading State:
 - Blurred overlay
@@ -107,46 +156,41 @@ Loading State:
 - Gradient progress bar (blue-500 to indigo-500) with percentage
 - Red "Cancel" button
 
-MODE-SPECIFIC COMPONENTS
+Mode-Specific Components:
 
 Dimension Selector (Focus Mode):
-Horizontal scrollable row of dimension buttons (D1, D2, D3...).
+- Horizontal scrollable row of dimension buttons (D1, D2, D3...)
 - Active: dimension's assigned color as background
 - Inactive: slate background
 
 Step Selector (Snapshot Mode):
-Label "Step:" with numeric input for selecting prediction step.
+- Label "Step:" with numeric input for selecting prediction step
 
 Statistics Bar (Focus Mode):
-Columns with glass-effect cards:
-- Min value
-- Max value
-- Mean value
-- Final value
-- Trend (colored arrow ↑ green / ↓ red with absolute change)
-- Confidence percentage
-Each card: uppercase tiny label, bold value.
+- Glass-effect cards in columns
+- Metrics: Min value, Max value, Mean value, Final value, Trend (colored arrow ↑ green / ↓ red with absolute change), Confidence percentage
+- Each card: uppercase tiny label, bold value
 
-SIDE PANEL
+Side Panel:
 
 Model Metrics Section:
-Header "Model Metrics" (uppercase).
-Rows: Samples Trained (blue highlight), Avg Loss (exponential), Gradient Norm (exponential), Sample Weight (3 decimals).
+- Header "Model Metrics" (uppercase)
+- Rows: Samples Trained (blue highlight), Avg Loss (exponential), Gradient Norm (exponential), Sample Weight (3 decimals)
 
 Prediction Section:
-Header "Prediction".
-"Future Steps" numeric input (any positive integer).
-"Run Prediction" gradient button (disabled when no model).
+- Header "Prediction"
+- "Future Steps" numeric input (any positive integer)
+- "Run Prediction" gradient button (disabled when no model)
 
 Event Log Section:
-Header "Event Log" with filter dropdown (All, Info, Success, Warning, Error).
-Search input for filtering.
-Scrollable list (display latest 50, store max 200).
-Entry format: colored category label (blue=info, emerald=success, amber=warning, red=error), timestamp, message.
+- Header "Event Log" with filter dropdown (All, Info, Success, Warning, Error)
+- Search input for filtering
+- Scrollable list (display latest 50, store max 200)
+- Entry format: colored category label, timestamp, message
 
-SLIDE-OUT MENU
-
-Full-height panel from right side.
+Slide-Out Menu:
+- Full-height panel from right side
+- Full-width buttons with icon container, title, description, hover states
 
 Model Section (📁):
 - 🎛️ Create & Configure (blue background) - "Set up model parameters"
@@ -164,14 +208,18 @@ Advanced Section (⚙️):
 - 📋 View Data Table (slate background) - "Raw prediction values"
 - ❓ Help (slate background)
 
-Menu items: full-width buttons with icon container, title, description, hover states.
+Toast Notifications:
+- Bottom-positioned container
+- Colored backgrounds matching status colors
+- Message text with ✖️ close button
+- Auto-dismiss: 4s default, 6s for errors
 
 MODALS
 
 Configuration Modal:
 
 Presets Bar (horizontal scrollable):
-"Start Here" (blue, default), "Fast", "Balanced", "Accurate", "Adaptive", "Robust"
+- "Start Here" (blue, default), "Fast", "Balanced", "Accurate", "Adaptive", "Robust"
 
 Collapsible Sections (toggle with ▼/▲):
 
@@ -213,7 +261,11 @@ Initialization:
 - seed: 42 - "Random seed"
 - verbose: false (toggle) - "Detailed logging"
 
-Footer: "Reset Defaults" (slate), "Reset All" (red), "Cancel" (slate), "Create Model" (gradient blue-indigo)
+Footer:
+- "Reset Defaults" (slate)
+- "Reset All" (red)
+- "Cancel" (slate)
+- "Create Model" (gradient blue-indigo)
 
 Upload Dataset Modal:
 
@@ -331,47 +383,3 @@ Preset Configurations:
 - Accurate: reservoirSize=512, spectralRadius=0.95, leakRate=0.2
 - Adaptive: rlsLambda=0.97, spectralRadius=0.85, leakRate=0.5
 - Robust: outlierThreshold=2.0, outlierMinWeight=0.05, l2Lambda=0.01, leakRate=0.2
-
-TOAST NOTIFICATIONS
-
-Bottom-positioned container
-- Colored backgrounds: emerald (success), amber (warning), red (error), blue (info)
-- Message text
-- ✖️ close button
-- Auto-dismiss: 4s default, 6s for errors
-
-STATE MANAGEMENT
-
-Application State Object:
-- config: all model configuration parameters
-- modelExists: boolean
-- nDimensions: number
-- sampleCount: number
-- predictions: current results
-- vizMode: current visualization mode
-- selectedDim: dimension index
-- selectedStep: step for snapshot view
-- isDark: boolean
-- logs: array (max 200 entries)
-- metrics: { avgLoss, gradientNorm, sampleWeight }
-- zoom: { level, offsetX, visibleStart, visibleCount }
-- hover: { active, x, y, dataIndex }
-
-Persist to localStorage: config, vizMode, isDark
-
-WEB WORKER
-
-Inline Web Worker implementation:
-- Dynamically imports ESNRegression module
-- Message types: init, createModel, train, predict, save, load, getSummary, reset, cancel
-- Emits progress events during training
-- Returns results with requestId for tracking
-- Supports cancellation of long-running operations
-
-ERROR HANDLING
-
-- Wrap all async operations in try-catch
-- Display errors via toast notifications
-- Log errors to event log
-- Graceful degradation when worker fails
-- Validation feedback for all user inputs
