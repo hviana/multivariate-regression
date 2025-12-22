@@ -325,7 +325,7 @@ Help/Documentation Modal:
 Worker Setup:
 ```
 The ESNRegression library runs in a Web Worker for non-blocking performance.
-Module URL: https://cdn.esm.sh/jsr/@hviana/multivariate-regression@1.4.3
+Module URL: https://cdn.esm.sh/jsr/@hviana/multivariate-regression@1.4.4
 ```
 
 Method Documentation:
