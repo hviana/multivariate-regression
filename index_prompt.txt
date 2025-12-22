@@ -1,4 +1,4 @@
-Implement a Mobile Single Page Web Application named ESN Regression Studio (Return a super-compressed code to avoid wasting too many tokens)
+Implement a Mobile Single Page Web Application named ESN Regression Studio
 
 ================================================================================
 TECHNICAL STACK
