@@ -34,19 +34,6 @@ Principles:
 Dimension Color Palette:
 #3B82F6, #10B981, #F59E0B, #EF4444, #8B5CF6, #EC4899, #06B6D4, #84CC16, #F97316, #14B8A6
 
-Light Theme:
-- Default Tailwind light colors
-
-Dark Theme:
-- Background: gradient slate-900 via slate-800 to slate-900
-- Cards: slate-800 with transparency
-- Text: slate-100 primary, slate-400 secondary
-- Borders: slate-700 with transparency
-- Inputs: slate-700 background
-- Preserved gradient accents on buttons
-- Toggle via class on document element
-- Persist preference to localStorage
-
 Status Colors:
 - Info: blue
 - Success: emerald
@@ -58,7 +45,7 @@ ACCESSIBILITY
 - ARIA labels on all interactive elements
 - Role attributes on modals (dialog)
 - Focus management when opening/closing modals
-- Sufficient color contrast in both themes
+- Sufficient color contrast
 - Screen reader friendly structure
 
 STATE MANAGEMENT
@@ -72,13 +59,12 @@ Application State Object:
 - vizMode: current visualization mode
 - selectedDim: dimension index
 - selectedStep: step for snapshot view
-- isDark: boolean
 - logs: array (max 200 entries)
 - metrics: { avgLoss, gradientNorm, sampleWeight }
 - zoom: { level, offsetX, visibleStart, visibleCount }
 - hover: { active, x, y, dataIndex }
 
-Persist to localStorage: config, vizMode, isDark
+Persist to localStorage: config, vizMode
 
 UI COMPONENTS
 
@@ -94,14 +80,13 @@ Right Section:
 - Predict button: gradient blue-500 to indigo-600, ⚡ emoji, hidden until model exists
 - Configure button: ⚙️ emoji, opens configuration modal
 - Menu button: ☰ emoji, opens slide-out menu
-- Theme toggle: 🌙 (light mode) / ☀️ (dark mode)
 
 Main Visualization Area:
 
 Tab Navigation:
 - Horizontally scrollable container with five mode buttons
 - Active: gradient blue-500 to indigo-600, white text, shadow
-- Inactive: slate-100 (light) / slate-700 (dark) background
+- Inactive: slate-100 (light)
 
 Modes:
 1. 📊 Small Multiples / Grid - all dimensions in grid layout
@@ -111,7 +96,7 @@ Modes:
 5. 📷 Snapshot - bar chart for single time step
 
 Chart Container:
-- White/dark rounded-2xl card with shadow-xl and subtle border
+- White rounded-2xl card with shadow-xl and subtle border
 - HTML5 Canvas
 
 Floating Controls (visible when predictions exist):
