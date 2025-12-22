@@ -219,7 +219,6 @@ Model Section (📁):
 
 Data Section (📂):
 - 📤 Upload Dataset (purple) - "Import time series data"
-- ➕ Manual Insert (amber) - "Add individual time steps"
 
 Test Section (🧪):
 - 💡 Random Test (pink) - "Generate synthetic time series"
@@ -339,21 +338,6 @@ Footer Buttons:
 - "Cancel"
 - "Validate"
 - "Apply & Train" (disabled until validated)
-
---------------------------------------------------------------------------------
-
-MANUAL INSERT MODAL
--------------------
-
-Content:
-- Description text
-- "Generate Template" button (creates JSON template based on current dimensions)
-- Textarea for JSON input
-- Validation feedback area
-
-Footer Buttons:
-- "Cancel"
-- "Insert & Train"
 
 --------------------------------------------------------------------------------
 
