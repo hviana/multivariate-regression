@@ -411,6 +411,10 @@ Controls:
 ESNRegression API REFERENCE
 ================================================================================
 
+Import:
+
+import { ESNRegression } from "https://esm.sh/jsr/@hviana/multivariate-regression";
+
 Creating a Model:
 const model = new ESNRegression(config);
 

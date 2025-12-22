@@ -326,7 +326,7 @@
           createWorker();
           await sendWorkerMessage("init", {
             moduleUrl:
-              "https://cdn.jsdelivr.net/npm/esn-regression@latest/dist/esn-regression.esm.js",
+              "https://esm.sh/jsr/@hviana/multivariate-regression",
           });
           addLog("ESN module initialized", "success");
         } catch (e) {
