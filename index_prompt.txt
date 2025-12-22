@@ -1,4 +1,14 @@
-Create a premium, highly attractive, and fully mobile-first single-page web application called "ESN Regression Studio" for managing an autoregressive Echo State Network (ESN) library. The application should be built with HTML, Tailwind CSS (via CDN), and vanilla JavaScript. Use emojis exclusively instead of SVG icons throughout the entire interface. The website must be **stunningly beautiful and visually rich**—go over the top with polished graphics, bold visual elements, refined typography and spacing, premium components, vibrant emojis, and every modern UI styling touch needed to make it feel like a high-end product. All numeric inputs should be standard number inputs without range sliders to avoid limiting values to specific intervals. Don't forget that everything has to be mobile-first. Do not use animations or any visual features that are not native to Tailwind, do not write CSS.
+Create a single-page web application called "ESN Regression Studio" for managing an autoregressive Echo State Network (ESN) library with:
+- HTML, Tailwind CSS (via CDN), and vanilla JavaScript only
+- Mobile-first responsive design
+- Emojis exclusively for all icons—no SVGs
+- Standard number inputs only—no range sliders
+- No custom CSS or animations—use only native Tailwind utilities
+- Premium, high-end aesthetic with bold visual elements
+- Rich typography, generous spacing, and polished components
+- Vibrant emoji usage throughout
+- Modern UI styling befitting a professional product
+
 ---
 
 **HEADER SECTION:**
