@@ -1,19 +1,21 @@
 Implement a Mobile Single Page Web Application named ESN Regression Studio
 
-TECHNICAL REQUIREMENTS
+================================================================================
+TECHNICAL STACK
+================================================================================
 
-Tech Stack:
+Core Technologies:
 - HTML, Tailwind CSS (CDN only), vanilla JavaScript
 - Emojis exclusively for icons (no SVGs)
 - Standard number inputs only (no range sliders)
 - Native Tailwind utilities only (no custom CSS or animations)
 
-Web Worker:
+Web Worker Requirements:
 - Inline implementation with dynamic ESNRegression module import
-- Message types: init, createModel, train, predict, save, load, getSummary, reset, cancel
-- Progress events during training
 - Request ID tracking for results
+- Progress events during training
 - Cancellation support for long-running operations
+- Message types: init, createModel, train, predict, save, load, getSummary, reset, cancel
 
 Error Handling:
 - Try-catch wrapper on all async operations
@@ -22,16 +24,19 @@ Error Handling:
 - Graceful degradation when worker fails
 - Validation feedback for all user inputs
 
+================================================================================
 DESIGN SYSTEM
+================================================================================
 
 Principles:
 - Mobile-first responsive design
 - Premium, high-end aesthetic with bold visual elements
 - Rich typography, generous spacing, polished components
 - Vibrant emoji usage throughout
-- Professional product styling
 
-Dimension Color Palette:
+Color Palette:
+
+Dimension Colors (index-based assignment):
 #3B82F6, #10B981, #F59E0B, #EF4444, #8B5CF6, #EC4899, #06B6D4, #84CC16, #F97316, #14B8A6
 
 Status Colors:
@@ -40,7 +45,9 @@ Status Colors:
 - Warning: amber
 - Error: red
 
+================================================================================
 ACCESSIBILITY
+================================================================================
 
 - ARIA labels on all interactive elements
 - Role attributes on modals (dialog)
@@ -48,7 +55,9 @@ ACCESSIBILITY
 - Sufficient color contrast
 - Screen reader friendly structure
 
+================================================================================
 STATE MANAGEMENT
+================================================================================
 
 Application State Object:
 - config: all model configuration parameters
@@ -60,48 +69,55 @@ Application State Object:
 - selectedDim: dimension index
 - selectedStep: step for snapshot view
 - logs: array (max 200 entries)
-- metrics: { avgLoss, gradientNorm, sampleWeight }
+- metrics: { samplesProcessed, averageLoss, gradientNorm, driftDetected, sampleWeight }
 - zoom: { level, offsetX, visibleStart, visibleCount }
 - hover: { active, x, y, dataIndex }
 
 Persist to localStorage: config, vizMode
 
+================================================================================
 UI COMPONENTS
+================================================================================
 
-Header:
-- Sticky glass-morphism with blur backdrop and subtle transparent bottom border
+HEADER
+------
+Container: Sticky, glass-morphism with blur backdrop, subtle transparent bottom border
 
 Left Section:
-- Gradient logo container (blue-500 via indigo-500 to purple-600), rounded-xl, shadow-blue-500/30, containing 📊 emoji
-- Title "ESN Studio" (bold) with subtitle "Autoregressive Forecasting" (smaller, muted)
+- Logo container: gradient (blue-500 via indigo-500 to purple-600), rounded-xl, shadow-blue-500/30
+- Logo emoji: 📊
+- Title: "ESN Studio" (bold)
+- Subtitle: "Autoregressive Forecasting" (smaller, muted)
 
 Right Section:
-- Model status badge: pulsing dot (slate=no model, emerald=model exists) with text ("No Model" or "150 steps")
-- Predict button: gradient blue-500 to indigo-600, ⚡ emoji, hidden until model exists
+- Model status badge: pulsing dot + text
+  - No model: slate dot, "No Model"
+  - Model exists: emerald dot, "{steps} steps"
+- Predict button: gradient (blue-500 to indigo-600), ⚡ emoji, hidden until model exists
 - Configure button: ⚙️ emoji, opens configuration modal
 - Menu button: ☰ emoji, opens slide-out menu
 
-Main Visualization Area:
+--------------------------------------------------------------------------------
+
+MAIN VISUALIZATION AREA
+-----------------------
 
 Tab Navigation:
-- Horizontally scrollable container with five mode buttons
-- Active: gradient blue-500 to indigo-600, white text, shadow
-- Inactive: slate-100 (light)
+- Horizontally scrollable container
+- Active tab: gradient (blue-500 to indigo-600), white text, shadow
+- Inactive tab: slate-100 background
 
-Modes:
-1. 📊 Small Multiples / Grid - all dimensions in grid layout
+Visualization Modes:
+1. 📊 Small Multiples / Grid - all dimensions in grid layout (click dimension to focus)
 2. 🔍 Focus View / Focus - single dimension with confidence intervals
-3. 🌡️ Heatmap - color-coded prediction matrix
-4. 📈 Uncertainty / CI - confidence visualization
-5. 📷 Snapshot - bar chart for single time step
 
 Chart Container:
 - White rounded-2xl card with shadow-xl and subtle border
-- HTML5 Canvas
+- HTML5 Canvas rendering
 
 Floating Controls (visible when predictions exist):
 - Top-right: ➕ zoom in, ➖ zoom out, 🔄 reset zoom
-- Top-left: zoom level badge showing percentage
+- Top-left: zoom level badge (percentage)
 
 Export Controls:
 - 🖼️ Save as PNG
@@ -114,7 +130,6 @@ Interaction Features:
 - Drag to pan when zoomed
 - Momentum scrolling on touch
 - Crosshair lines on focus view
-- Focus view with detailed information badge
 - Highlighted point with glow effect
 - Touch-and-hold triggers tooltip
 
@@ -128,11 +143,12 @@ Tooltip (cursor/touch following):
 Empty State:
 - Centered decorative layered containers with gradient backgrounds
 - Large 📊 emoji
-- Title "Create a Model to Begin"
-- Subtitle explaining ESN autoregressive forecasting
-- "Start with Defaults" primary button (⚡, gradient)
-- "Load" button (📤)
-- "Demo" button (✨, purple-to-pink gradient)
+- Title: "Create a Model to Begin"
+- Subtitle: explaining ESN autoregressive forecasting
+- Buttons:
+  - "Start with Defaults" (⚡, gradient primary)
+  - "Load" (📤)
+  - "Demo" (✨, purple-to-pink gradient)
 
 Loading State:
 - Blurred overlay
@@ -141,70 +157,109 @@ Loading State:
 - Gradient progress bar (blue-500 to indigo-500) with percentage
 - Red "Cancel" button
 
-Mode-Specific Components:
+--------------------------------------------------------------------------------
+
+MODE-SPECIFIC COMPONENTS
+------------------------
 
 Dimension Selector (Focus Mode):
-- Horizontal scrollable row of dimension buttons (D1, D2, D3...)
-- Active: dimension's assigned color as background
+- Horizontal scrollable row of buttons (D1, D2, D3...)
+- Active: dimension's assigned color background
 - Inactive: slate background
 
 Step Selector (Snapshot Mode):
-- Label "Step:" with numeric input for selecting prediction step
+- Label "Step:" with numeric input
 
 Statistics Bar (Focus Mode):
 - Glass-effect cards in columns
-- Metrics: Min value, Max value, Mean value, Final value, Trend (colored arrow ↑ green / ↓ red with absolute change), Confidence percentage
-- Each card: uppercase tiny label, bold value
+- Metrics displayed:
+  - Min value
+  - Max value
+  - Mean value
+  - Final value
+  - Trend: colored arrow (↑ green / ↓ red) with absolute change
+  - Confidence percentage
+- Card format: uppercase tiny label, bold value
 
-Side Panel:
+--------------------------------------------------------------------------------
+
+SIDE PANEL
+----------
 
 Model Metrics Section:
-- Header "Model Metrics" (uppercase)
-- Rows: Samples Trained (blue highlight), Avg Loss (exponential), Gradient Norm (exponential), Sample Weight (3 decimals)
+- Header: "Model Metrics" (uppercase)
+- Rows:
+  - Samples Trained (blue highlight)
+  - Avg Loss (exponential notation)
+  - Gradient Norm (exponential notation)
+  - Sample Weight (3 decimals)
 
 Prediction Section:
-- Header "Prediction"
+- Header: "Prediction"
 - "Future Steps" numeric input (any positive integer)
 - "Run Prediction" gradient button (disabled when no model)
 
 Event Log Section:
-- Header "Event Log" with filter dropdown (All, Info, Success, Warning, Error)
-- Search input for filtering
+- Header: "Event Log"
+- Filter dropdown: All, Info, Success, Warning, Error
+- Search input
 - Scrollable list (display latest 50, store max 200)
 - Entry format: colored category label, timestamp, message
 
-Slide-Out Menu:
-- Full-height panel from right side
-- Full-width buttons with icon container, title, description, hover states
+--------------------------------------------------------------------------------
+
+SLIDE-OUT MENU
+--------------
+Container: Full-height panel from right side
+Button format: Full-width with icon container, title, description, hover states
 
 Model Section (📁):
-- 🎛️ Create & Configure (blue background) - "Set up model parameters"
-- 💾 Save & Load (emerald background) - "Persist your models"
+- 🎛️ Create & Configure (blue) - "Set up model parameters"
+- 💾 Save & Load (emerald) - "Persist your models"
 
 Data Section (📂):
-- 📤 Upload Dataset (purple background) - "Import time series data"
-- ➕ Manual Insert (amber background) - "Add individual time steps"
+- 📤 Upload Dataset (purple) - "Import time series data"
+- ➕ Manual Insert (amber) - "Add individual time steps"
 
 Test Section (🧪):
-- 💡 Random Test (pink background) - "Generate synthetic time series"
+- 💡 Random Test (pink) - "Generate synthetic time series"
 
 Advanced Section (⚙️):
-- 🔧 Settings (slate background) - "Module URL & preferences"
-- 📋 View Data Table (slate background) - "Raw prediction values"
-- ❓ Help (slate background)
+- 📋 View Data Table (slate) - "Raw prediction values"
 
-Toast Notifications:
+--------------------------------------------------------------------------------
+
+TOAST NOTIFICATIONS
+-------------------
 - Bottom-positioned container
-- Colored backgrounds matching status colors
+- Background color matches status
 - Message text with ✖️ close button
 - Auto-dismiss: 4s default, 6s for errors
 
+================================================================================
 MODALS
+================================================================================
 
-Configuration Modal:
+- The modals need to be scrollable automatically when needed
+
+CONFIGURATION MODAL
+-------------------
 
 Presets Bar (horizontal scrollable):
-- "Start Here" (blue, default), "Fast", "Balanced", "Accurate", "Adaptive", "Robust"
+- "Start Here" (blue, default)
+- "Fast"
+- "Balanced"
+- "Accurate"
+- "Adaptive"
+- "Robust"
+
+Preset Configurations:
+- Start Here/Default: reservoirSize=256, spectralRadius=0.9, leakRate=0.3
+- Fast: reservoirSize=64, reservoirSparsity=0.95
+- Balanced: reservoirSize=256, spectralRadius=0.9
+- Accurate: reservoirSize=512, spectralRadius=0.95, leakRate=0.2
+- Adaptive: rlsLambda=0.97, spectralRadius=0.85, leakRate=0.5
+- Robust: outlierThreshold=2.0, outlierMinWeight=0.05, l2Lambda=0.01, leakRate=0.2
 
 Collapsible Sections (toggle with ▼/▲):
 
@@ -246,20 +301,28 @@ Initialization:
 - seed: 42 - "Random seed"
 - verbose: false (toggle) - "Detailed logging"
 
-Footer:
+Footer Buttons:
 - "Reset Defaults" (slate)
 - "Reset All" (red)
 - "Cancel" (slate)
 - "Create Model" (gradient blue-indigo)
 
-Upload Dataset Modal:
+--------------------------------------------------------------------------------
 
-- Drag-and-drop zone: 📁 emoji, dashed border, hover highlight
-- Text "Drop JSON file here or tap to browse"
+UPLOAD DATASET MODAL
+--------------------
+
+Drag-and-Drop Zone:
+- 📁 emoji, dashed border, hover highlight
+- Text: "Drop JSON file here or tap to browse"
 - Hidden file input (.json)
+
+Paste Section:
 - Textarea for pasting JSON
-- Collapsible format example with "Copy example" button:
-```json
+
+Format Example (collapsible):
+- "Copy example" button
+- Example content:
 {
   "coordinates": [
     [1.0, 2.0, 3.0],
@@ -267,20 +330,35 @@ Upload Dataset Modal:
     [1.2, 2.2, 3.2]
   ]
 }
-```
-- Validation preview (green): dimensions count, time steps count, status
-- Error display (red) for invalid data
-- Footer: Cancel, Validate, "Apply & Train" (disabled until validated)
 
-Manual Insert Modal:
+Validation Feedback:
+- Success (green): dimensions count, time steps count, status
+- Error (red): error message
 
+Footer Buttons:
+- "Cancel"
+- "Validate"
+- "Apply & Train" (disabled until validated)
+
+--------------------------------------------------------------------------------
+
+MANUAL INSERT MODAL
+-------------------
+
+Content:
 - Description text
 - "Generate Template" button (creates JSON template based on current dimensions)
 - Textarea for JSON input
 - Validation feedback area
-- Footer: Cancel, "Insert & Train"
 
-Save & Load Modal:
+Footer Buttons:
+- "Cancel"
+- "Insert & Train"
+
+--------------------------------------------------------------------------------
+
+SAVE & LOAD MODAL
+-----------------
 
 Save Section:
 - 📥 Download - downloads JSON file
@@ -288,10 +366,16 @@ Save Section:
 
 Load Section:
 - 📤 Tap-to-upload zone
-- List of saved models from localStorage (name, dimension count, "Load" button)
-- "Clear all saved models" link
+- Saved models list from localStorage:
+  - Model name
+  - Dimension count
+  - "Load" button
+  - "Delete" button
 
-Random Test Modal:
+--------------------------------------------------------------------------------
+
+RANDOM TEST MODAL
+-----------------
 
 Inputs:
 - Seed: 42
@@ -301,70 +385,49 @@ Inputs:
 - Outliers rate: 0.02
 - Difficulty: select (Easy, Medium, Hard)
 
-Footer: Cancel, "Generate & Run" (purple-pink gradient)
+Footer Buttons:
+- "Cancel"
+- "Generate & Run" (purple-pink gradient)
 
-Settings Modal:
+--------------------------------------------------------------------------------
 
-- Module URL input (monospace)
-- "Reinitialize Worker" button (amber)
-- "Clear All Preferences" button (red)
+DATA TABLE MODAL (full-screen)
+------------------------------
 
-Data Table Modal (full-screen):
-
-- Scrollable table with sticky header
+Table Features:
+- Scrollable with sticky header
 - Columns: Step, P1...Pn (predictions), L1...Ln (lower bounds), U1...Un (upper bounds)
-- Monospace font, zebra striping
+- Monospace font
+- Zebra striping
 - Column sorting by clicking headers
 - Row highlighting on hover with full details
+
+Controls:
+- Search/filter input
 - 📊 Export CSV button
 - 📋 Copy All button
-- Search/filter input
 
-Help/Documentation Modal:
-
-Worker Setup:
-```
-The ESNRegression library runs in a Web Worker for non-blocking performance.
-Module URL: https://cdn.esm.sh/jsr/@hviana/multivariate-regression@1.4.5
-```
-
-Method Documentation:
+================================================================================
+ESNRegression API REFERENCE
+================================================================================
 
 Creating a Model:
-```javascript
 const model = new ESNRegression(config);
-```
 
 Online Training (fitOnline):
-```javascript
 model.fitOnline({ coordinates: [[x1,y1,z1], [x2,y2,z2]] });
 // Min two coordinates per call (t, t+1), (t+2, t+3)...
-// Returns: { averageLoss, gradientNorm, sampleWeight }
-```
+// Returns: { samplesProcessed, averageLoss, gradientNorm, driftDetected, sampleWeight }
 
 Prediction:
-```javascript
 const result = model.predict(futureSteps);
 // Returns: { predictions, lowerBounds, upperBounds, confidence }
-// Each is array of arrays [step][dimension]
-```
+// predictions, lowerBounds, upperBounds are array of arrays [step][dimension]
 
 Save/Load:
-```javascript
 const state = model.save();
 model.load(state);
-```
 
 Model Summary:
-```javascript
 const summary = model.getModelSummary();
-// Returns: { nFeatures, sampleCount, ... }
-```
-
-Preset Configurations:
-- Start Here/Default: reservoirSize=256, spectralRadius=0.9, leakRate=0.3
-- Fast: reservoirSize=64, reservoirSparsity=0.95
-- Balanced: reservoirSize=256, spectralRadius=0.9
-- Accurate: reservoirSize=512, spectralRadius=0.95, leakRate=0.2
-- Adaptive: rlsLambda=0.97, spectralRadius=0.85, leakRate=0.5
-- Robust: outlierThreshold=2.0, outlierMinWeight=0.05, l2Lambda=0.01, leakRate=0.2
+// Returns: {totalParameters, receptiveField, spectralRadius, reservoirSize, nFeatures, nTargets, sampleCount}
