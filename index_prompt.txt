@@ -14,13 +14,6 @@ Design Principles:
 - Rich typography, generous spacing, polished components
 - Vibrant emoji usage throughout
 - Professional product styling
-- Minimum 44x44px touch targets on all interactive elements
-
-Responsive Breakpoints:
-- sm: 640px
-- md: 768px
-- lg: 1024px
-- xl: 1280px
 
 Accessibility:
 - ARIA labels on all interactive elements
@@ -85,7 +78,7 @@ Export Controls:
 
 Interaction Features:
 - Pinch-to-zoom on touch devices
-- Scroll wheel zoom (with modifier key on desktop)
+- Scroll wheel zoom
 - Drag to pan when zoomed
 - Momentum scrolling on touch
 - Crosshair lines on focus view
@@ -97,7 +90,7 @@ Tooltip (cursor/touch following):
 - Predicted value (bold)
 - Confidence interval (lower - upper)
 - Spread/uncertainty value
-- Touch-and-hold triggers tooltip on mobile
+- Touch-and-hold triggers tooltip
 
 Empty State:
 - Centered decorative layered containers with gradient backgrounds
@@ -125,7 +118,7 @@ Step Selector (Snapshot Mode):
 Label "Step:" with numeric input for selecting prediction step.
 
 Statistics Bar (Focus Mode):
-Six-column grid (3 columns on mobile) with glass-effect cards:
+Columns with glass-effect cards:
 - Min value
 - Max value
 - Mean value
@@ -135,9 +128,6 @@ Six-column grid (3 columns on mobile) with glass-effect cards:
 Each card: uppercase tiny label, bold value.
 
 SIDE PANEL
-
-Desktop: Fixed 320px width panel.
-Mobile: Slide-in overlay (85% width, max 384px) with backdrop that closes panel when tapped.
 
 Model Metrics Section:
 Header "Model Metrics" (uppercase).
@@ -178,13 +168,7 @@ Menu items: full-width buttons with icon container, title, description, hover st
 
 MODALS
 
-Common Modal Structure:
-- Mobile: full-screen
-- Desktop: centered card (max-width as specified)
-- Header with title and ✖️ close button
-- Footer with action buttons
-
-Configuration Modal (max-width 768px):
+Configuration Modal:
 
 Presets Bar (horizontal scrollable):
 "Start Here" (blue, default), "Fast", "Balanced", "Accurate", "Adaptive", "Robust"
@@ -304,7 +288,7 @@ Help/Documentation Modal:
 Worker Setup:
 ```
 The ESNRegression library runs in a Web Worker for non-blocking performance.
-Module URL: https://cdn.esm.sh/jsr/@hviana/multivariate-regression@1.4.1
+Module URL: https://cdn.esm.sh/jsr/@hviana/multivariate-regression@1.4.2
 ```
 
 Method Documentation:
@@ -350,7 +334,7 @@ Preset Configurations:
 
 TOAST NOTIFICATIONS
 
-Bottom-positioned container (above mobile nav on small screens).
+Bottom-positioned container
 - Colored backgrounds: emerald (success), amber (warning), red (error), blue (info)
 - Message text
 - ✖️ close button
