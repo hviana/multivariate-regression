@@ -1,4 +1,4 @@
-Implement a Mobile Single Page Web Application named ESN Regression Studio
+Implement a Mobile Single Page Web Application named ESN Regression Studio (Return a super-compressed code to avoid wasting too many tokens)
 
 ================================================================================
 TECHNICAL STACK
@@ -125,6 +125,7 @@ Export Controls:
 - 📋 Copy to Clipboard
 
 Interaction Features:
+- The data line should also appear, so the prediction line is a dashed continuation.
 - Pinch-to-zoom on touch devices
 - Scroll wheel zoom
 - Drag to pan when zoomed

@@ -1,1730 +1,2776 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8">
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    >
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>ESN Regression Studio</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              glass: "rgba(255, 255, 255, 0.7)",
-              glassBorder: "rgba(255, 255, 255, 0.5)",
-            },
-          },
-        },
-      };
-    </script>
-    <style>
-      /* Custom Scrollbar */
-      ::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
-      }
-      ::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
-        border-radius: 3px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
-      }
-
-      /* Utility */
-      .glass-panel {
-        background: rgba(255, 255, 255, 0.85);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.6);
-      }
-
-      .no-select {
-        user-select: none;
-        -webkit-user-select: none;
-      }
-
-      /* Loader Animation */
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
-        }
-      }
-      .spinner {
-        animation: spin 1s linear infinite;
-      }
-
-      /* Hide number input spinners */
-      input[type="number"]::-webkit-inner-spin-button,
-      input[type="number"]::-webkit-outer-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-      }
-    </style>
   </head>
-  <body
-    class="bg-slate-50 text-slate-800 h-screen w-full overflow-hidden flex flex-col font-sans selection:bg-indigo-100 selection:text-indigo-700"
-  >
-    <header
-      class="glass-panel z-30 sticky top-0 w-full px-4 py-3 shadow-sm flex justify-between items-center shrink-0"
+  <body class="bg-slate-50 text-slate-900 selection:bg-indigo-200">
+    <div
+      id="toasts"
+      class="fixed bottom-3 left-3 right-3 z-[80] flex flex-col gap-2 pointer-events-none"
     >
-      <div class="flex items-center gap-3">
-        <div
-          class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/30 text-xl"
-        >
-          📊
+    </div>
+
+    <!-- HEADER -->
+    <header
+      class="sticky top-0 z-[60] backdrop-blur bg-white/70 border-b border-white/30"
+    >
+      <div
+        class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3"
+      >
+        <div class="flex items-center gap-3 min-w-0">
+          <div
+            class="shrink-0 rounded-xl shadow-lg shadow-blue-500/30 bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 w-11 h-11 flex items-center justify-center"
+            aria-label="App logo"
+          >
+            📊
+          </div>
+          <div class="min-w-0">
+            <div
+              class="font-extrabold tracking-tight text-lg leading-5 truncate"
+            >
+              ESN Studio
+            </div>
+            <div class="text-xs text-slate-600 truncate">
+              Autoregressive Forecasting
+            </div>
+          </div>
         </div>
-        <div class="hidden sm:block">
-          <h1 class="font-bold text-slate-800 leading-tight">ESN Studio</h1>
-          <p class="text-xs text-slate-500 font-medium">
-            Autoregressive Forecasting
-          </p>
+        <div class="flex items-center gap-2">
+          <div
+            id="status"
+            class="px-3 py-2 rounded-xl bg-white/70 border border-slate-200 shadow-sm flex items-center gap-2"
+            aria-label="Model status"
+          >
+            <span
+              id="statusDot"
+              class="w-2.5 h-2.5 rounded-full bg-slate-400"
+            ></span>
+            <span id="statusTxt" class="text-xs font-semibold text-slate-700"
+            >No Model</span>
+          </div>
+          <button
+            id="btnPredictTop"
+            class="hidden px-3 py-2 rounded-xl font-bold text-white bg-gradient-to-r from-blue-500 to-indigo-600 shadow-lg shadow-indigo-500/20 active:scale-[.99]"
+            aria-label="Predict"
+          >
+            <span class="mr-1">⚡</span>Predict
+          </button>
+          <button
+            id="btnCfg"
+            class="px-3 py-2 rounded-xl bg-white/70 border border-slate-200 shadow-sm active:scale-[.99]"
+            aria-label="Configure"
+          >
+            ⚙️
+          </button>
+          <button
+            id="btnMenu"
+            class="px-3 py-2 rounded-xl bg-white/70 border border-slate-200 shadow-sm active:scale-[.99]"
+            aria-label="Open menu"
+          >
+            ☰
+          </button>
         </div>
-      </div>
-
-      <div class="flex items-center gap-2 sm:gap-4">
-        <div
-          id="statusBadge"
-          class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-xs font-semibold shadow-inner"
-        >
-          <span id="statusDot" class="w-2 h-2 rounded-full bg-slate-400"></span>
-          <span id="statusText">No Model</span>
-        </div>
-
-        <button
-          id="headerPredictBtn"
-          class="hidden bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-4 py-1.5 rounded-lg text-sm font-semibold shadow-md transition-all active:scale-95 flex items-center gap-2"
-        >
-          ⚡ Predict
-        </button>
-
-        <button
-          onclick="app.modals.open('config')"
-          class="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
-          aria-label="Configure Model"
-        >
-          ⚙️
-        </button>
-
-        <button
-          onclick="app.toggleMenu()"
-          class="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
-          aria-label="Open Menu"
-        >
-          ☰
-        </button>
       </div>
     </header>
 
-    <div class="flex-1 flex overflow-hidden relative">
-      <main class="flex-1 flex flex-col overflow-hidden relative h-full">
-        <nav
-          class="h-12 border-b border-slate-200 bg-white flex items-center px-4 gap-2 overflow-x-auto no-scrollbar shrink-0"
-        >
-          <button
-            id="tabGrid"
-            onclick="app.setVizMode('grid')"
-            class="px-4 py-1.5 rounded-full text-sm font-medium transition-all bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md"
-          >
-            📊 Grid
-          </button>
-          <button
-            id="tabFocus"
-            onclick="app.setVizMode('focus')"
-            class="px-4 py-1.5 rounded-full text-sm font-medium transition-all bg-slate-100 text-slate-600 hover:bg-slate-200"
-          >
-            🔍 Focus
-          </button>
-          <div class="w-px h-6 bg-slate-200 mx-2"></div>
-          <div
-            id="dimSelector"
-            class="hidden flex items-center gap-1 overflow-x-auto no-scrollbar"
-          >
-          </div>
-        </nav>
-
-        <div
-          class="flex-1 relative bg-slate-50 overflow-hidden touch-none"
-          id="canvasWrapper"
-        >
-          <div
-            id="emptyState"
-            class="absolute inset-0 flex flex-col items-center justify-center p-6 z-10 bg-slate-50"
-          >
-            <div
-              class="w-24 h-24 bg-gradient-to-tr from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mb-6 shadow-inner animate-pulse"
-            >
-              <span class="text-5xl">📊</span>
-            </div>
-            <h2 class="text-2xl font-bold text-slate-800 mb-2">
-              Create a Model to Begin
-            </h2>
-            <p class="text-slate-500 text-center max-w-md mb-8">
-              Initialize an Echo State Network for high-performance multivariate
-              autoregressive time-series forecasting.
-            </p>
-            <div class="flex flex-wrap gap-4 justify-center">
-              <button
-                onclick="app.quickStart()"
-                class="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl shadow-lg shadow-blue-500/30 font-semibold hover:-translate-y-0.5 transition-transform flex items-center gap-2"
-              >
-                ⚡ Start with Defaults
-              </button>
-              <button
-                onclick="app.modals.open('saveLoad')"
-                class="px-6 py-2.5 bg-white text-slate-700 border border-slate-200 rounded-xl shadow-sm font-semibold hover:bg-slate-50 transition-colors flex items-center gap-2"
-              >
-                📤 Load Model
-              </button>
-              <button
-                onclick="app.modals.open('randomTest')"
-                class="px-6 py-2.5 bg-gradient-to-r from-fuchsia-500 to-pink-500 text-white rounded-xl shadow-lg shadow-pink-500/30 font-semibold hover:-translate-y-0.5 transition-transform flex items-center gap-2"
-              >
-                ✨ Demo
-              </button>
-            </div>
-          </div>
-
-          <canvas
-            id="vizCanvas"
-            class="w-full h-full block cursor-crosshair"
-          ></canvas>
-
-          <div
-            id="zoomControls"
-            class="absolute top-4 right-4 flex flex-col gap-2 opacity-0 pointer-events-none transition-opacity duration-300"
-          >
-            <button
-              onclick="app.viz.zoom(1.2)"
-              class="w-10 h-10 bg-white rounded-xl shadow-lg border border-slate-100 text-slate-700 flex items-center justify-center hover:bg-slate-50 active:scale-95 text-xl font-bold"
-            >
-              ➕
-            </button>
-            <button
-              onclick="app.viz.resetZoom()"
-              class="w-10 h-10 bg-white rounded-xl shadow-lg border border-slate-100 text-slate-700 flex items-center justify-center hover:bg-slate-50 active:scale-95 text-lg"
-            >
-              🔄
-            </button>
-            <button
-              onclick="app.viz.zoom(0.8)"
-              class="w-10 h-10 bg-white rounded-xl shadow-lg border border-slate-100 text-slate-700 flex items-center justify-center hover:bg-slate-50 active:scale-95 text-xl font-bold"
-            >
-              ➖
-            </button>
-          </div>
-
-          <div
-            id="zoomBadge"
-            class="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-lg shadow-md border border-slate-200 text-xs font-bold text-slate-600 opacity-0 pointer-events-none transition-opacity"
-          >
-            100%
-          </div>
-
-          <div
-            id="chartTooltip"
-            class="absolute hidden pointer-events-none z-20 bg-slate-900/95 text-white p-3 rounded-xl shadow-xl border border-slate-700 text-sm max-w-[200px]"
-          >
-          </div>
-        </div>
-
-        <div
-          id="statsBar"
-          class="hidden h-auto border-t border-slate-200 bg-white p-2 shrink-0 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 text-xs"
-        >
-        </div>
-      </main>
-
-      <aside
-        class="hidden lg:flex flex-col w-[320px] border-l border-slate-200 bg-white shadow-xl z-20 overflow-y-auto"
-      >
-        <div class="p-5 border-b border-slate-100">
-          <h3
-            class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4"
-          >
-            Model Metrics
-          </h3>
-          <div class="space-y-3">
-            <div class="flex justify-between items-center">
-              <span class="text-slate-600 text-sm">Samples Trained</span>
-              <span
-                id="metricSamples"
-                class="font-mono text-sm font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded"
-              >0</span>
-            </div>
-            <div class="flex justify-between items-center">
-              <span class="text-slate-600 text-sm">Avg Loss</span>
-              <span id="metricLoss" class="font-mono text-sm text-slate-800"
-              >0.00e+0</span>
-            </div>
-            <div class="flex justify-between items-center">
-              <span class="text-slate-600 text-sm">Grad Norm</span>
-              <span id="metricGrad" class="font-mono text-sm text-slate-800"
-              >0.00e+0</span>
-            </div>
-            <div class="flex justify-between items-center">
-              <span class="text-slate-600 text-sm">Sample Weight</span>
-              <span id="metricWeight" class="font-mono text-sm text-slate-800"
-              >1.000</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="p-5 border-b border-slate-100 bg-slate-50/50">
-          <h3
-            class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3"
-          >
-            Prediction
-          </h3>
-          <div class="flex flex-col gap-3">
-            <label class="text-sm font-medium text-slate-700"
-            >Future Steps</label>
-            <div class="flex gap-2">
-              <input
-                type="number"
-                id="stepsInput"
-                value="50"
-                class="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-              >
-              <button
-                onclick="app.runPrediction()"
-                id="sidePredictBtn"
-                disabled
-                class="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg shadow disabled:opacity-50 disabled:cursor-not-allowed text-sm font-bold"
-              >
-                Run
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="flex-1 flex flex-col min-h-0">
-          <div
-            class="p-4 border-b border-slate-100 flex justify-between items-center"
-          >
-            <h3
-              class="text-xs font-bold text-slate-400 uppercase tracking-wider"
-            >
-              Event Log
-            </h3>
-            <select
-              id="logFilter"
-              class="text-xs border border-slate-200 rounded px-2 py-1 bg-transparent"
-            >
-              <option value="all">All</option>
-              <option value="error">Errors</option>
-            </select>
-          </div>
-          <div
-            id="eventLog"
-            class="flex-1 overflow-y-auto p-4 space-y-3 font-mono text-xs"
-          >
-          </div>
-        </div>
-      </aside>
-
+    <!-- MENU (slide-out) -->
+    <div id="menuWrap" class="fixed inset-0 z-[70] hidden">
       <div
-        id="slideMenu"
-        class="fixed inset-y-0 right-0 w-80 bg-white shadow-2xl transform translate-x-full transition-transform duration-300 ease-out z-50 flex flex-col"
+        id="menuBackdrop"
+        class="absolute inset-0 bg-slate-900/30"
+        aria-label="Close menu"
       >
-        <div
-          class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50"
-        >
-          <h2 class="font-bold text-lg text-slate-800">Menu</h2>
+      </div>
+      <aside
+        id="menu"
+        class="absolute right-0 top-0 h-full w-[86%] max-w-sm bg-white shadow-2xl border-l border-slate-200 p-4 flex flex-col gap-3"
+        aria-label="Slide-out menu"
+      >
+        <div class="flex items-center justify-between">
+          <div class="font-extrabold text-lg">Menu</div>
           <button
-            onclick="app.toggleMenu()"
-            class="text-slate-400 hover:text-slate-600 text-2xl"
+            id="btnMenuClose"
+            class="px-3 py-2 rounded-xl bg-slate-100 active:scale-[.99]"
+            aria-label="Close menu"
           >
-            ×
+            ✖️
           </button>
         </div>
-        <div class="p-4 space-y-2 overflow-y-auto flex-1">
-          <div
-            class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 mt-2"
-          >
-            Model
-          </div>
+        <div class="text-xs text-slate-600">
+          📦 Everything you need, one tap away.
+        </div>
+        <div class="mt-1 grid gap-2">
           <button
-            onclick="app.modals.open('config');app.toggleMenu()"
-            class="w-full text-left p-3 rounded-xl hover:bg-blue-50 group transition-colors border border-transparent hover:border-blue-100"
+            data-act="openCfg"
+            class="w-full text-left p-3 rounded-2xl border border-blue-100 bg-blue-50 active:scale-[.99]"
+            aria-label="Create and configure"
           >
-            <div class="flex items-center gap-3">
-              <span
-                class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-lg"
-              >🎛️</span>
+            <div class="flex items-start gap-3">
+              <div
+                class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0"
+              >
+                🎛️
+              </div>
               <div>
-                <div
-                  class="font-semibold text-slate-800 group-hover:text-blue-700"
-                >
-                  Configure
-                </div>
-                <div class="text-xs text-slate-500">
+                <div class="font-extrabold">Create & Configure</div>
+                <div class="text-xs text-slate-600">
                   Set up model parameters
                 </div>
               </div>
             </div>
           </button>
           <button
-            onclick="app.modals.open('saveLoad');app.toggleMenu()"
-            class="w-full text-left p-3 rounded-xl hover:bg-emerald-50 group transition-colors border border-transparent hover:border-emerald-100"
+            data-act="openSaveLoad"
+            class="w-full text-left p-3 rounded-2xl border border-emerald-100 bg-emerald-50 active:scale-[.99]"
+            aria-label="Save and load"
           >
-            <div class="flex items-center gap-3">
-              <span
-                class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg"
-              >💾</span>
+            <div class="flex items-start gap-3">
+              <div
+                class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0"
+              >
+                💾
+              </div>
               <div>
-                <div
-                  class="font-semibold text-slate-800 group-hover:text-emerald-700"
-                >
-                  Save & Load
-                </div>
-                <div class="text-xs text-slate-500">Persist your models</div>
+                <div class="font-extrabold">Save & Load</div>
+                <div class="text-xs text-slate-600">Persist your models</div>
               </div>
             </div>
           </button>
-
-          <div
-            class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 mt-4"
-          >
-            Data
-          </div>
           <button
-            onclick="app.modals.open('upload');app.toggleMenu()"
-            class="w-full text-left p-3 rounded-xl hover:bg-purple-50 group transition-colors border border-transparent hover:border-purple-100"
+            data-act="openUpload"
+            class="w-full text-left p-3 rounded-2xl border border-purple-100 bg-purple-50 active:scale-[.99]"
+            aria-label="Upload dataset"
           >
-            <div class="flex items-center gap-3">
-              <span
-                class="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-lg"
-              >📤</span>
+            <div class="flex items-start gap-3">
+              <div
+                class="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center shrink-0"
+              >
+                📤
+              </div>
               <div>
-                <div
-                  class="font-semibold text-slate-800 group-hover:text-purple-700"
-                >
-                  Upload Dataset
-                </div>
-                <div class="text-xs text-slate-500">
-                  Import JSON time series
+                <div class="font-extrabold">Upload Dataset</div>
+                <div class="text-xs text-slate-600">
+                  Import time series data
                 </div>
               </div>
             </div>
           </button>
-
-          <div
-            class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 mt-4"
-          >
-            Test
-          </div>
           <button
-            onclick="app.modals.open('randomTest');app.toggleMenu()"
-            class="w-full text-left p-3 rounded-xl hover:bg-pink-50 group transition-colors border border-transparent hover:border-pink-100"
+            data-act="openRand"
+            class="w-full text-left p-3 rounded-2xl border border-pink-100 bg-pink-50 active:scale-[.99]"
+            aria-label="Random test"
           >
-            <div class="flex items-center gap-3">
-              <span
-                class="w-8 h-8 rounded-lg bg-pink-100 text-pink-600 flex items-center justify-center text-lg"
-              >💡</span>
+            <div class="flex items-start gap-3">
+              <div
+                class="w-10 h-10 rounded-xl bg-pink-100 flex items-center justify-center shrink-0"
+              >
+                🧪
+              </div>
               <div>
-                <div
-                  class="font-semibold text-slate-800 group-hover:text-pink-700"
-                >
-                  Random Test
-                </div>
-                <div class="text-xs text-slate-500">
-                  Generate synthetic data
+                <div class="font-extrabold">Random Test</div>
+                <div class="text-xs text-slate-600">
+                  Generate synthetic time series
                 </div>
               </div>
             </div>
           </button>
-
-          <div
-            class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 mt-4"
-          >
-            Advanced
-          </div>
           <button
-            onclick="app.modals.open('dataTable');app.toggleMenu()"
-            class="w-full text-left p-3 rounded-xl hover:bg-slate-50 group transition-colors border border-transparent hover:border-slate-100"
+            data-act="openTable"
+            class="w-full text-left p-3 rounded-2xl border border-slate-200 bg-slate-50 active:scale-[.99]"
+            aria-label="View data table"
           >
-            <div class="flex items-center gap-3">
-              <span
-                class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center text-lg"
-              >📋</span>
+            <div class="flex items-start gap-3">
+              <div
+                class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0"
+              >
+                📋
+              </div>
               <div>
-                <div
-                  class="font-semibold text-slate-800 group-hover:text-slate-700"
-                >
-                  Data Table
-                </div>
-                <div class="text-xs text-slate-500">View raw values</div>
+                <div class="font-extrabold">View Data Table</div>
+                <div class="text-xs text-slate-600">Raw prediction values</div>
               </div>
             </div>
           </button>
         </div>
-      </div>
-
-      <div
-        id="menuBackdrop"
-        onclick="app.toggleMenu()"
-        class="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-40 hidden transition-opacity"
-      >
-      </div>
+        <div class="mt-auto text-[11px] text-slate-500">
+          🔒 Local-first: config + view mode persist in your browser.
+        </div>
+      </aside>
     </div>
 
-    <dialog
-      id="configModal"
-      class="rounded-2xl shadow-2xl p-0 w-[95%] max-w-2xl backdrop:bg-slate-900/40 backdrop:backdrop-blur-sm m-auto"
-    >
-      <div class="flex flex-col max-h-[85vh]">
-        <div
-          class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50 sticky top-0 z-10"
-        >
-          <h3 class="font-bold text-xl text-slate-800 flex items-center gap-2">
-            ⚙️ Configuration
-          </h3>
-          <button
-            onclick="app.modals.close('config')"
-            class="w-8 h-8 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-500"
+    <!-- MAIN -->
+    <main class="max-w-6xl mx-auto px-4 py-4">
+      <div class="grid gap-4 lg:grid-cols-[1.4fr_.6fr]">
+        <!-- VIZ -->
+        <section class="space-y-3">
+          <!-- Tabs -->
+          <div
+            class="flex gap-2 overflow-x-auto pb-1"
+            aria-label="Visualization modes"
           >
-            ✖️
-          </button>
-        </div>
+            <button
+              id="tabGrid"
+              class="shrink-0 px-4 py-2 rounded-xl font-extrabold shadow-lg shadow-indigo-500/20 text-white bg-gradient-to-r from-blue-500 to-indigo-600 active:scale-[.99]"
+              aria-label="Grid mode"
+            >
+              📊 Grid
+            </button>
+            <button
+              id="tabFocus"
+              class="shrink-0 px-4 py-2 rounded-xl font-extrabold bg-slate-100 text-slate-800 border border-slate-200 active:scale-[.99]"
+              aria-label="Focus mode"
+            >
+              🔍 Focus
+            </button>
+          </div>
 
-        <div class="p-5 overflow-y-auto custom-scrollbar space-y-6">
-          <div>
-            <label
-              class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-3"
-            >Presets</label>
+          <!-- Focus extras -->
+          <div id="focusExtras" class="hidden space-y-2">
             <div
-              class="flex gap-2 overflow-x-auto pb-2 no-scrollbar"
-              id="presetContainer"
+              class="flex gap-2 overflow-x-auto"
+              id="dimRow"
+              aria-label="Dimension selector"
             >
             </div>
+            <div
+              class="grid grid-cols-2 sm:grid-cols-3 gap-2"
+              aria-label="Statistics bar"
+            >
+              <div
+                class="rounded-2xl bg-white/70 border border-slate-200 backdrop-blur p-3"
+              >
+                <div class="text-[10px] uppercase text-slate-500">Min</div>
+                <div id="mMin" class="font-extrabold">—</div>
+              </div>
+              <div
+                class="rounded-2xl bg-white/70 border border-slate-200 backdrop-blur p-3"
+              >
+                <div class="text-[10px] uppercase text-slate-500">Max</div>
+                <div id="mMax" class="font-extrabold">—</div>
+              </div>
+              <div
+                class="rounded-2xl bg-white/70 border border-slate-200 backdrop-blur p-3"
+              >
+                <div class="text-[10px] uppercase text-slate-500">Mean</div>
+                <div id="mMean" class="font-extrabold">—</div>
+              </div>
+              <div
+                class="rounded-2xl bg-white/70 border border-slate-200 backdrop-blur p-3"
+              >
+                <div class="text-[10px] uppercase text-slate-500">Final</div>
+                <div id="mFinal" class="font-extrabold">—</div>
+              </div>
+              <div
+                class="rounded-2xl bg-white/70 border border-slate-200 backdrop-blur p-3"
+              >
+                <div class="text-[10px] uppercase text-slate-500">Trend</div>
+                <div id="mTrend" class="font-extrabold">—</div>
+              </div>
+              <div
+                class="rounded-2xl bg-white/70 border border-slate-200 backdrop-blur p-3"
+              >
+                <div class="text-[10px] uppercase text-slate-500">
+                  Confidence
+                </div>
+                <div id="mConf" class="font-extrabold">—</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <label class="text-xs font-bold text-slate-700" for="stepInp"
+              >Step:</label>
+              <input
+                id="stepInp"
+                type="number"
+                min="0"
+                class="w-28 px-3 py-2 rounded-xl bg-white border border-slate-200"
+                aria-label="Step selector"
+              />
+              <div class="text-xs text-slate-500">
+                📌 Snapshot tooltip uses this when hovering is off.
+              </div>
+            </div>
           </div>
 
-          <div id="configForm" class="space-y-4"></div>
-        </div>
+          <!-- Chart Card -->
+          <div
+            class="relative rounded-2xl bg-white border border-slate-200 shadow-xl overflow-hidden"
+            aria-label="Chart container"
+          >
+            <canvas
+              id="cv"
+              class="w-full h-[420px] block"
+              aria-label="Visualization canvas"
+            ></canvas>
 
+            <!-- Floating controls -->
+            <div
+              id="floatCtl"
+              class="hidden absolute top-3 right-3 flex gap-2"
+              aria-label="Zoom controls"
+            >
+              <button
+                id="zIn"
+                class="px-3 py-2 rounded-xl bg-white/80 border border-slate-200 backdrop-blur active:scale-[.99]"
+                aria-label="Zoom in"
+              >
+                ➕
+              </button>
+              <button
+                id="zOut"
+                class="px-3 py-2 rounded-xl bg-white/80 border border-slate-200 backdrop-blur active:scale-[.99]"
+                aria-label="Zoom out"
+              >
+                ➖
+              </button>
+              <button
+                id="zReset"
+                class="px-3 py-2 rounded-xl bg-white/80 border border-slate-200 backdrop-blur active:scale-[.99]"
+                aria-label="Reset zoom"
+              >
+                🔄
+              </button>
+            </div>
+            <div
+              id="zoomBadge"
+              class="hidden absolute top-3 left-3 px-3 py-2 rounded-xl bg-white/80 border border-slate-200 backdrop-blur text-xs font-extrabold"
+              aria-label="Zoom level"
+            >
+              100%
+            </div>
+
+            <!-- Export controls -->
+            <div
+              id="exportCtl"
+              class="hidden absolute bottom-3 right-3 flex gap-2"
+              aria-label="Export controls"
+            >
+              <button
+                id="exPng"
+                class="px-3 py-2 rounded-xl bg-white/80 border border-slate-200 backdrop-blur active:scale-[.99]"
+                aria-label="Save as PNG"
+              >
+                🖼️
+              </button>
+              <button
+                id="exSvg"
+                class="px-3 py-2 rounded-xl bg-white/80 border border-slate-200 backdrop-blur active:scale-[.99]"
+                aria-label="Save as SVG"
+              >
+                📄
+              </button>
+              <button
+                id="exClip"
+                class="px-3 py-2 rounded-xl bg-white/80 border border-slate-200 backdrop-blur active:scale-[.99]"
+                aria-label="Copy to clipboard"
+              >
+                📋
+              </button>
+            </div>
+
+            <!-- Empty state -->
+            <div
+              id="empty"
+              class="absolute inset-0 flex items-center justify-center p-6"
+              aria-label="Empty state"
+            >
+              <div class="relative w-full max-w-sm">
+                <div
+                  class="absolute -inset-2 rounded-3xl bg-gradient-to-br from-blue-200 via-indigo-200 to-purple-200 blur"
+                >
+                </div>
+                <div
+                  class="relative rounded-3xl bg-white/80 backdrop-blur border border-white/60 shadow-2xl p-6 text-center space-y-3"
+                >
+                  <div class="text-5xl">📊</div>
+                  <div class="font-extrabold text-xl">
+                    Create a Model to Begin
+                  </div>
+                  <div class="text-sm text-slate-600">
+                    Upload multivariate coordinates, train online with ESN
+                    regression, then forecast future steps with confidence
+                    intervals.
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <button
+                      id="btnDefaults"
+                      class="px-4 py-3 rounded-2xl font-extrabold text-white bg-gradient-to-r from-blue-500 to-indigo-600 shadow-lg shadow-indigo-500/20 active:scale-[.99]"
+                      aria-label="Start with defaults"
+                    >
+                      ⚡ Start with Defaults
+                    </button>
+                    <div class="grid grid-cols-2 gap-2">
+                      <button
+                        id="btnLoad"
+                        class="px-4 py-3 rounded-2xl font-extrabold bg-white border border-slate-200 active:scale-[.99]"
+                        aria-label="Load"
+                      >
+                        📤 Load
+                      </button>
+                      <button
+                        id="btnDemo"
+                        class="px-4 py-3 rounded-2xl font-extrabold text-white bg-gradient-to-r from-purple-500 to-pink-500 shadow-lg shadow-pink-500/20 active:scale-[.99]"
+                        aria-label="Demo"
+                      >
+                        ✨ Demo
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tooltip -->
+            <div
+              id="tip"
+              class="pointer-events-none hidden absolute z-[50] max-w-[260px] rounded-2xl bg-slate-900/90 text-white border border-white/10 p-3 shadow-2xl"
+              aria-label="Tooltip"
+            >
+              <div id="tipStep" class="font-extrabold text-base">Step —</div>
+              <div class="mt-1 flex items-center gap-2 text-xs">
+                <span
+                  id="tipDot"
+                  class="w-2.5 h-2.5 rounded-full bg-white"
+                ></span><span id="tipDim" class="font-bold">D—</span>
+              </div>
+              <div class="mt-2 text-sm">
+                Pred: <span id="tipPred" class="font-extrabold">—</span>
+              </div>
+              <div class="text-xs text-slate-200">
+                CI: <span id="tipCI">—</span>
+              </div>
+              <div class="text-xs text-slate-200">
+                Spread: <span id="tipSp">—</span>
+              </div>
+            </div>
+
+            <!-- Loading overlay -->
+            <div
+              id="loading"
+              class="hidden absolute inset-0 bg-white/70 backdrop-blur flex items-center justify-center p-6"
+              aria-label="Loading overlay"
+            >
+              <div
+                class="w-full max-w-sm rounded-3xl bg-white border border-slate-200 shadow-2xl p-5 space-y-3"
+              >
+                <div class="flex items-center gap-3">
+                  <div
+                    class="w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center animate-spin"
+                    aria-label="Spinner"
+                  >
+                    🌀
+                  </div>
+                  <div class="min-w-0">
+                    <div id="loadingTxt" class="font-extrabold truncate">
+                      Processing…
+                    </div>
+                    <div class="text-xs text-slate-600">
+                      Progress updates stream during training.
+                    </div>
+                  </div>
+                </div>
+                <div
+                  class="w-full h-3 rounded-full bg-slate-100 overflow-hidden border border-slate-200"
+                >
+                  <div
+                    id="progBar"
+                    class="h-full bg-gradient-to-r from-blue-500 to-indigo-500 w-[0%]"
+                  >
+                  </div>
+                </div>
+                <div class="flex items-center justify-between">
+                  <div
+                    id="progPct"
+                    class="text-xs font-extrabold text-slate-700"
+                  >
+                    0%
+                  </div>
+                  <button
+                    id="btnCancel"
+                    class="px-4 py-2 rounded-xl font-extrabold text-white bg-red-500 shadow-lg shadow-red-500/20 active:scale-[.99]"
+                    aria-label="Cancel operation"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SIDE PANEL -->
+        <aside class="space-y-3">
+          <div
+            class="rounded-2xl bg-white border border-slate-200 shadow-xl p-4"
+            aria-label="Model metrics panel"
+          >
+            <div
+              class="text-xs uppercase tracking-wide font-extrabold text-slate-600"
+            >
+              Model Metrics
+            </div>
+            <div class="mt-3 grid grid-cols-2 gap-2 text-sm">
+              <div class="rounded-2xl bg-blue-50 border border-blue-100 p-3">
+                <div class="text-[10px] uppercase text-blue-600 font-extrabold">
+                  Samples
+                </div>
+                <div id="mmSamples" class="font-extrabold text-blue-900">0</div>
+              </div>
+              <div class="rounded-2xl bg-white border border-slate-200 p-3">
+                <div
+                  class="text-[10px] uppercase text-slate-500 font-extrabold"
+                >
+                  Avg Loss
+                </div>
+                <div id="mmLoss" class="font-extrabold">—</div>
+              </div>
+              <div class="rounded-2xl bg-white border border-slate-200 p-3">
+                <div
+                  class="text-[10px] uppercase text-slate-500 font-extrabold"
+                >
+                  Grad Norm
+                </div>
+                <div id="mmGrad" class="font-extrabold">—</div>
+              </div>
+              <div class="rounded-2xl bg-white border border-slate-200 p-3">
+                <div
+                  class="text-[10px] uppercase text-slate-500 font-extrabold"
+                >
+                  Weight
+                </div>
+                <div id="mmW" class="font-extrabold">—</div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="rounded-2xl bg-white border border-slate-200 shadow-xl p-4"
+            aria-label="Prediction panel"
+          >
+            <div
+              class="text-xs uppercase tracking-wide font-extrabold text-slate-600"
+            >
+              Prediction
+            </div>
+            <div class="mt-3 flex gap-2">
+              <input
+                id="futureInp"
+                type="number"
+                min="1"
+                value="50"
+                class="w-28 px-3 py-2 rounded-xl bg-white border border-slate-200"
+                aria-label="Future steps"
+              />
+              <button
+                id="btnPredict"
+                class="flex-1 px-4 py-2 rounded-xl font-extrabold text-white bg-gradient-to-r from-blue-500 to-indigo-600 shadow-lg shadow-indigo-500/20 disabled:opacity-50 disabled:shadow-none active:scale-[.99]"
+                disabled
+                aria-label="Run prediction"
+              >
+                ⚡ Run Prediction
+              </button>
+            </div>
+          </div>
+
+          <div
+            class="rounded-2xl bg-white border border-slate-200 shadow-xl p-4"
+            aria-label="Event log panel"
+          >
+            <div class="flex items-center justify-between">
+              <div
+                class="text-xs uppercase tracking-wide font-extrabold text-slate-600"
+              >
+                Event Log
+              </div>
+              <button
+                id="btnClearLog"
+                class="px-3 py-1.5 rounded-xl bg-slate-100 text-xs font-extrabold active:scale-[.99]"
+                aria-label="Clear log"
+              >
+                🧹
+              </button>
+            </div>
+            <div class="mt-2 flex gap-2">
+              <select
+                id="logFilter"
+                class="px-3 py-2 rounded-xl bg-white border border-slate-200 text-sm"
+                aria-label="Log filter"
+              >
+                <option>All</option>
+                <option>Info</option>
+                <option>Success</option>
+                <option>Warning</option>
+                <option>Error</option>
+              </select>
+              <input
+                id="logSearch"
+                class="flex-1 px-3 py-2 rounded-xl bg-white border border-slate-200 text-sm"
+                placeholder="Search…"
+                aria-label="Log search"
+              />
+            </div>
+            <div
+              id="logList"
+              class="mt-3 max-h-[330px] overflow-auto pr-1 space-y-2"
+              aria-label="Log entries"
+            >
+            </div>
+            <div class="mt-2 text-[11px] text-slate-500">
+              🧾 Showing latest 50 (stores up to 200).
+            </div>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <!-- MODAL SHELLS -->
+    <div
+      id="modalWrap"
+      class="fixed inset-0 z-[75] hidden"
+      aria-label="Modal wrapper"
+    >
+      <div id="modalBg" class="absolute inset-0 bg-slate-900/35"></div>
+      <div
+        class="absolute inset-0 flex items-end sm:items-center justify-center p-3"
+      >
         <div
-          class="p-5 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 sticky bottom-0 z-10"
+          id="modal"
+          role="dialog"
+          aria-modal="true"
+          class="w-full max-w-2xl max-h-[92vh] overflow-auto rounded-3xl bg-white border border-slate-200 shadow-2xl"
         >
-          <button
-            onclick="app.resetConfig()"
-            class="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg text-sm font-semibold transition-colors"
-          >
-            Reset All
-          </button>
-          <div class="flex-1"></div>
-          <button
-            onclick="app.modals.close('config')"
-            class="px-5 py-2 text-slate-600 hover:bg-slate-200 rounded-lg text-sm font-semibold transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onclick="app.createModel()"
-            class="px-6 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg shadow-lg shadow-blue-500/30 text-sm font-semibold hover:-translate-y-0.5 transition-transform"
-          >
-            Create Model
-          </button>
         </div>
       </div>
-    </dialog>
+    </div>
 
-    <dialog
-      id="uploadModal"
-      class="rounded-2xl shadow-2xl p-0 w-[95%] max-w-lg backdrop:bg-slate-900/40 backdrop:backdrop-blur-sm m-auto"
-    >
-      <div class="p-6">
-        <h3
-          class="font-bold text-xl text-slate-800 mb-4 flex items-center gap-2"
-        >
-          📤 Upload Dataset
-        </h3>
+    <input
+      id="fileInp"
+      type="file"
+      accept=".json,application/json"
+      class="hidden"
+      aria-label="File input"
+    />
 
-        <div
-          id="dropZone"
-          class="border-2 border-dashed border-slate-300 rounded-xl p-8 flex flex-col items-center justify-center gap-3 hover:bg-slate-50 hover:border-indigo-400 transition-colors cursor-pointer mb-4"
-        >
-          <span class="text-4xl">📁</span>
-          <p class="text-slate-600 font-medium text-center">
-            Drop JSON file here<br><span
-              class="text-sm text-slate-400 font-normal"
-            >or tap to browse</span>
-          </p>
-          <input type="file" id="fileInput" accept=".json" class="hidden">
-        </div>
+    <script>
+      (() => {
+        const $ = (s) => document.querySelector(s),
+          $$ = (s) => [...document.querySelectorAll(s)];
+        const DCL = [
+          "#3B82F6",
+          "#10B981",
+          "#F59E0B",
+          "#EF4444",
+          "#8B5CF6",
+          "#EC4899",
+          "#06B6D4",
+          "#84CC16",
+          "#F97316",
+          "#14B8A6",
+        ];
+        const LS = {
+          cfg: "esn_cfg",
+          viz: "esn_viz",
+          models: "esn_models",
+        };
+        const DEF = {
+          reservoirSize: 256,
+          spectralRadius: .9,
+          leakRate: .3,
+          inputScale: 1,
+          biasScale: .1,
+          reservoirSparsity: .9,
+          inputSparsity: 0,
+          activation: "tanh",
+          useInputInReadout: true,
+          useBiasInReadout: true,
+          readoutTraining: "rls",
+          rlsLambda: .999,
+          rlsDelta: 1,
+          epsilon: 1e-8,
+          l2Lambda: 1e-4,
+          gradientClipNorm: 1,
+          normalizationEpsilon: 1e-8,
+          normalizationWarmup: 10,
+          outlierThreshold: 3,
+          outlierMinWeight: .1,
+          uncertaintyMultiplier: 1.96,
+          weightInitScale: .1,
+          seed: 42,
+          verbose: false,
+        };
+        const PRESETS = {
+          "Start Here": {
+            reservoirSize: 256,
+            spectralRadius: .9,
+            leakRate: .3,
+          },
+          "Fast": { reservoirSize: 64, reservoirSparsity: .95 },
+          "Balanced": { reservoirSize: 256, spectralRadius: .9 },
+          "Accurate": {
+            reservoirSize: 512,
+            spectralRadius: .95,
+            leakRate: .2,
+          },
+          "Adaptive": {
+            rlsLambda: .97,
+            spectralRadius: .85,
+            leakRate: .5,
+          },
+          "Robust": {
+            outlierThreshold: 2,
+            outlierMinWeight: .05,
+            l2Lambda: .01,
+            leakRate: .2,
+          },
+        };
+        const S = {
+          config: ({
+            ...DEF,
+            ...JSON.parse(localStorage.getItem(LS.cfg) || "{}"),
+          }),
+          modelExists: false,
+          nDimensions: 0,
+          sampleCount: 0,
+          predictions: null,
+          lowerBounds: null,
+          upperBounds: null,
+          confidence: null,
+          vizMode: (localStorage.getItem(LS.viz) || "grid"),
+          selectedDim: 0,
+          selectedStep: 0,
+          logs: [],
+          metrics: {
+            samplesProcessed: 0,
+            averageLoss: NaN,
+            gradientNorm: NaN,
+            driftDetected: false,
+            sampleWeight: NaN,
+          },
+          zoom: {
+            level: 1,
+            offsetX: 0,
+            visibleStart: 0,
+            visibleCount: 0,
+          },
+          hover: { active: false, x: 0, y: 0, dataIndex: -1 },
+          data: null,
+          loading: false,
+          progress: 0,
+          opRid: 0,
+          engine: null,
+          engineOk: false,
+        };
+        const fmt = (x) =>
+          Number.isFinite(x)
+            ? (Math.abs(x) >= 1e4 || Math.abs(x) <= 1e-3 && x !== 0
+              ? x.toExponential(2)
+              : x.toFixed(4).replace(/0+$/, "").replace(/\.$/, ""))
+            : "—";
+        const now = () =>
+          new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          });
+        const log = (type, msg) => {
+          S.logs.push({ ts: Date.now(), type, msg });
+          if (S.logs.length > 200) S.logs.shift();
+          renderLog();
+        };
+        const toast = (type, msg) => {
+          const c = {
+            Info: "bg-blue-600",
+            Success: "bg-emerald-600",
+            Warning: "bg-amber-600",
+            Error: "bg-red-600",
+          }[type] || "bg-slate-700";
+          const id = "t" + Math.random().toString(16).slice(2);
+          const d = document.createElement("div");
+          d.id = id;
+          d.className =
+            `pointer-events-auto ${c} text-white rounded-2xl shadow-2xl px-4 py-3 flex items-start gap-3`;
+          d.innerHTML = `<div class="font-extrabold">${
+            type === "Error"
+              ? "🧨"
+              : type === "Success"
+              ? "✅"
+              : type === "Warning"
+              ? "⚠️"
+              : "ℹ️"
+          }</div><div class="text-sm leading-5 flex-1">${msg}</div><button class="shrink-0 px-2 py-1 rounded-lg bg-white/20 font-extrabold" aria-label="Close toast">✖️</button>`;
+          d.querySelector("button").onclick = () => d.remove();
+          $("#toasts").appendChild(d);
+          setTimeout(() => {
+            if (document.getElementById(id)) d.remove();
+          }, type === "Error" ? 6000 : 4000);
+        };
+        const withErr = (fn) => async (...a) => {
+          try {
+            return await fn(...a);
+          } catch (e) {
+            const m = (e?.message || e) + "";
+            log("Error", m);
+            toast("Error", m);
+            throw e;
+          }
+        };
+        const setLoading = (on, txt = "Processing…", pct = 0) => {
+          S.loading = on;
+          $("#loading").classList.toggle("hidden", !on);
+          $("#loadingTxt").textContent = txt;
+          setProg(pct);
+        };
+        const setProg = (pct) => {
+          S.progress = Math.max(0, Math.min(100, pct | 0));
+          $("#progBar").style.width = S.progress + "%";
+          $("#progPct").textContent = S.progress + "%";
+        };
+        const setStatus = () => {
+          const has = S.modelExists;
+          $("#statusDot").className = "w-2.5 h-2.5 rounded-full " +
+            (has ? "bg-emerald-500 animate-pulse" : "bg-slate-400");
+          $("#statusTxt").textContent = has
+            ? (S.sampleCount + " steps")
+            : "No Model";
+          $("#btnPredictTop").classList.toggle("hidden", !has);
+          $("#btnPredict").disabled = !has;
+        };
+        const persist = () => {
+          localStorage.setItem(LS.cfg, JSON.stringify(S.config));
+          localStorage.setItem(LS.viz, S.vizMode);
+        };
+        const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+        const dl = (name, blob) => {
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = name;
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            URL.revokeObjectURL(a.href);
+            a.remove();
+          }, 400);
+        };
+        /* ENGINE (Worker + graceful fallback) */
+        const mkEngine = withErr(async () => {
+          const wsrc =
+            `let M=null,ESNRegression=null,canceled={};const send=(type,rid,payload)=>postMessage({type,rid,payload});
+  const safe=async(fn,rid)=>{try{await fn()}catch(e){send("error",rid,{message:(e?.message||e)+"",stack:e?.stack||""})}};
+  onmessage=e=>{const {type,rid,payload}=e.data||{};safe(async()=>{
+    if(type==="cancel"){canceled[payload?.ridToCancel]=1;send("canceled",rid,{});return}
+    if(type==="reset"){M=null;send("resetDone",rid,{});return}
+    if(type==="init"){if(!ESNRegression){({ESNRegression}=await import("https://esm.sh/jsr/@hviana/multivariate-regression")};send("inited",rid,{});return}
+    if(type==="createModel"){if(!ESNRegression)throw"Not initialized";M=new ESNRegression(payload?.config||{});send("modelCreated",rid,{});return}
+    if(type==="load"){if(!ESNRegression){({ESNRegression}=await import("https://esm.sh/jsr/@hviana/multivariate-regression")};M=new ESNRegression(payload?.config||{});M.load(payload?.state);send("loaded",rid,{summary:M.getModelSummary?.()});return}
+    if(!M)throw"No model";
+    if(type==="getSummary"){send("summary",rid,M.getModelSummary?.());return}
+    if(type==="save"){send("saved",rid,{state:M.save(),summary:M.getModelSummary?.()});return}
+    if(type==="predict"){send("predicted",rid,M.predict(payload?.futureSteps||1));return}
+    if(type==="train"){
+      const coords=payload?.coordinates||[];let last=null,n=coords.length;
+      for(let i=0;i<n-1;i+=2){
+        if(canceled[rid]){delete canceled[rid];send("cancelled",rid,{message:"Canceled"});return}
+        last=M.fitOnline({coordinates:[coords[i],coords[i+1]]});
+        if(i%10===0||i>=n-3)send("progress",rid,{i,n,percent:Math.min(100,Math.round((i/(n-1))*100)),metrics:last});
+      }
+      send("trained",rid,{metrics:last,summary:M.getModelSummary?.()});return
+    }
+    throw"Unknown type: "+type;
+  },rid)};
+  export {};`;
+          let W = null;
+          try {
+            W = new Worker(
+              URL.createObjectURL(
+                new Blob([wsrc], { type: "text/javascript" }),
+              ),
+              { type: "module" },
+            );
+          } catch (e) {
+            W = null;
+          }
+          if (W) {
+            const pend = new Map();
+            let onProg = null;
+            W.onmessage = (ev) => {
+              const { type, rid, payload } = ev.data || {};
+              if (type === "progress") {
+                onProg && onProg(rid, payload);
+                return;
+              }
+              const p = pend.get(rid);
+              if (!p) return;
+              if (type === "error") {
+                p.rej(
+                  Object.assign(
+                    new Error(payload?.message || "Worker error"),
+                    { stack: payload?.stack || "" },
+                  ),
+                );
+              } else p.res({ type, payload });
+              if (type !== "progress") pend.delete(rid);
+            };
+            const call = (type, payload, prog) =>
+              new Promise((res, rej) => {
+                const rid = ++S.opRid;
+                onProg = prog || onProg;
+                pend.set(rid, { res, rej });
+                W.postMessage({ type, rid, payload });
+              });
+            return {
+              mode: "worker",
+              call,
+              terminate: () => W.terminate(),
+            };
+          }
+          // Fallback (main thread)
+          let ESNRegression = null, M = null, canceled = {};
+          const imp = async () =>
+            ESNRegression ? 0 : ({ ESNRegression } = await import(
+              "https://esm.sh/jsr/@hviana/multivariate-regression"
+            ));
+          const call = async (type, payload, prog) => {
+            const rid = ++S.opRid;
+            if (type === "cancel") {
+              canceled[payload?.ridToCancel] = 1;
+              return { type: "canceled", payload: {} };
+            }
+            if (type === "reset") {
+              M = null;
+              return { type: "resetDone", payload: {} };
+            }
+            if (type === "init") {
+              await imp();
+              return { type: "inited", payload: {} };
+            }
+            if (type === "createModel") {
+              await imp();
+              M = new ESNRegression(payload?.config || {});
+              return { type: "modelCreated", payload: {} };
+            }
+            if (type === "load") {
+              await imp();
+              M = new ESNRegression(payload?.config || {});
+              M.load(payload?.state);
+              return {
+                type: "loaded",
+                payload: { summary: M.getModelSummary?.() },
+              };
+            }
+            if (!M) throw new Error("No model");
+            if (type === "getSummary") {
+              return {
+                type: "summary",
+                payload: M.getModelSummary?.(),
+              };
+            }
+            if (type === "save") {
+              return {
+                type: "saved",
+                payload: {
+                  state: M.save(),
+                  summary: M.getModelSummary?.(),
+                },
+              };
+            }
+            if (type === "predict") {
+              return {
+                type: "predicted",
+                payload: M.predict(payload?.futureSteps || 1),
+              };
+            }
+            if (type === "train") {
+              const coords = payload?.coordinates || [];
+              let last = null, n = coords.length;
+              for (let i = 0; i < n - 1; i += 2) {
+                if (canceled[rid]) {
+                  delete canceled[rid];
+                  return {
+                    type: "cancelled",
+                    payload: { message: "Canceled" },
+                  };
+                }
+                last = M.fitOnline({
+                  coordinates: [coords[i], coords[i + 1]],
+                });
+                if (i % 10 === 0 || i >= n - 3) {
+                  prog &&
+                    prog(rid, {
+                      i,
+                      n,
+                      percent: Math.min(
+                        100,
+                        Math.round((i / (n - 1)) * 100),
+                      ),
+                      metrics: last,
+                    });
+                  await new Promise((r) => setTimeout(r, 0));
+                }
+              }
+              return {
+                type: "trained",
+                payload: {
+                  metrics: last,
+                  summary: M.getModelSummary?.(),
+                },
+              };
+            }
+            throw new Error("Unknown type: " + type);
+          };
+          return { mode: "fallback", call, terminate: () => 0 };
+        });
+        const engCall = withErr(async (type, payload, prog) => {
+          if (!S.engine) {
+            S.engine = await mkEngine();
+            S.engineOk = true;
+            log("Success", "Engine ready (" + S.engine.mode + ")");
+          }
+          return await S.engine.call(type, payload, prog);
+        });
+        /* MODALS */
+        let lastFocus = null;
+        const modal = (html, focusSel) => {
+          lastFocus = document.activeElement;
+          $("#modal").innerHTML = html;
+          $("#modalWrap").classList.remove("hidden");
+          setTimeout(() => {
+            const f = focusSel
+              ? $("#modal").querySelector(focusSel)
+              : $("#modal").querySelector(
+                "button, input, select, textarea",
+              );
+            f && f.focus();
+          }, 0);
+        };
+        const closeModal = () => {
+          $("#modalWrap").classList.add("hidden");
+          $("#modal").innerHTML = "";
+          lastFocus && lastFocus.focus && lastFocus.focus();
+        };
+        $("#modalBg").onclick = closeModal;
+        document.addEventListener("keydown", (e) => {
+          if (
+            e.key === "Escape" &&
+            !$("#modalWrap").classList.contains("hidden")
+          ) closeModal();
+        });
+        /* LOG RENDER */
+        const badge = (t) => ({
+          Info: "bg-blue-100 text-blue-700 border-blue-200",
+          Success: "bg-emerald-100 text-emerald-700 border-emerald-200",
+          Warning: "bg-amber-100 text-amber-700 border-amber-200",
+          Error: "bg-red-100 text-red-700 border-red-200",
+        }[t] || "bg-slate-100 text-slate-700 border-slate-200");
+        const renderLog = () => {
+          const f = $("#logFilter").value,
+            q = $("#logSearch").value.toLowerCase().trim();
+          const items = S.logs.filter((x) =>
+            (f === "All" || x.type === f) &&
+            (!q || x.msg.toLowerCase().includes(q))
+          ).slice(-50).reverse();
+          $("#logList").innerHTML =
+            items.map((x) =>
+              `<div class="rounded-2xl border border-slate-200 p-3 bg-white">
+  <div class="flex items-center justify-between gap-2">
+    <span class="px-2 py-1 rounded-lg text-[10px] font-extrabold border ${
+                badge(x.type)
+              }">${x.type}</span>
+    <span class="text-[11px] text-slate-500">${
+                new Date(x.ts).toLocaleString()
+              }</span>
+  </div>
+  <div class="mt-2 text-sm text-slate-800">${x.msg}</div>
+</div>`
+            ).join("") ||
+            `<div class="text-sm text-slate-500">No entries.</div>`;
+        };
+        $("#logFilter").onchange = renderLog;
+        $("#logSearch").oninput = renderLog;
+        $("#btnClearLog").onclick = () => {
+          S.logs = [];
+          renderLog();
+          toast("Info", "Log cleared");
+        };
+        /* DATA VALIDATION */
+        const parseJSON = withErr(async (txt) => {
+          try {
+            return JSON.parse(txt);
+          } catch (e) {
+            throw new Error("Invalid JSON");
+          }
+        });
+        const validateCoords = (obj) => {
+          const c = obj?.coordinates;
+          if (!Array.isArray(c) || c.length < 2) {
+            throw new Error(
+              "JSON must include coordinates: [[...],[...]] with >=2 steps",
+            );
+          }
+          const d = Array.isArray(c[0]) ? c[0].length : 0;
+          if (!d) {
+            throw new Error(
+              "Each coordinate must be an array (dimensions >=1)",
+            );
+          }
+          for (let i = 0; i < c.length; i++) {
+            if (!Array.isArray(c[i]) || c[i].length !== d) {
+              throw new Error(
+                "All steps must have the same dimension count",
+              );
+            }
+            for (let j = 0; j < d; j++) {
+              const v = c[i][j];
+              if (!Number.isFinite(+v)) {
+                throw new Error(
+                  "Non-numeric value at step " + i + ", dim " + (j + 1),
+                );
+              }
+              c[i][j] = +v;
+            }
+          }
+          return {
+            coordinates: c,
+            nDimensions: d,
+            sampleCount: c.length,
+          };
+        };
+        /* CONFIG UI */
+        const cfgSchema = [
+          ["Reservoir Architecture", [
+            ["reservoirSize", "number", 1, 1e6, "Neurons in reservoir"],
+            [
+              "spectralRadius",
+              "number",
+              0,
+              10,
+              "Memory length control",
+            ],
+            ["leakRate", "number", 0, 1, "Temporal smoothing"],
+            ["inputScale", "number", 0, 10, "Input scaling factor"],
+            ["biasScale", "number", 0, 10, "Bias scaling"],
+            ["reservoirSparsity", "number", 0, 1, "Zero connections"],
+            ["inputSparsity", "number", 0, 1, "Input sparsity"],
+            [
+              "activation",
+              "select",
+              null,
+              null,
+              "Activation function",
+              { opts: ["tanh", "relu"] },
+            ],
+          ]],
+          ["Readout Configuration", [
+            [
+              "useInputInReadout",
+              "bool",
+              null,
+              null,
+              "Append input to state",
+            ],
+            [
+              "useBiasInReadout",
+              "bool",
+              null,
+              null,
+              "Include bias term",
+            ],
+          ]],
+          ["Training (RLS)", [
+            ["readoutTraining", "fixed", null, null, "RLS training"],
+            ["rlsLambda", "number", 0, 1, "Forgetting factor"],
+            ["rlsDelta", "number", 0, 1e9, "Initial P diagonal"],
+            ["epsilon", "number", 0, 1, "Numerical stability"],
+            ["l2Lambda", "number", 0, 1, "L2 regularization"],
+            ["gradientClipNorm", "number", 0, 1e9, "Max update norm"],
+          ]],
+          ["Normalization", [
+            [
+              "normalizationEpsilon",
+              "number",
+              0,
+              1,
+              "Stability constant",
+            ],
+            ["normalizationWarmup", "number", 0, 1e9, "Warmup samples"],
+          ]],
+          ["Outlier Handling", [
+            ["outlierThreshold", "number", 0, 1e9, "Z-score threshold"],
+            ["outlierMinWeight", "number", 0, 1, "Outlier min weight"],
+          ]],
+          ["Uncertainty", [
+            [
+              "uncertaintyMultiplier",
+              "number",
+              0,
+              1e9,
+              "CI Multiplier (1.96 = 95% CI)",
+            ],
+          ]],
+          ["Initialization", [
+            [
+              "weightInitScale",
+              "number",
+              0,
+              1e9,
+              "Initial weight scale",
+            ],
+            ["seed", "number", -1e9, 1e9, "Random seed"],
+            ["verbose", "bool", null, null, "Detailed logging"],
+          ]],
+        ];
+        const openCfg = () => {
+          const mkField = (k, t, min, max, help, extra) => {
+            const v = S.config[k];
+            if (t === "fixed") {
+              return `<div class="rounded-2xl border border-slate-200 p-3 bg-slate-50"><div class="text-xs font-extrabold text-slate-700">${k}</div><div class="text-sm text-slate-600">rls</div><div class="text-[11px] text-slate-500 mt-1">${help}</div></div>`;
+            }
+            if (t === "select") {
+              return `<label class="rounded-2xl border border-slate-200 p-3 bg-white block">
+    <div class="flex items-center justify-between gap-2"><div><div class="text-xs font-extrabold text-slate-700">${k}</div><div class="text-[11px] text-slate-500 mt-1">${help}</div></div>
+    <select data-k="${k}" class="px-3 py-2 rounded-xl bg-white border border-slate-200 text-sm" aria-label="${k}">
+      ${
+                extra.opts.map((o) =>
+                  `<option ${o === v ? "selected" : ""}>${o}</option>`
+                ).join("")
+              }
+    </select></div></label>`;
+            }
+            if (t === "bool") {
+              return `<label class="rounded-2xl border border-slate-200 p-3 bg-white flex items-center justify-between gap-3">
+    <div><div class="text-xs font-extrabold text-slate-700">${k}</div><div class="text-[11px] text-slate-500 mt-1">${help}</div></div>
+    <input data-k="${k}" type="checkbox" class="w-5 h-5" ${
+                v ? "checked" : ""
+              } aria-label="${k}"/></label>`;
+            }
+            return `<label class="rounded-2xl border border-slate-200 p-3 bg-white block">
+    <div class="text-xs font-extrabold text-slate-700">${k}</div>
+    <div class="mt-2 flex items-center gap-2">
+      <input data-k="${k}" type="number" ${
+              min != null ? `min="${min}"` : ""
+            } ${
+              max != null ? `max="${max}"` : ""
+            } value="${v}" class="w-full px-3 py-2 rounded-xl bg-white border border-slate-200" aria-label="${k}"/>
+    </div>
+    <div class="text-[11px] text-slate-500 mt-1">${help}</div></label>`;
+          };
+          modal(
+            `
+  <div class="p-4 sm:p-6 space-y-4">
+    <div class="flex items-start justify-between gap-3">
+      <div><div class="text-xl font-extrabold">⚙️ Configuration</div><div class="text-sm text-slate-600">Premium defaults, tweak as needed. Presets update fields instantly.</div></div>
+      <button id="cfgClose" class="px-3 py-2 rounded-xl bg-slate-100 active:scale-[.99]" aria-label="Close">✖️</button>
+    </div>
 
-        <textarea
-          id="pasteInput"
-          placeholder="Or paste JSON here..."
-          class="w-full h-32 border border-slate-300 rounded-lg p-3 text-xs font-mono focus:ring-2 focus:ring-indigo-500 outline-none mb-4"
-        ></textarea>
+    <div class="flex gap-2 overflow-x-auto pb-1" aria-label="Presets">
+      ${
+              Object.keys(PRESETS).map((p, i) =>
+                `<button data-p="${p}" class="shrink-0 px-4 py-2 rounded-xl font-extrabold ${
+                  i === 0
+                    ? "text-white bg-blue-600 shadow-lg shadow-blue-500/20"
+                    : "bg-slate-100 border border-slate-200"
+                } active:scale-[.99]" aria-label="Preset ${p}">${p}</button>`
+              ).join("")
+            }
+    </div>
 
-        <details class="mb-6">
-          <summary
-            class="text-xs text-indigo-600 cursor-pointer font-medium mb-2 hover:underline"
-          >
-            View JSON Format Example
-          </summary>
-          <pre
-            class="bg-slate-900 text-slate-100 p-3 rounded-lg text-xs font-mono overflow-x-auto mt-2"
-          >
-{
+    <div class="space-y-3">
+      ${
+              cfgSchema.map(([sec, fields], i) => `
+        <div class="rounded-3xl border border-slate-200 overflow-hidden">
+          <button data-sec="${i}" class="w-full px-4 py-3 bg-white flex items-center justify-between font-extrabold active:scale-[.999]" aria-label="Toggle ${sec}">
+            <span>${sec}</span><span class="text-slate-500">▼</span>
+          </button>
+          <div data-secbody="${i}" class="px-4 pb-4 grid gap-2">${
+                fields.map((f) => mkField(...f)).join("")
+              }</div>
+        </div>`).join("")
+            }
+    </div>
+
+    <div class="pt-2 flex flex-wrap gap-2 justify-end">
+      <button id="cfgResetDef" class="px-4 py-2 rounded-xl font-extrabold bg-slate-100 border border-slate-200 active:scale-[.99]" aria-label="Reset defaults">Reset Defaults</button>
+      <button id="cfgResetAll" class="px-4 py-2 rounded-xl font-extrabold text-white bg-red-500 shadow-lg shadow-red-500/20 active:scale-[.99]" aria-label="Reset all">Reset All</button>
+      <button id="cfgCancel" class="px-4 py-2 rounded-xl font-extrabold bg-slate-100 border border-slate-200 active:scale-[.99]" aria-label="Cancel">Cancel</button>
+      <button id="cfgCreate" class="px-4 py-2 rounded-xl font-extrabold text-white bg-gradient-to-r from-blue-500 to-indigo-600 shadow-lg shadow-indigo-500/20 active:scale-[.99]" aria-label="Create model">Create Model</button>
+    </div>
+  </div>`,
+            "#cfgCreate",
+          );
+
+          $("#cfgClose").onclick = closeModal;
+          $("#cfgCancel").onclick = closeModal;
+          $$("#modal [data-p]").forEach((b) =>
+            b.onclick = () => {
+              const p = b.getAttribute("data-p");
+              Object.assign(S.config, PRESETS[p]);
+              persist();
+              openCfg();
+              toast("Success", "Preset applied: " + p);
+              log("Info", "Preset " + p);
+            }
+          );
+          $$("#modal [data-k]").forEach((el) => {
+            const k = el.getAttribute("data-k");
+            el.oninput = () => {
+              if (el.type === "checkbox") S.config[k] = !!el.checked;
+              else if (el.tagName === "SELECT") S.config[k] = el.value;
+              else S.config[k] = +el.value;
+              persist();
+            };
+          });
+          $$("#modal [data-sec]").forEach((btn) => {
+            btn.onclick = () => {
+              const i = btn.getAttribute("data-sec");
+              const body = $(`[data-secbody="${i}"]`);
+              const caret = btn.querySelector("span:last-child");
+              const hid = body.classList.toggle("hidden");
+              caret.textContent = hid ? "▲" : "▼";
+            };
+          });
+          $("#cfgResetDef").onclick = () => {
+            S.config = { ...DEF };
+            persist();
+            openCfg();
+            toast("Success", "Defaults restored");
+            log("Info", "Reset defaults");
+          };
+          $("#cfgResetAll").onclick = () => {
+            S.config = { ...DEF };
+            S.vizMode = "grid";
+            persist();
+            closeModal();
+            toast("Warning", "Reset all");
+            log("Warning", "Reset all");
+            resetAll();
+          };
+          $("#cfgCreate").onclick = withErr(async () => {
+            setLoading(true, "Initializing engine…", 5);
+            const r1 = await engCall("init", {});
+            log("Info", "Init: " + r1.type);
+            await engCall("createModel", { config: S.config });
+            S.modelExists = true;
+            setStatus();
+            toast("Success", "Model created");
+            log("Success", "Model created");
+            setLoading(false);
+            closeModal();
+            renderDimRow();
+            draw();
+          });
+        };
+        /* UPLOAD MODAL */
+        let lastValidated = null;
+        const openUpload = () => {
+          lastValidated = null;
+          modal(
+            `
+  <div class="p-4 sm:p-6 space-y-4">
+    <div class="flex items-start justify-between gap-3">
+      <div><div class="text-xl font-extrabold">📤 Upload Dataset</div><div class="text-sm text-slate-600">Drop a JSON file or paste raw JSON. Format: <span class="font-mono">{"coordinates":[[...],[...]]}</span></div></div>
+      <button id="upClose" class="px-3 py-2 rounded-xl bg-slate-100 active:scale-[.99]" aria-label="Close">✖️</button>
+    </div>
+
+    <button id="dropZone" class="w-full p-6 rounded-3xl border-2 border-dashed border-slate-300 bg-slate-50 text-center active:scale-[.999]" aria-label="Drop zone">
+      <div class="text-5xl">📁</div>
+      <div class="mt-2 font-extrabold">Drop JSON file here or tap to browse</div>
+      <div class="text-xs text-slate-600 mt-1">Validation feedback appears below.</div>
+    </button>
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-4">
+      <div class="font-extrabold mb-2">Paste JSON</div>
+      <textarea id="paste" class="w-full min-h-[140px] px-3 py-2 rounded-2xl border border-slate-200 font-mono text-xs" aria-label="Paste JSON"></textarea>
+      <div class="mt-2 flex items-center justify-between gap-2">
+        <button id="exToggle" class="px-3 py-2 rounded-xl bg-slate-100 font-extrabold active:scale-[.99]" aria-label="Toggle example">Example ▼</button>
+        <button id="copyEx" class="px-3 py-2 rounded-xl bg-white border border-slate-200 font-extrabold active:scale-[.99]" aria-label="Copy example">Copy example</button>
+      </div>
+      <pre id="exBox" class="hidden mt-3 p-3 rounded-2xl bg-slate-900 text-slate-50 text-xs overflow-auto" aria-label="Example content">{
   "coordinates": [
-    [1.0, 2.0],
-    [1.1, 2.1],
-    [1.2, 2.2]
+    [1.0, 2.0, 3.0],
+    [1.1, 2.1, 3.1],
+    [1.2, 2.2, 3.2]
   ]
 }</pre>
-        </details>
-
-        <div class="flex justify-end gap-3">
-          <button
-            onclick="app.modals.close('upload')"
-            class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg text-sm font-semibold"
-          >
-            Cancel
-          </button>
-          <button
-            onclick="app.processUpload()"
-            class="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg shadow-lg text-sm font-semibold"
-          >
-            Validate & Train
-          </button>
-        </div>
-      </div>
-    </dialog>
-
-    <dialog
-      id="genericModal"
-      class="rounded-2xl shadow-2xl p-0 w-[95%] max-w-lg backdrop:bg-slate-900/40 backdrop:backdrop-blur-sm m-auto"
-    >
-    </dialog>
-
-    <div
-      id="loadingOverlay"
-      class="fixed inset-0 bg-white/80 backdrop-blur-sm z-[100] hidden flex-col items-center justify-center"
-    >
-      <div
-        class="w-16 h-16 border-4 border-slate-200 border-t-indigo-600 rounded-full spinner mb-4"
-      >
-      </div>
-      <h3 id="loadingText" class="text-lg font-bold text-slate-800">
-        Processing...
-      </h3>
-      <div class="w-64 h-2 bg-slate-200 rounded-full mt-4 overflow-hidden">
-        <div
-          id="loadingBar"
-          class="h-full bg-gradient-to-r from-blue-500 to-indigo-600 w-0 transition-all duration-300"
-        >
-        </div>
-      </div>
-      <button
-        onclick="app.cancelOp()"
-        class="mt-6 text-red-500 text-sm font-semibold hover:bg-red-50 px-4 py-2 rounded-lg transition-colors"
-      >
-        Cancel
-      </button>
     </div>
 
-    <div
-      id="toastContainer"
-      class="fixed bottom-4 left-1/2 -translate-x-1/2 flex flex-col gap-2 z-[100] w-[90%] max-w-sm pointer-events-none"
-    >
+    <div id="valMsg" class="rounded-2xl border border-slate-200 p-3 bg-white text-sm" aria-label="Validation message">Ready.</div>
+
+    <div class="pt-2 flex gap-2 justify-end">
+      <button id="upCancel" class="px-4 py-2 rounded-xl font-extrabold bg-slate-100 border border-slate-200 active:scale-[.99]" aria-label="Cancel">Cancel</button>
+      <button id="upValidate" class="px-4 py-2 rounded-xl font-extrabold bg-white border border-slate-200 active:scale-[.99]" aria-label="Validate">Validate</button>
+      <button id="upApplyTrain" disabled class="px-4 py-2 rounded-xl font-extrabold text-white bg-gradient-to-r from-blue-500 to-indigo-600 shadow-lg shadow-indigo-500/20 disabled:opacity-50 disabled:shadow-none active:scale-[.99]" aria-label="Apply and train">Apply & Train</button>
     </div>
-
-    <script type="module">
-      // ==========================================
-      // WORKER CODE BLOB
-      // ==========================================
-      const workerCode = `
-            import { ESNRegression } from "https://esm.sh/jsr/@hviana/multivariate-regression";
-
-            let model = null;
-            let currentTaskId = null;
-
-            self.onmessage = async (e) => {
-                const { type, payload, id } = e.data;
-                currentTaskId = id;
-
-                try {
-                    switch (type) {
-                        case 'init':
-                            model = new ESNRegression(payload);
-                            self.postMessage({ type: 'success', id, payload: 'Model initialized' });
-                            break;
-
-                        case 'train':
-                            if (!model) throw new Error("Model not initialized");
-                            const result = model.fitOnline({ coordinates: payload.coordinates });
-                            self.postMessage({ type: 'success', id, payload: result });
-                            break;
-
-                        case 'predict':
-                            if (!model) throw new Error("Model not initialized");
-                            const prediction = model.predict(payload.steps);
-                            self.postMessage({ type: 'success', id, payload: prediction });
-                            break;
-                            
-                        case 'save':
-                            if (!model) throw new Error("No model");
-                            const state = model.save();
-                            self.postMessage({ type: 'success', id, payload: state });
-                            break;
-
-                        case 'load':
-                            // Re-init with empty config first if needed, usually load handles params
-                            // For this lib, we need an instance first. Assuming config matches or is stored in save
-                            // Actually the lib's load takes the state string/object.
-                            // We need to re-instantiate if config changed, but load usually restores weights.
-                            // Let's assume we create a default model then load.
-                            if(!model) model = new ESNRegression({reservoirSize: 10}); // Dummy init
-                            model.load(payload);
-                            const summary = model.getModelSummary();
-                            self.postMessage({ type: 'success', id, payload: summary });
-                            break;
-                            
-                        case 'summary':
-                             if (!model) throw new Error("No model");
-                             self.postMessage({ type: 'success', id, payload: model.getModelSummary() });
-                             break;
-                    }
-                } catch (err) {
-                    self.postMessage({ type: 'error', id, payload: err.message });
-                }
-            };
-        `;
-
-      const blob = new Blob([workerCode], { type: "text/javascript" });
-      const workerUrl = URL.createObjectURL(blob);
-      const worker = new Worker(workerUrl, { type: "module" });
-
-      // ==========================================
-      // APP LOGIC
-      // ==========================================
-
-      // Colors for dimensions
-      const DIM_COLORS = [
-        "#3B82F6",
-        "#10B981",
-        "#F59E0B",
-        "#EF4444",
-        "#8B5CF6",
-        "#EC4899",
-        "#06B6D4",
-        "#84CC16",
-        "#F97316",
-        "#14B8A6",
-      ];
-
-      // Config Schema & Presets
-      const CONFIG_SCHEMA = {
-        reservoirSize: {
-          type: "number",
-          label: "Reservoir Size",
-          default: 256,
-          group: "Architecture",
-        },
-        spectralRadius: {
-          type: "number",
-          label: "Spectral Radius",
-          default: 0.9,
-          step: 0.01,
-          group: "Architecture",
-        },
-        leakRate: {
-          type: "number",
-          label: "Leak Rate",
-          default: 0.3,
-          step: 0.1,
-          group: "Architecture",
-        },
-        inputScale: {
-          type: "number",
-          label: "Input Scale",
-          default: 1.0,
-          group: "Architecture",
-        },
-        activation: {
-          type: "select",
-          options: ["tanh", "relu"],
-          default: "tanh",
-          group: "Architecture",
-        },
-
-        rlsLambda: {
-          type: "number",
-          label: "RLS Lambda",
-          default: 0.999,
-          step: 0.001,
-          group: "Training",
-        },
-        l2Lambda: {
-          type: "number",
-          label: "L2 Regularization",
-          default: 0.0001,
-          step: 0.0001,
-          group: "Training",
-        },
-
-        outlierThreshold: {
-          type: "number",
-          label: "Outlier Threshold",
-          default: 3.0,
-          group: "Outliers",
-        },
-        uncertaintyMultiplier: {
-          type: "number",
-          label: "CI Multiplier",
-          default: 1.96,
-          group: "Uncertainty",
-        },
-      };
-
-      const PRESETS = {
-        "Start Here": {
-          reservoirSize: 256,
-          spectralRadius: 0.9,
-          leakRate: 0.3,
-        },
-        "Fast": { reservoirSize: 64, leakRate: 0.5 },
-        "Accurate": {
-          reservoirSize: 512,
-          spectralRadius: 0.95,
-          leakRate: 0.2,
-        },
-        "Robust": { outlierThreshold: 2.0, l2Lambda: 0.01 },
-      };
-
-      // Global App State
-      window.app = {
-        state: {
-          config: {},
-          modelExists: false,
-          data: [], // Stores full history {step, values[]}
-          predictions: null, // { pred:[], lower:[], upper:[] }
-          metrics: {},
-          vizMode: "grid", // 'grid' | 'focus'
-          selectedDim: 0,
-          zoom: { scale: 1, offset: 0, visibleCount: 100 },
-          logs: [],
-        },
-
-        // --- Initialization ---
-        init() {
-          // Initialize Config
-          this.resetConfig();
-          this.setupUI();
-          this.setupCanvas();
-          this.loadFromStorage();
-        },
-
-        // --- Worker Communication ---
-        async workerOp(type, payload, loadingMsg = null) {
-          if (loadingMsg) this.ui.setLoading(true, loadingMsg);
-          const id = Math.random().toString(36).substr(2, 9);
-
-          return new Promise((resolve, reject) => {
-            const handler = (e) => {
-              if (e.data.id !== id) return;
-              worker.removeEventListener("message", handler);
-              if (loadingMsg) this.ui.setLoading(false);
-
-              if (e.data.type === "error") {
-                this.ui.toast(e.data.payload, "error");
-                this.log(e.data.payload, "error");
-                reject(e.data.payload);
-              } else {
-                resolve(e.data.payload);
-              }
-            };
-            worker.addEventListener("message", handler);
-            worker.postMessage({ type, payload, id });
-          });
-        },
-
-        // --- Core Actions ---
-        resetConfig() {
-          Object.keys(CONFIG_SCHEMA).forEach((k) => {
-            this.state.config[k] = CONFIG_SCHEMA[k].default;
-          });
-          this.ui.refreshConfigForm();
-        },
-
-        async createModel() {
-          this.modals.close("config");
-          try {
-            await this.workerOp(
-              "init",
-              this.state.config,
-              "Initializing Model...",
+  </div>`,
+            "#dropZone",
+          );
+          $("#upClose").onclick = closeModal;
+          $("#upCancel").onclick = closeModal;
+          $("#exToggle").onclick = () => {
+            $("#exBox").classList.toggle("hidden");
+            $("#exToggle").textContent =
+              $("#exBox").classList.contains("hidden")
+                ? "Example ▼"
+                : "Example ▲";
+          };
+          $("#copyEx").onclick = withErr(async () => {
+            await navigator.clipboard.writeText(
+              $("#exBox").textContent,
             );
-            this.state.modelExists = true;
-            this.state.data = [];
-            this.state.predictions = null;
-            this.state.metrics = {};
-            this.ui.updateStatus();
-            this.ui.toast("Model created successfully", "success");
-            this.log("Model initialized", "success");
+            toast("Success", "Example copied");
+            log("Info", "Example copied");
+          });
 
-            // Switch to empty state UI
-            document.getElementById("emptyState").classList.remove(
-              "hidden",
+          const setVal = (ok, msg) => {
+            $("#valMsg").className = `rounded-2xl border p-3 text-sm ${
+              ok
+                ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                : "bg-red-50 border-red-200 text-red-800"
+            }`;
+            $("#valMsg").textContent = msg;
+            $("#upApplyTrain").disabled = !ok;
+          };
+          const getTxt = () => ($("#paste").value || "").trim();
+          const validate = withErr(async (txt) => {
+            const obj = await parseJSON(txt);
+            const v = validateCoords(obj);
+            lastValidated = v;
+            setVal(
+              true,
+              `✅ Valid: ${v.nDimensions} dims, ${v.sampleCount} steps.`,
             );
-            this.viz.clear();
-          } catch (e) {
-            console.error(e);
+            log(
+              "Success",
+              "Dataset validated (" + v.nDimensions + "D, " +
+                v.sampleCount + " steps)",
+            );
+            return v;
+          });
+          $("#upValidate").onclick = withErr(async () => {
+            const txt = getTxt();
+            if (!txt) throw new Error("Paste JSON or upload a file");
+            await validate(txt);
+          });
+          $("#upApplyTrain").onclick = withErr(async () => {
+            if (!lastValidated) throw new Error("Validate first");
+            S.data = lastValidated.coordinates;
+            S.nDimensions = lastValidated.nDimensions;
+            S.sampleCount = lastValidated.sampleCount;
+            renderDimRow();
+            S.selectedDim = clamp(S.selectedDim, 0, S.nDimensions - 1);
+            setLoading(true, "Creating model…", 0);
+            await engCall("init", {});
+            await engCall("createModel", { config: S.config });
+            S.modelExists = true;
+            setStatus();
+            toast("Success", "Model created");
+            log("Success", "Model created");
+            await trainOnData(lastValidated.coordinates);
+            closeModal();
+            draw();
+          });
+
+          const dz = $("#dropZone");
+          dz.onclick = () => $("#fileInp").click();
+          const over = (e) => {
+            e.preventDefault();
+            dz.classList.add("border-indigo-400");
+            dz.classList.add("bg-indigo-50");
+          };
+          const out = (e) => {
+            e.preventDefault();
+            dz.classList.remove("border-indigo-400", "bg-indigo-50");
+          };
+          dz.ondragover = over;
+          dz.ondragenter = over;
+          dz.ondragleave = out;
+          dz.ondrop = withErr(async (e) => {
+            e.preventDefault();
+            out(e);
+            const f = e.dataTransfer.files?.[0];
+            if (!f) throw new Error("No file dropped");
+            const t = await f.text();
+            $("#paste").value = t;
+            await validate(t);
+          });
+        };
+        $("#fileInp").onchange = withErr(async (e) => {
+          const f = e.target.files?.[0];
+          if (!f) return;
+          const t = await f.text();
+          $("#paste")?.value && ($("#paste").value = t);
+          if ($("#modalWrap").classList.contains("hidden")) {
+            openUpload();
           }
-        },
+        });
+        /* SAVE/LOAD */
+        const getModels = () =>
+          JSON.parse(localStorage.getItem(LS.models) || "{}");
+        const setModels = (m) =>
+          localStorage.setItem(LS.models, JSON.stringify(m));
+        const openSaveLoad = () => {
+          const models = getModels();
+          const list = Object.entries(models);
+          modal(
+            `
+  <div class="p-4 sm:p-6 space-y-4">
+    <div class="flex items-start justify-between gap-3">
+      <div><div class="text-xl font-extrabold">💾 Save & Load</div><div class="text-sm text-slate-600">Download JSON or store named snapshots locally.</div></div>
+      <button id="slClose" class="px-3 py-2 rounded-xl bg-slate-100 active:scale-[.99]" aria-label="Close">✖️</button>
+    </div>
 
-        async train(dataCoords) {
-          try {
-            // Update local history
-            const startStep = this.state.data.length;
-            dataCoords.forEach((row, i) => {
-              this.state.data.push({
-                step: startStep + i,
-                values: row,
-              });
-            });
+    <div class="grid gap-3">
+      <div class="rounded-3xl border border-slate-200 p-4 bg-white">
+        <div class="font-extrabold">📥 Download</div>
+        <div class="text-xs text-slate-600 mt-1">Exports model state + config.</div>
+        <button id="dlBtn" class="mt-3 px-4 py-2 rounded-xl font-extrabold text-white bg-emerald-600 shadow-lg shadow-emerald-500/20 disabled:opacity-50 active:scale-[.99]" ${
+              S.modelExists ? "" : "disabled"
+            } aria-label="Download model">Download JSON</button>
+      </div>
 
-            const res = await this.workerOp("train", {
-              coordinates: dataCoords,
-            }, "Training...");
+      <div class="rounded-3xl border border-slate-200 p-4 bg-white">
+        <div class="font-extrabold">💾 Browser</div>
+        <div class="text-xs text-slate-600 mt-1">Save snapshots to localStorage.</div>
+        <button id="saveLocal" class="mt-3 px-4 py-2 rounded-xl font-extrabold bg-white border border-slate-200 disabled:opacity-50 active:scale-[.99]" ${
+              S.modelExists ? "" : "disabled"
+            } aria-label="Save locally">Save with Name</button>
+      </div>
 
-            this.state.metrics = res;
-            this.ui.updateMetrics(res);
-            this.log(
-              `Trained ${dataCoords.length} samples. Loss: ${
-                res.averageLoss.toExponential(2)
-              }`,
-              "info",
-            );
-
-            document.getElementById("emptyState").classList.add(
-              "hidden",
-            );
-
-            // Auto predict if small dataset or just to show something
-            if (this.state.data.length > 0) {
-              document.getElementById("headerPredictBtn").classList
-                .remove("hidden");
-              document.getElementById("sidePredictBtn").disabled =
-                false;
+      <div class="rounded-3xl border border-slate-200 p-4 bg-white">
+        <div class="font-extrabold">📤 Load</div>
+        <div class="mt-2 grid gap-2">
+          <button id="loadFileBtn" class="px-4 py-2 rounded-xl font-extrabold bg-slate-100 border border-slate-200 active:scale-[.99]" aria-label="Load from file">Tap-to-upload JSON</button>
+          <div class="text-xs text-slate-600">Saved models:</div>
+          <div class="grid gap-2">
+            ${
+              list.length
+                ? list.map(([name, rec]) => `
+              <div class="rounded-2xl border border-slate-200 p-3 flex items-center justify-between gap-2">
+                <div class="min-w-0">
+                  <div class="font-extrabold truncate">${name}</div>
+                  <div class="text-[11px] text-slate-600">${
+                  rec?.nDimensions || "?"
+                } dims • ${rec?.sampleCount || "?"} steps</div>
+                </div>
+                <div class="flex gap-2 shrink-0">
+                  <button data-load="${name}" class="px-3 py-2 rounded-xl font-extrabold text-white bg-emerald-600 active:scale-[.99]" aria-label="Load ${name}">Load</button>
+                  <button data-del="${name}" class="px-3 py-2 rounded-xl font-extrabold bg-red-50 text-red-700 border border-red-200 active:scale-[.99]" aria-label="Delete ${name}">Delete</button>
+                </div>
+              </div>`).join("")
+                : `<div class="text-sm text-slate-500">No saved models yet.</div>`
             }
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`,
+            "#dlBtn",
+          );
+          $("#slClose").onclick = closeModal;
 
-            // Render latest data
-            this.viz.draw();
-          } catch (e) {
-            console.error(e);
-          }
-        },
-
-        async runPrediction() {
-          const steps =
-            parseInt(document.getElementById("stepsInput").value) || 50;
-          try {
-            const res = await this.workerOp(
-              "predict",
-              { steps },
-              "Forecasting...",
+          $("#dlBtn").onclick = withErr(async () => {
+            setLoading(true, "Saving…", 10);
+            const r = await engCall("save", {});
+            const out = {
+              name: "download",
+              savedAt: new Date().toISOString(),
+              config: S.config,
+              summary: r.payload?.summary || null,
+              state: r.payload?.state || null,
+            };
+            dl(
+              "esn_model.json",
+              new Blob([JSON.stringify(out, null, 2)], {
+                type: "application/json",
+              }),
             );
-            this.state.predictions = res; // { predictions:[], lowerBounds:[], upperBounds:[] }
-
-            // Align prediction steps
-            const lastStep = this.state.data.length > 0
-              ? this.state.data[this.state.data.length - 1].step
-              : -1;
-            this.state.predictions.startStep = lastStep + 1;
-
-            this.viz.draw();
-            this.ui.toast(
-              `Forecast generated for ${steps} steps`,
-              "success",
-            );
-
-            // Show zoom controls
-            document.getElementById("zoomControls").style.opacity = "1";
-            document.getElementById("zoomControls").style
-              .pointerEvents = "auto";
-          } catch (e) {
-            console.error(e);
+            setLoading(false);
+            toast("Success", "Downloaded");
+            log("Success", "Downloaded model JSON");
+          });
+          $("#saveLocal").onclick = withErr(async () => {
+            const name = prompt("Model name?");
+            if (!name) throw new Error("Name required");
+            setLoading(true, "Saving…", 10);
+            const r = await engCall("save", {});
+            const models = getModels();
+            const sum = r.payload?.summary || {};
+            models[name] = {
+              config: S.config,
+              state: r.payload?.state,
+              summary: sum,
+              nDimensions: sum?.nTargets || S.nDimensions,
+              sampleCount: sum?.sampleCount || S.sampleCount,
+              ts: Date.now(),
+            };
+            setModels(models);
+            setLoading(false);
+            toast("Success", "Saved: " + name);
+            log("Success", "Saved locally: " + name);
+            openSaveLoad();
+          });
+          $("#loadFileBtn").onclick = () => {
+            $("#fileInp").click();
+            $("#fileInp").dataset.mode = "loadModel";
+          };
+          $$("#modal [data-del]").forEach((b) =>
+            b.onclick = () => {
+              const n = b.getAttribute("data-del");
+              const m = getModels();
+              delete m[n];
+              setModels(m);
+              toast("Warning", "Deleted: " + n);
+              log("Warning", "Deleted: " + n);
+              openSaveLoad();
+            }
+          );
+          $$("#modal [data-load]").forEach((b) =>
+            b.onclick = withErr(async () => {
+              const n = b.getAttribute("data-load");
+              const rec = getModels()[n];
+              if (!rec?.state) throw new Error("Corrupt snapshot");
+              setLoading(true, "Loading model…", 10);
+              await engCall("load", {
+                state: rec.state,
+                config: rec.config || S.config,
+              });
+              S.config = { ...S.config, ...(rec.config || {}) };
+              persist();
+              const sum = rec.summary || {};
+              S.modelExists = true;
+              S.nDimensions = sum?.nTargets || rec.nDimensions ||
+                S.nDimensions || 0;
+              S.sampleCount = sum?.sampleCount || rec.sampleCount || 0;
+              setStatus();
+              setLoading(false);
+              toast("Success", "Loaded: " + n);
+              log("Success", "Loaded snapshot: " + n);
+              renderDimRow();
+              closeModal();
+              draw();
+            })
+          );
+        };
+        /* RANDOM TEST */
+        const randn = (seed) => {
+          let t = seed >>> 0;
+          return () => {
+            t = (t * 1664525 + 1013904223) >>> 0;
+            let u = (t >>> 8) / 16777216;
+            t = (t * 1664525 + 1013904223) >>> 0;
+            let v = (t >>> 8) / 16777216;
+            u = Math.max(u, 1e-9);
+            return Math.sqrt(-2 * Math.log(u)) *
+              Math.cos(2 * Math.PI * v);
+          };
+        };
+        const openRand = () =>
+          modal(
+            `
+<div class="p-4 sm:p-6 space-y-4">
+  <div class="flex items-start justify-between gap-3">
+    <div><div class="text-xl font-extrabold">🧪 Random Test</div><div class="text-sm text-slate-600">Synthetic multivariate series with noise + outliers.</div></div>
+    <button id="rClose" class="px-3 py-2 rounded-xl bg-slate-100 active:scale-[.99]" aria-label="Close">✖️</button>
+  </div>
+  <div class="grid sm:grid-cols-2 gap-3">
+    <label class="rounded-2xl border border-slate-200 p-3 bg-white block"><div class="text-xs font-extrabold">Seed</div><input id="rSeed" type="number" value="42" class="mt-2 w-full px-3 py-2 rounded-xl border border-slate-200" aria-label="Seed"/></label>
+    <label class="rounded-2xl border border-slate-200 p-3 bg-white block"><div class="text-xs font-extrabold">Dimensions</div><input id="rDim" type="number" min="1" value="3" class="mt-2 w-full px-3 py-2 rounded-xl border border-slate-200" aria-label="Dimensions"/></label>
+    <label class="rounded-2xl border border-slate-200 p-3 bg-white block"><div class="text-xs font-extrabold">Time Steps</div><input id="rT" type="number" min="2" value="200" class="mt-2 w-full px-3 py-2 rounded-xl border border-slate-200" aria-label="Time steps"/></label>
+    <label class="rounded-2xl border border-slate-200 p-3 bg-white block"><div class="text-xs font-extrabold">Noise</div><input id="rN" type="number" min="0" step="0.01" value="0.1" class="mt-2 w-full px-3 py-2 rounded-xl border border-slate-200" aria-label="Noise"/></label>
+    <label class="rounded-2xl border border-slate-200 p-3 bg-white block"><div class="text-xs font-extrabold">Outliers rate</div><input id="rO" type="number" min="0" step="0.01" value="0.02" class="mt-2 w-full px-3 py-2 rounded-xl border border-slate-200" aria-label="Outliers rate"/></label>
+    <label class="rounded-2xl border border-slate-200 p-3 bg-white block"><div class="text-xs font-extrabold">Difficulty</div>
+      <select id="rDiff" class="mt-2 w-full px-3 py-2 rounded-xl border border-slate-200" aria-label="Difficulty">
+        <option>Easy</option><option selected>Medium</option><option>Hard</option>
+      </select></label>
+  </div>
+  <div class="pt-2 flex gap-2 justify-end">
+    <button id="rCancel" class="px-4 py-2 rounded-xl font-extrabold bg-slate-100 border border-slate-200 active:scale-[.99]" aria-label="Cancel">Cancel</button>
+    <button id="rGo" class="px-4 py-2 rounded-xl font-extrabold text-white bg-gradient-to-r from-purple-500 to-pink-500 shadow-lg shadow-pink-500/20 active:scale-[.99]" aria-label="Generate and run">Generate & Run</button>
+  </div>
+</div>`,
+            "#rGo",
+          );
+        $("#rClose").onclick = closeModal;
+        $("#rCancel").onclick = closeModal;
+        $("#rGo").onclick = withErr(async () => {
+          const seed = +$("#rSeed").value | 0,
+            d = +$("#rDim").value | 0,
+            T = +$("#rT").value | 0,
+            noise = +$("#rN").value,
+            or = +$("#rO").value,
+            df = $("#rDiff").value;
+          if (d < 1 || T < 2) {
+            throw new Error("Dimensions>=1 and Time Steps>=2 required");
           }
-        },
-
-        async quickStart() {
-          await this.createModel();
-          // Generate sine wave data
-          const data = [];
-          for (let i = 0; i < 100; i++) {
-            data.push([
-              Math.sin(i / 10) + Math.random() * 0.05,
-              Math.cos(i / 10) * 0.5 + Math.random() * 0.05,
-              Math.sin(i / 5) * 0.3 + 0.5,
-            ]);
+          const g = randn(seed);
+          const coords = [];
+          const f = df === "Easy" ? 0.03 : df === "Medium" ? 0.06 : 0.1;
+          const phase = [...Array(d)].map((_, i) => i * 0.7);
+          for (let t = 0; t < T; t++) {
+            const row = [];
+            for (let j = 0; j < d; j++) {
+              let v = Math.sin((t * f) + phase[j]) +
+                (0.3 * Math.sin(t * 0.015 + phase[j] * 2)) +
+                (g() * noise);
+              if (Math.random() < or) v += g() * noise * 12;
+              row.push(v);
+            }
+            coords.push(row);
           }
-          await this.train(data);
-          await this.runPrediction();
-        },
-
-        // --- Visualization ---
-        setVizMode(mode) {
-          this.state.vizMode = mode;
-          document.getElementById("tabGrid").className = mode === "grid"
-            ? "px-4 py-1.5 rounded-full text-sm font-medium transition-all bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md"
-            : "px-4 py-1.5 rounded-full text-sm font-medium transition-all bg-slate-100 text-slate-600 hover:bg-slate-200";
-
-          document.getElementById("tabFocus").className =
-            mode === "focus"
-              ? "px-4 py-1.5 rounded-full text-sm font-medium transition-all bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md"
-              : "px-4 py-1.5 rounded-full text-sm font-medium transition-all bg-slate-100 text-slate-600 hover:bg-slate-200";
-
-          const dimSelector = document.getElementById("dimSelector");
-          const statsBar = document.getElementById("statsBar");
-
-          if (mode === "focus") {
-            dimSelector.classList.remove("hidden");
-            statsBar.classList.remove("hidden");
-            this.ui.renderDimSelector();
-            this.ui.updateStats();
-          } else {
-            dimSelector.classList.add("hidden");
-            statsBar.classList.add("hidden");
-          }
-
-          this.viz.resize();
-        },
-
-        viz: {
-          ctx: null,
-          width: 0,
-          height: 0,
-
-          init() {
-            const canvas = document.getElementById("vizCanvas");
-            this.ctx = canvas.getContext("2d");
-
-            // Interactions
-            let isDragging = false;
-            let lastX = 0;
-
-            canvas.addEventListener("mousedown", (e) => {
-              isDragging = true;
-              lastX = e.clientX;
-            });
-            window.addEventListener(
-              "mouseup",
-              () => isDragging = false,
-            );
-            canvas.addEventListener("mousemove", (e) => {
-              if (isDragging) {
-                const dx = e.clientX - lastX;
-                app.state.zoom.offset -= dx / app.state.zoom.scale;
-                lastX = e.clientX;
-                requestAnimationFrame(() => this.draw());
-              } else {
-                this.handleHover(e);
+          S.data = coords;
+          S.nDimensions = d;
+          S.sampleCount = T;
+          S.selectedDim = 0;
+          renderDimRow();
+          setLoading(true, "Creating model…", 0);
+          await engCall("init", {});
+          await engCall("createModel", { config: S.config });
+          S.modelExists = true;
+          setStatus();
+          toast("Success", "Model created");
+          log("Success", "Model created (random test)");
+          await trainOnData(coords);
+          closeModal();
+          draw();
+        });
+        /* TRAIN / PREDICT */
+        const trainOnData = withErr(async (coords) => {
+          setLoading(true, "Training on uploaded data…", 0);
+          const myRid = S.opRid + 1; // next call id (best-effort for cancel button UX)
+          $("#btnCancel").onclick = withErr(async () => {
+            setLoading(true, "Cancelling…", S.progress);
+            await engCall("cancel", { ridToCancel: myRid });
+            toast("Warning", "Cancel requested");
+            log("Warning", "Cancel requested");
+          });
+          const r = await engCall(
+            "train",
+            { coordinates: coords },
+            (rid, p) => {
+              setProg(p.percent || 0);
+              if (p.metrics) {
+                S.metrics = p.metrics;
+                renderMetrics();
               }
-            });
-
-            canvas.addEventListener("wheel", (e) => {
-              e.preventDefault();
-              const delta = Math.sign(-e.deltaY) * 0.1;
-              this.zoom(1 + delta);
-            });
-
-            window.addEventListener("resize", () => this.resize());
-            this.resize();
-          },
-
-          resize() {
-            const parent = document.getElementById("canvasWrapper");
-            this.width = parent.clientWidth;
-            this.height = parent.clientHeight;
-            const canvas = document.getElementById("vizCanvas");
-            canvas.width = this.width * window.devicePixelRatio;
-            canvas.height = this.height * window.devicePixelRatio;
-            this.ctx.scale(
-              window.devicePixelRatio,
-              window.devicePixelRatio,
-            );
-            this.draw();
-          },
-
-          zoom(factor) {
-            app.state.zoom.scale *= factor;
-            if (app.state.zoom.scale < 0.1) app.state.zoom.scale = 0.1;
-            if (app.state.zoom.scale > 50) app.state.zoom.scale = 50;
-
-            // Update badge
-            const badge = document.getElementById("zoomBadge");
-            badge.innerText = Math.round(app.state.zoom.scale * 100) +
-              "%";
-            badge.style.opacity = "1";
-            clearTimeout(this.badgeTimer);
-            this.badgeTimer = setTimeout(
-              () => badge.style.opacity = "0",
-              2000,
-            );
-
-            this.draw();
-          },
-
-          resetZoom() {
-            app.state.zoom.scale = 1;
-            app.state.zoom.offset = 0;
-            this.draw();
-          },
-
-          handleHover(e) {
-            // Simple hit testing for tooltip
-            const rect = e.target.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            // Implementation omitted for brevity, logic: map X back to step index
-          },
-
-          draw() {
-            if (!this.ctx) return;
-            const { width, height } = this;
-            this.ctx.clearRect(0, 0, width, height);
-
-            const data = app.state.data;
-            if (data.length === 0) return;
-
-            const dims = data[0].values.length;
-
-            // Determine ranges
-            // Calculate Min/Max Y for scaling
-            let allValues = data.flatMap((d) => d.values);
-            if (app.state.predictions) {
-              allValues = allValues.concat(
-                app.state.predictions.predictions.flatMap((r) => r),
+            },
+          );
+          if (r.type === "cancelled") {
+            setLoading(false);
+            toast("Warning", "Training canceled");
+            log("Warning", "Training canceled");
+            return;
+          }
+          S.metrics = r.payload?.metrics || S.metrics;
+          S.sampleCount = r.payload?.summary?.sampleCount ||
+            S.sampleCount;
+          renderMetrics();
+          setStatus();
+          setLoading(false);
+          toast("Success", "Training complete");
+          log("Success", "Training complete");
+        });
+        const doPredict = withErr(async () => {
+          const k = +$("#futureInp").value | 0;
+          if (!(k > 0)) {
+            throw new Error("Future steps must be a positive integer");
+          }
+          setLoading(true, "Predicting…", 10);
+          const r = await engCall("predict", { futureSteps: k });
+          const p = r.payload || {};
+          S.predictions = p.predictions || null;
+          S.lowerBounds = p.lowerBounds || null;
+          S.upperBounds = p.upperBounds || null;
+          S.confidence = p.confidence ?? null;
+          setLoading(false);
+          toast("Success", "Prediction ready");
+          log("Success", "Predicted " + k + " steps");
+          $("#floatCtl").classList.toggle("hidden", !S.predictions);
+          $("#zoomBadge").classList.toggle("hidden", !S.predictions);
+          $("#exportCtl").classList.toggle("hidden", !S.predictions);
+          resetZoom();
+          draw();
+          updateStats();
+        });
+        /* DATA TABLE */
+        const openTable = () => {
+          if (!S.predictions) toast("Info", "No predictions yet");
+          const dims = S.nDimensions || 0;
+          const P = S.predictions || [];
+          const L = S.lowerBounds || [];
+          const U = S.upperBounds || [];
+          let rows = (P || []).map((r, i) => ({
+            Step: (S.sampleCount || 0) + i,
+            ...Object.fromEntries(r.map((v, j) => ["P" + (j + 1), v])),
+            ...Object.fromEntries(
+              (L[i] || []).map((v, j) => ["L" + (j + 1), v]),
+            ),
+            ...Object.fromEntries(
+              (U[i] || []).map((v, j) => ["U" + (j + 1), v]),
+            ),
+          }));
+          let sortK = "Step", sortDir = 1, query = "";
+          const render = () => {
+            let rr = rows.slice();
+            if (query) {
+              const q = query.toLowerCase();
+              rr = rr.filter((o) =>
+                Object.values(o).some((v) =>
+                  (v + "").toLowerCase().includes(q)
+                )
               );
             }
-            let minY = Math.min(...allValues);
-            let maxY = Math.max(...allValues);
-            let rangeY = maxY - minY || 1;
-            minY -= rangeY * 0.1;
-            maxY += rangeY * 0.1;
-            rangeY = maxY - minY;
-
-            const totalSteps = data.length +
-              (app.state.predictions
-                ? app.state.predictions.predictions.length
-                : 0);
-            const stepWidth = (width / (app.state.zoom.visibleCount)) *
-              app.state.zoom.scale;
-
-            // Viewport offset
-            const startX = -app.state.zoom.offset * stepWidth;
-
-            const drawLine = (
-              values,
-              color,
-              startIndex,
-              isDash = false,
-            ) => {
-              this.ctx.beginPath();
-              this.ctx.strokeStyle = color;
-              this.ctx.lineWidth = 2;
-              if (isDash) this.ctx.setLineDash([5, 5]);
-              else this.ctx.setLineDash([]);
-
-              values.forEach((val, i) => {
-                const step = startIndex + i;
-                const x = startX + step * stepWidth;
-                const y = height - ((val - minY) / rangeY) * height;
-                if (i === 0) this.ctx.moveTo(x, y);
-                else this.ctx.lineTo(x, y);
-              });
-              this.ctx.stroke();
-            };
-
-            const drawArea = (lower, upper, color, startIndex) => {
-              this.ctx.beginPath();
-              this.ctx.fillStyle = color + "33"; // 20% opacity
-
-              // Top line
-              upper.forEach((val, i) => {
-                const step = startIndex + i;
-                const x = startX + step * stepWidth;
-                const y = height - ((val - minY) / rangeY) * height;
-                if (i === 0) this.ctx.moveTo(x, y);
-                else this.ctx.lineTo(x, y);
-              });
-              // Bottom line (reverse)
-              for (let i = lower.length - 1; i >= 0; i--) {
-                const val = lower[i];
-                const step = startIndex + i;
-                const x = startX + step * stepWidth;
-                const y = height - ((val - minY) / rangeY) * height;
-                this.ctx.lineTo(x, y);
-              }
-              this.ctx.closePath();
-              this.ctx.fill();
-            };
-
-            if (app.state.vizMode === "grid") {
-              // Very simplified Grid View: Just draw all lines overlaid for now or separate based on height
-              // Implementing proper small multiples in one canvas requires viewport splitting.
-              // For this demo, let's overlay them but colored differently
-              for (let d = 0; d < dims; d++) {
-                const dimData = data.map((row) => row.values[d]);
-                drawLine(dimData, DIM_COLORS[d % DIM_COLORS.length], 0);
-
-                if (app.state.predictions) {
-                  const predData = app.state.predictions.predictions
-                    .map((row) => row[d]);
-                  drawLine(
-                    predData,
-                    DIM_COLORS[d % DIM_COLORS.length],
-                    app.state.predictions.startStep,
-                    true,
-                  );
-                }
-              }
-            } else {
-              // Focus View
-              const d = app.state.selectedDim;
-              const color = DIM_COLORS[d % DIM_COLORS.length];
-
-              // History
-              const dimData = data.map((row) => row.values[d]);
-              drawLine(dimData, color, 0);
-
-              // Predictions
-              if (app.state.predictions) {
-                const predData = app.state.predictions.predictions.map(
-                  (row) => row[d],
-                );
-                const lowerData = app.state.predictions.lowerBounds.map(
-                  (row) => row[d],
-                );
-                const upperData = app.state.predictions.upperBounds.map(
-                  (row) => row[d],
-                );
-
-                drawArea(
-                  lowerData,
-                  upperData,
-                  color,
-                  app.state.predictions.startStep,
-                );
-                drawLine(
-                  predData,
-                  color,
-                  app.state.predictions.startStep,
-                  true,
-                );
-              }
-            }
-          },
-
-          clear() {
-            if (this.ctx) {
-              this.ctx.clearRect(0, 0, this.width, this.height);
-            }
-          },
-        },
-
-        // --- UI & Helpers ---
-        ui: {
-          toast(msg, type = "info") {
-            const el = document.createElement("div");
-            const colors = {
-              success: "bg-emerald-500",
-              error: "bg-red-500",
-              warning: "bg-amber-500",
-              info: "bg-slate-800",
-            };
-            el.className = `${
-              colors[type]
-            } text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 text-sm font-medium transform transition-all duration-300 translate-y-10 opacity-0 pointer-events-auto`;
-            el.innerHTML =
-              `<span>${msg}</span><button onclick="this.parentElement.remove()" class="opacity-60 hover:opacity-100">✖</button>`;
-            document.getElementById("toastContainer").appendChild(el);
-
-            // Animate in
-            requestAnimationFrame(() => {
-              el.classList.remove("translate-y-10", "opacity-0");
+            rr.sort((a, b) => {
+              const av = a[sortK], bv = b[sortK];
+              return (av > bv ? 1 : av < bv ? -1 : 0) * sortDir;
             });
-
-            setTimeout(() => {
-              el.classList.add("opacity-0", "translate-y-2");
-              setTimeout(() => el.remove(), 300);
-            }, type === "error" ? 6000 : 4000);
-          },
-
-          setLoading(active, text) {
-            const el = document.getElementById("loadingOverlay");
-            if (active) {
-              el.classList.remove("hidden");
-              el.classList.add("flex");
-              document.getElementById("loadingText").innerText = text;
-              document.getElementById("loadingBar").style.width =
-                "100%";
-            } else {
-              el.classList.add("hidden");
-              el.classList.remove("flex");
-              document.getElementById("loadingBar").style.width = "0";
+            const cols = [
+              "Step",
+              ...Array(dims).fill(0).flatMap((
+                _,
+                j,
+              ) => ["P" + (j + 1), "L" + (j + 1), "U" + (j + 1)]),
+            ];
+            $("#tblHead").innerHTML = cols.map((c) =>
+              `<th data-k="${c}" class="sticky top-0 bg-white z-10 px-3 py-2 text-left text-[11px] font-extrabold border-b border-slate-200 cursor-pointer select-none" aria-label="Sort ${c}">${c}${
+                c === sortK ? (sortDir > 0 ? " ▲" : " ▼") : ""
+              }</th>`
+            ).join("");
+            $("#tblBody").innerHTML =
+              rr.map((o, i) =>
+                `<tr class="${
+                  i % 2 ? "bg-slate-50" : "bg-white"
+                } hover:bg-indigo-50">
+      ${
+                  cols.map((c) =>
+                    `<td class="px-3 py-2 text-xs font-mono border-b border-slate-100">${
+                      c === "Step" ? o[c] : fmt(o[c])
+                    }</td>`
+                  ).join("")
+                }
+    </tr>`
+              ).join("") ||
+              `<tr><td class="p-4 text-sm text-slate-500" colspan="${cols.length}">No rows.</td></tr>`;
+            $$("#tblHead [data-k]").forEach((th) =>
+              th.onclick = () => {
+                const k = th.getAttribute("data-k");
+                if (sortK === k) sortDir *= -1;
+                else sortK = k, sortDir = 1;
+                render();
+              }
+            );
+          };
+          modal(
+            `
+  <div class="p-0 h-[92vh] flex flex-col">
+    <div class="p-4 border-b border-slate-200 flex items-center justify-between gap-2">
+      <div class="font-extrabold text-lg">📋 Data Table</div>
+      <button id="tClose" class="px-3 py-2 rounded-xl bg-slate-100 active:scale-[.99]" aria-label="Close">✖️</button>
+    </div>
+    <div class="p-4 flex flex-wrap gap-2 items-center">
+      <input id="tSearch" class="flex-1 min-w-[180px] px-3 py-2 rounded-xl border border-slate-200" placeholder="Search/filter…" aria-label="Search table"/>
+      <button id="tCsv" class="px-4 py-2 rounded-xl font-extrabold bg-white border border-slate-200 active:scale-[.99]" aria-label="Export CSV">📊 Export CSV</button>
+      <button id="tCopy" class="px-4 py-2 rounded-xl font-extrabold bg-white border border-slate-200 active:scale-[.99]" aria-label="Copy all">📋 Copy All</button>
+    </div>
+    <div class="flex-1 overflow-auto border-t border-slate-200">
+      <table class="min-w-full border-collapse"><thead><tr id="tblHead"></tr></thead><tbody id="tblBody"></tbody></table>
+    </div>
+  </div>`,
+            "#tSearch",
+          );
+          $("#tClose").onclick = closeModal;
+          $("#tSearch").oninput = () => {
+            query = $("#tSearch").value.trim();
+            render();
+          };
+          $("#tCsv").onclick = withErr(async () => {
+            const cols = [...$("#tblHead").querySelectorAll("th")].map(
+              (th) => th.getAttribute("data-k"),
+            );
+            const rr = [...$("#tblBody").querySelectorAll("tr")].map(
+              (tr) => [...tr.children].map((td) => td.textContent),
+            );
+            const csv = [
+              cols.join(","),
+              ...rr.map((r) =>
+                r.map((x) => `"${(x || "").replaceAll('"', '""')}"`)
+                  .join(",")
+              ),
+            ].join("\n");
+            dl(
+              "predictions.csv",
+              new Blob([csv], { type: "text/csv" }),
+            );
+            toast("Success", "CSV exported");
+            log("Success", "CSV exported");
+          });
+          $("#tCopy").onclick = withErr(async () => {
+            const txt =
+              [...$("#tblHead").querySelectorAll("th")].map((th) =>
+                th.textContent.trim()
+              ).join("\t") + "\n" +
+              [...$("#tblBody").querySelectorAll("tr")].map((tr) =>
+                [...tr.children].map((td) => td.textContent).join("\t")
+              ).join("\n");
+            await navigator.clipboard.writeText(txt);
+            toast("Success", "Copied");
+            log("Success", "Copied table");
+          });
+          render();
+        };
+        /* RESET */
+        const resetAll = withErr(async () => {
+          S.modelExists = false;
+          S.data = null;
+          S.predictions = null;
+          S.lowerBounds = null;
+          S.upperBounds = null;
+          S.confidence = null;
+          S.sampleCount = 0;
+          S.nDimensions = 0;
+          S.metrics = {
+            samplesProcessed: 0,
+            averageLoss: NaN,
+            gradientNorm: NaN,
+            driftDetected: false,
+            sampleWeight: NaN,
+          };
+          await engCall("reset", {}).catch(() => 0);
+          setStatus();
+          renderMetrics();
+          renderDimRow();
+          $("#empty").classList.remove("hidden");
+          $("#floatCtl").classList.add("hidden");
+          $("#zoomBadge").classList.add("hidden");
+          $("#exportCtl").classList.add("hidden");
+          draw();
+        });
+        /* DIM ROW + STATS */
+        const renderDimRow = () => {
+          const r = $("#dimRow");
+          if (!r) return;
+          r.innerHTML = S.nDimensions
+            ? Array.from(
+              { length: S.nDimensions },
+              (_, i) =>
+                `<button data-d="${i}" class="shrink-0 px-3 py-2 rounded-xl font-extrabold border ${
+                  i === S.selectedDim
+                    ? "text-white"
+                    : "text-slate-800 bg-slate-100 border-slate-200"
+                } active:scale-[.99]" style="${
+                  i === S.selectedDim
+                    ? `background:${DCL[i % 10]};border-color:${
+                      DCL[i % 10]
+                    }`
+                    : ""
+                }" aria-label="Dimension ${i + 1}">D${i + 1}</button>`,
+            ).join("")
+            : "";
+          $$("#dimRow [data-d]").forEach((b) =>
+            b.onclick = () => {
+              S.selectedDim = +b.getAttribute("data-d");
+              updateStats();
+              draw();
             }
-          },
+          );
+        };
+        const updateStats = () => {
+          if (S.vizMode !== "focus" || !S.data || !S.nDimensions) {
+            $("#mMin").textContent =
+              $("#mMax").textContent =
+              $("#mMean").textContent =
+              $("#mFinal").textContent =
+              $("#mTrend").textContent =
+              $("#mConf").textContent =
+                "—";
+            return;
+          }
+          const d = S.selectedDim, arr = S.data.map((r) => r[d]);
+          const mn = Math.min(...arr),
+            mx = Math.max(...arr),
+            mean = arr.reduce((a, b) => a + b, 0) / arr.length,
+            fin = arr[arr.length - 1],
+            chg = fin - arr[0];
+          $("#mMin").textContent = fmt(mn);
+          $("#mMax").textContent = fmt(mx);
+          $("#mMean").textContent = fmt(mean);
+          $("#mFinal").textContent = fmt(fin);
+          $("#mTrend").innerHTML = `<span class="${
+            chg >= 0 ? "text-emerald-600" : "text-red-600"
+          }">${chg >= 0 ? "↑" : "↓"} ${fmt(Math.abs(chg))}</span>`;
+          const conf = S.confidence != null
+            ? Math.round(100 * S.confidence) + "%"
+            : "—";
+          $("#mConf").textContent = conf;
+        };
+        /* METRICS PANEL */
+        const renderMetrics = () => {
+          $("#mmSamples").textContent = S.sampleCount || 0;
+          $("#mmLoss").textContent = fmt(S.metrics.averageLoss);
+          $("#mmGrad").textContent = fmt(S.metrics.gradientNorm);
+          $("#mmW").textContent =
+            Number.isFinite(S.metrics.sampleWeight)
+              ? (+S.metrics.sampleWeight).toFixed(3)
+              : "—";
+        };
+        /* VIZ MODE */
+        const setViz = (m) => {
+          S.vizMode = m;
+          persist();
+          $("#tabGrid").className = m === "grid"
+            ? "shrink-0 px-4 py-2 rounded-xl font-extrabold shadow-lg shadow-indigo-500/20 text-white bg-gradient-to-r from-blue-500 to-indigo-600 active:scale-[.99]"
+            : "shrink-0 px-4 py-2 rounded-xl font-extrabold bg-slate-100 text-slate-800 border border-slate-200 active:scale-[.99]";
+          $("#tabFocus").className = m === "focus"
+            ? "shrink-0 px-4 py-2 rounded-xl font-extrabold shadow-lg shadow-indigo-500/20 text-white bg-gradient-to-r from-blue-500 to-indigo-600 active:scale-[.99]"
+            : "shrink-0 px-4 py-2 rounded-xl font-extrabold bg-slate-100 text-slate-800 border border-slate-200 active:scale-[.99]";
+          $("#focusExtras").classList.toggle("hidden", m !== "focus");
+          updateStats();
+          draw();
+        };
+        /* CANVAS DRAW + INTERACTION */
+        const cv = $("#cv"), ctx = cv.getContext("2d");
+        let DPR = 1;
+        const resize = () => {
+          DPR = Math.max(1, Math.floor(devicePixelRatio || 1));
+          const r = cv.getBoundingClientRect();
+          cv.width = Math.floor(r.width * DPR);
+          cv.height = Math.floor(r.height * DPR);
+          draw();
+        };
+        window.addEventListener("resize", resize);
 
-          updateStatus() {
-            const dot = document.getElementById("statusDot");
-            const text = document.getElementById("statusText");
+        const seriesFor = (dim) => {
+          const base = S.data ? S.data.map((r) => r[dim]) : [];
+          const pred = S.predictions
+            ? S.predictions.map((r) => r[dim])
+            : [];
+          const low = S.lowerBounds
+            ? S.lowerBounds.map((r) => r[dim])
+            : null;
+          const up = S.upperBounds
+            ? S.upperBounds.map((r) => r[dim])
+            : null;
+          return { base, pred, low, up };
+        };
+        const fullLen = () =>
+          (S.data ? S.data.length : 0) +
+          (S.predictions ? S.predictions.length : 0);
+        const resetZoom = () => {
+          const n = fullLen();
+          S.zoom.level = 1;
+          S.zoom.visibleStart = 0;
+          S.zoom.visibleCount = n || 0;
+          $("#zoomBadge").textContent = "100%";
+        };
+        const applyZoomBadge = () => {
+          $("#zoomBadge").textContent = Math.round(S.zoom.level * 100) +
+            "%";
+        };
 
-            if (app.state.modelExists) {
-              dot.className =
-                "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
-              text.innerText = `${app.state.data.length} steps`;
-              text.classList.add("text-emerald-700");
-            } else {
-              dot.className = "w-2 h-2 rounded-full bg-slate-400";
-              text.innerText = "No Model";
-              text.classList.remove("text-emerald-700");
+        const viewWindow = () => {
+          const n = fullLen();
+          if (!n) return { a: 0, b: 0 };
+          if (!S.zoom.visibleCount) S.zoom.visibleCount = n;
+          S.zoom.visibleCount = clamp(S.zoom.visibleCount, 10, n);
+          S.zoom.visibleStart = clamp(
+            S.zoom.visibleStart,
+            0,
+            Math.max(0, n - S.zoom.visibleCount),
+          );
+          return {
+            a: S.zoom.visibleStart,
+            b: S.zoom.visibleStart + S.zoom.visibleCount,
+          };
+        };
+
+        const niceBounds = (arrs) => {
+          let mn = Infinity, mx = -Infinity;
+          arrs.filter(Boolean).forEach((a) =>
+            a.forEach((v) => {
+              if (Number.isFinite(v)) {
+                mn = Math.min(mn, v);
+                mx = Math.max(mx, v);
+              }
+            })
+          );
+          if (!Number.isFinite(mn) || !Number.isFinite(mx)) {
+            return { mn: -1, mx: 1 };
+          }
+          if (mn === mx) {
+            mn -= 1;
+            mx += 1;
+          }
+          const pad = (mx - mn) * 0.08;
+          return { mn: mn - pad, mx: mx + pad };
+        };
+        const draw = () => {
+          const r = cv.getBoundingClientRect();
+          if (!r.width || !r.height) return;
+          ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+          ctx.clearRect(0, 0, r.width, r.height);
+          const has = S.predictions && S.predictions.length;
+          $("#empty").classList.toggle(
+            "hidden",
+            !!(S.data && S.modelExists),
+          );
+          if (!(S.data && S.modelExists)) {
+            ctx.fillStyle = "#0f172a20";
+            ctx.font = "700 14px ui-sans-serif";
+            ctx.fillText("📊 ESN Regression Studio", 16, 26);
+            return;
+          }
+          if (!S.zoom.visibleCount) resetZoom();
+          applyZoomBadge();
+          const { a, b } = viewWindow();
+          const N = fullLen();
+          const pad = 16, W = r.width, H = r.height;
+          const grid = () => {
+            const d = S.nDimensions || 1;
+            const cols = W < 520 ? 2 : 3;
+            const rows = Math.ceil(d / cols);
+            const gap = 10;
+            const cw = (W - pad * 2 - gap * (cols - 1)) / cols,
+              ch = (H - pad * 2 - gap * (rows - 1)) / rows;
+            const hit = [];
+            for (let i = 0; i < d; i++) {
+              const c = i % cols, rrw = Math.floor(i / cols);
+              const x = pad + c * (cw + gap),
+                y = pad + rrw * (ch + gap);
+              const { base, pred } = seriesFor(i);
+              const x0 = x, y0 = y, w = cw, h = ch;
+              ctx.save();
+              ctx.beginPath();
+              ctx.roundRect(x0, y0, w, h, 16);
+              ctx.fillStyle = "#ffffff";
+              ctx.fill();
+              ctx.strokeStyle = "#e2e8f0";
+              ctx.stroke();
+              ctx.clip();
+              const { mn, mx } = niceBounds([base, pred]);
+              const X = (t) =>
+                x0 + 8 + (w - 16) * (t - a) / Math.max(1, b - a - 1);
+              const Y = (v) =>
+                y0 + 8 + (h - 16) * (1 - (v - mn) / (mx - mn));
+              // base
+              ctx.lineWidth = 2;
+              ctx.strokeStyle = DCL[i % 10];
+              ctx.beginPath();
+              for (
+                let t = a;
+                t < Math.min(b, S.data ? S.data.length : 0);
+                t++
+              ) {
+                const v = base[t];
+                if (!Number.isFinite(v)) continue;
+                const px = X(t), py = Y(v);
+                if (t === a) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+              }
+              ctx.stroke();
+              // dashed continuation
+              if (has) {
+                ctx.setLineDash([6, 5]);
+                ctx.strokeStyle = DCL[i % 10];
+                ctx.beginPath();
+                const start = Math.max(a, S.data.length - 1);
+                for (let k = 0; k < pred.length; k++) {
+                  const t = S.data.length + k;
+                  if (t < a || t >= b) continue;
+                  const v = k === 0
+                    ? S.data[S.data.length - 1][i]
+                    : pred[k - 1];
+                }
+                for (
+                  let t = Math.max(a, S.data.length - 1);
+                  t < Math.min(b, N);
+                  t++
+                ) {
+                  const v = (t < S.data.length)
+                    ? base[t]
+                    : pred[t - S.data.length];
+                  if (!Number.isFinite(v)) continue;
+                  const px = X(t), py = Y(v);
+                  if (t === Math.max(a, S.data.length - 1)) {
+                    ctx.moveTo(px, py);
+                  } else ctx.lineTo(px, py);
+                }
+                ctx.stroke();
+                ctx.setLineDash([]);
+              }
+              // label
+              ctx.fillStyle = "#0f172a";
+              ctx.font = "800 12px ui-sans-serif";
+              ctx.fillText("D" + (i + 1), x0 + 12, y0 + 18);
+              ctx.restore();
+              hit.push({ i, x: x0, y: y0, w, h });
             }
-          },
+            S._hit = hit;
+          };
+          const focus = () => {
+            const d = S.selectedDim || 0;
+            const { base, pred, low, up } = seriesFor(d);
+            const x0 = pad, y0 = pad, w = W - pad * 2, h = H - pad * 2;
+            ctx.save();
+            ctx.beginPath();
+            ctx.roundRect(x0, y0, w, h, 18);
+            ctx.fillStyle = "#ffffff";
+            ctx.fill();
+            ctx.strokeStyle = "#e2e8f0";
+            ctx.stroke();
+            ctx.clip();
+            const { mn, mx } = niceBounds([base, pred, low, up]);
+            const X = (t) =>
+              x0 + 10 + (w - 20) * (t - a) / Math.max(1, b - a - 1);
+            const Y = (v) =>
+              y0 + 10 + (h - 20) * (1 - (v - mn) / (mx - mn));
+            // CI band
+            if (has && low && up) {
+              ctx.beginPath();
+              for (let t = a; t < Math.min(b, N); t++) {
+                const k = t - S.data.length;
+                if (k < 0 || k >= low.length) continue;
+                const v = up[k];
+                if (!Number.isFinite(v)) continue;
+                const px = X(t), py = Y(v);
+                if (t === a) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+              }
+              for (let t = Math.min(b - 1, N - 1); t >= a; t--) {
+                const k = t - S.data.length;
+                if (k < 0 || k >= low.length) continue;
+                const v = low[k];
+                if (!Number.isFinite(v)) continue;
+                const px = X(t), py = Y(v);
+                ctx.lineTo(px, py);
+              }
+              ctx.closePath();
+              ctx.fillStyle = DCL[d % 10] + "22";
+              ctx.fill();
+            }
+            // base
+            ctx.lineWidth = 2.5;
+            ctx.strokeStyle = DCL[d % 10];
+            ctx.beginPath();
+            for (
+              let t = a;
+              t < Math.min(b, S.data ? S.data.length : 0);
+              t++
+            ) {
+              const v = base[t];
+              if (!Number.isFinite(v)) continue;
+              const px = X(t), py = Y(v);
+              if (t === a) ctx.moveTo(px, py);
+              else ctx.lineTo(px, py);
+            }
+            ctx.stroke();
+            // prediction dashed
+            if (has) {
+              ctx.setLineDash([7, 6]);
+              ctx.strokeStyle = DCL[d % 10];
+              ctx.beginPath();
+              for (
+                let t = Math.max(a, S.data.length - 1);
+                t < Math.min(b, N);
+                t++
+              ) {
+                const v = (t < S.data.length)
+                  ? base[t]
+                  : pred[t - S.data.length];
+                if (!Number.isFinite(v)) continue;
+                const px = X(t), py = Y(v);
+                if (t === Math.max(a, S.data.length - 1)) {
+                  ctx.moveTo(px, py);
+                } else ctx.lineTo(px, py);
+              }
+              ctx.stroke();
+              ctx.setLineDash([]);
+            }
+            // crosshair + point glow
+            const pick = () => {
+              let idx = S.hover.active
+                ? S.hover.dataIndex
+                : (+$("#stepInp").value | 0);
+              idx = clamp(idx, 0, N - 1);
+              const v = (idx < S.data.length)
+                ? base[idx]
+                : pred[idx - S.data.length];
+              const px = X(idx), py = Y(v);
+              ctx.strokeStyle = "#0f172a22";
+              ctx.lineWidth = 1;
+              ctx.beginPath();
+              ctx.moveTo(px, y0 + 10);
+              ctx.lineTo(px, y0 + h - 10);
+              ctx.stroke();
+              ctx.beginPath();
+              ctx.moveTo(x0 + 10, py);
+              ctx.lineTo(x0 + w - 10, py);
+              ctx.stroke();
+              ctx.save();
+              ctx.shadowColor = DCL[d % 10];
+              ctx.shadowBlur = 18;
+              ctx.fillStyle = "#fff";
+              ctx.beginPath();
+              ctx.arc(px, py, 5, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.shadowBlur = 0;
+              ctx.fillStyle = DCL[d % 10];
+              ctx.beginPath();
+              ctx.arc(px, py, 3, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.restore();
+              return { idx, v, px, py };
+            };
+            const picked = pick();
+            // labels
+            ctx.fillStyle = "#0f172a";
+            ctx.font = "900 14px ui-sans-serif";
+            ctx.fillText("D" + (d + 1) + " • Focus", x0 + 14, y0 + 24);
+            ctx.fillStyle = "#64748b";
+            ctx.font = "700 12px ui-sans-serif";
+            ctx.fillText(
+              "Drag to pan • Pinch/Scroll to zoom • Hold to tooltip",
+              x0 + 14,
+              y0 + 44,
+            );
+            ctx.restore();
 
-          updateMetrics(m) {
-            document.getElementById("metricSamples").innerText =
-              app.state.data.length;
-            document.getElementById("metricLoss").innerText =
-              m.averageLoss ? m.averageLoss.toExponential(2) : "-";
-            document.getElementById("metricGrad").innerText =
-              m.gradientNorm ? m.gradientNorm.toExponential(2) : "-";
-            document.getElementById("metricWeight").innerText =
-              m.sampleWeight ? m.sampleWeight.toFixed(3) : "-";
-          },
+            // tooltip update (if active)
+            if (S.hover.active) {
+              const idx = picked.idx;
+              const k = idx - S.data.length;
+              const predv = (k >= 0 && pred) ? pred[k] : NaN;
+              const lo = (k >= 0 && S.lowerBounds)
+                ? S.lowerBounds[k]?.[d]
+                : NaN;
+              const upv = (k >= 0 && S.upperBounds)
+                ? S.upperBounds[k]?.[d]
+                : NaN;
+              const sp = (Number.isFinite(lo) && Number.isFinite(upv))
+                ? Math.abs(upv - lo)
+                : NaN;
+              $("#tipStep").textContent = "Step " + idx;
+              $("#tipDim").textContent = "D" + (d + 1);
+              $("#tipDot").style.background = DCL[d % 10];
+              $("#tipPred").textContent = fmt(
+                Number.isFinite(predv) ? predv : picked.v,
+              );
+              $("#tipCI").textContent =
+                (Number.isFinite(lo) && Number.isFinite(upv))
+                  ? (fmt(lo) + " – " + fmt(upv))
+                  : "—";
+              $("#tipSp").textContent = Number.isFinite(sp)
+                ? fmt(sp)
+                : "—";
+              $("#tip").classList.remove("hidden");
+              const tw = $("#tip").offsetWidth,
+                th = $("#tip").offsetHeight;
+              const x = clamp(S.hover.x + 12, 8, W - tw - 8),
+                y = clamp(S.hover.y + 12, 8, H - th - 8);
+              $("#tip").style.left = x + "px";
+              $("#tip").style.top = y + "px";
+            } else $("#tip").classList.add("hidden");
+          };
 
-          renderDimSelector() {
-            const container = document.getElementById("dimSelector");
-            if (!app.state.data.length && !app.state.modelExists) {
+          if (S.vizMode === "grid") grid();
+          else focus();
+        };
+        CanvasRenderingContext2D.prototype.roundRect ||
+          (CanvasRenderingContext2D.prototype.roundRect = function (
+            x,
+            y,
+            w,
+            h,
+            r,
+          ) {
+            r = Math.min(r, w / 2, h / 2);
+            this.moveTo(x + r, y);
+            this.arcTo(x + w, y, x + w, y + h, r);
+            this.arcTo(x + w, y + h, x, y + h, r);
+            this.arcTo(x, y + h, x, y, r);
+            this.arcTo(x, y, x + w, y, r);
+            this.closePath();
+            return this;
+          });
+        /* HIT TEST (grid click -> focus) */
+        cv.addEventListener("click", (e) => {
+          if (S.vizMode !== "grid" || !S._hit) return;
+          const r = cv.getBoundingClientRect();
+          const x = e.clientX - r.left, y = e.clientY - r.top;
+          const h = S._hit.find((o) =>
+            x >= o.x && x <= o.x + o.w && y >= o.y && y <= o.y + o.h
+          );
+          if (h) {
+            S.selectedDim = h.i;
+            setViz("focus");
+            renderDimRow();
+            toast("Info", "Focus D" + (h.i + 1));
+            log("Info", "Focus D" + (h.i + 1));
+          }
+        });
+        /* PAN + ZOOM + TOUCH (pinch + hold tooltip + momentum-ish) */
+        let dragging = false,
+          dragX = 0,
+          vel = 0,
+          lastT = 0,
+          anim = 0,
+          pinch0 = null,
+          holdTO = 0;
+        const stopAnim = () => {
+          if (anim) cancelAnimationFrame(anim), anim = 0;
+        };
+        const panBy = (dx) => {
+          const { a, b } = viewWindow();
+          const span = b - a;
+          const n = fullLen();
+          if (!n || span >= n) return;
+          const r = cv.getBoundingClientRect();
+          const stepPerPx = span / Math.max(1, r.width);
+          S.zoom.visibleStart = clamp(
+            S.zoom.visibleStart + dx * stepPerPx,
+            0,
+            Math.max(0, n - span),
+          );
+          draw();
+        };
+        const zoomAt = (factor, centerX) => {
+          const n = fullLen();
+          if (!n) return;
+          const r = cv.getBoundingClientRect();
+          const cx = clamp(centerX, 0, r.width);
+          const { a, b } = viewWindow();
+          const span = b - a;
+          const t = a + (cx / r.width) * span;
+          const newSpan = clamp(Math.round(span / factor), 10, n);
+          S.zoom.level = clamp(S.zoom.level * factor, 1, 20);
+          S.zoom.visibleCount = newSpan;
+          S.zoom.visibleStart = clamp(
+            Math.round(t - (cx / r.width) * newSpan),
+            0,
+            Math.max(0, n - newSpan),
+          );
+          applyZoomBadge();
+          draw();
+        };
+        cv.addEventListener("wheel", (e) => {
+          if (!S.predictions) return;
+          e.preventDefault();
+          stopAnim();
+          const f = e.deltaY > 0 ? 0.9 : 1.1;
+          zoomAt(f, e.offsetX);
+        }, { passive: false });
+        cv.addEventListener("pointerdown", (e) => {
+          if (!S.predictions) return;
+          stopAnim();
+          dragging = true;
+          dragX = e.clientX;
+          vel = 0;
+          lastT = performance.now();
+          if (S.vizMode === "focus") {
+            holdTO = setTimeout(() => {
+              S.hover.active = true;
+              S.hover.x = e.offsetX;
+              S.hover.y = e.offsetY;
+              S.hover.dataIndex = hoverIndex(e.offsetX);
+              draw();
+            }, 260);
+          }
+        });
+        cv.addEventListener("pointermove", (e) => {
+          if (!S.predictions) return;
+          if (dragging) {
+            const t = performance.now(),
+              dt = Math.max(1, t - lastT),
+              dx = e.clientX - dragX;
+            dragX = e.clientX;
+            lastT = t;
+            vel = 0.8 * vel + 0.2 * (dx / dt);
+            panBy(-dx);
+            clearTimeout(holdTO);
+            S.hover.active = false;
+          }
+          if (S.vizMode === "focus" && S.hover.active) {
+            S.hover.x = e.offsetX;
+            S.hover.y = e.offsetY;
+            S.hover.dataIndex = hoverIndex(e.offsetX);
+            draw();
+          }
+        });
+        cv.addEventListener("pointerup", () => {
+          if (!S.predictions) return;
+          clearTimeout(holdTO);
+          if (dragging) {
+            dragging = false; // momentum
+            const v = vel;
+            if (Math.abs(v) > 0.02) {
+              let vv = v * 22;
+              const tick = () => {
+                vv *= 0.92;
+                if (Math.abs(vv) < 0.2) {
+                  stopAnim();
+                  return;
+                }
+                panBy(-vv);
+                anim = requestAnimationFrame(tick);
+              };
+              tick();
+            }
+          }
+        });
+        cv.addEventListener("pointerleave", () => {
+          clearTimeout(holdTO);
+          dragging = false;
+          S.hover.active = false;
+          draw();
+        });
+
+        cv.addEventListener("touchstart", (e) => {
+          if (!S.predictions) return;
+          if (e.touches.length === 2) {
+            clearTimeout(holdTO);
+            pinch0 = dist(e.touches[0], e.touches[1]);
+          }
+        }, { passive: true });
+        cv.addEventListener("touchmove", (e) => {
+          if (!S.predictions) return;
+          if (e.touches.length === 2 && pinch0) {
+            const d = dist(e.touches[0], e.touches[1]);
+            const f = d / pinch0;
+            if (Math.abs(f - 1) > 0.05) {
+              zoomAt(
+                f,
+                (e.touches[0].clientX + e.touches[1].clientX) / 2 -
+                  cv.getBoundingClientRect().left,
+              );
+              pinch0 = d;
+            }
+          }
+        }, { passive: true });
+        cv.addEventListener("touchend", () => {
+          pinch0 = null;
+        }, { passive: true });
+        const dist = (a, b) =>
+          Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+        const hoverIndex = (x) => {
+          const n = fullLen();
+          if (!n) return 0;
+          const r = cv.getBoundingClientRect();
+          const { a, b } = viewWindow();
+          const span = b - a;
+          return clamp(Math.round(a + (x / r.width) * span), 0, n - 1);
+        };
+
+        /* EXPORT */
+        const exportPNG = withErr(async () => {
+          const b = cv.toDataURL("image/png");
+          const res = await fetch(b);
+          dl("esn_chart.png", await res.blob());
+          toast("Success", "PNG saved");
+          log("Success", "Export PNG");
+        });
+        const exportSVG = withErr(async () => {
+          const W = 1000, H = 520, pad = 40, d = S.selectedDim || 0;
+          const { base, pred, low, up } = seriesFor(d);
+          const n = S.data ? S.data.length : 0,
+            m = pred ? pred.length : 0,
+            N = n + m;
+          if (!N) throw new Error("No data");
+          const { a, b } = viewWindow();
+          const { mn, mx } = niceBounds([base, pred, low, up]);
+          const X = (t) =>
+            pad + (W - pad * 2) * (t - a) / Math.max(1, b - a - 1);
+          const Y = (v) =>
+            pad + (H - pad * 2) * (1 - (v - mn) / (mx - mn));
+          const path = (arr, off, solid) => {
+            let d0 = "";
+            for (let t = a; t < Math.min(b, off + arr.length); t++) {
+              const k = t - off;
+              const v = arr[k];
+              if (!Number.isFinite(v)) continue;
+              const x = X(t), y = Y(v);
+              d0 += (d0 ? " L " : "M ") + x.toFixed(2) + " " +
+                y.toFixed(2);
+            }
+            return `<path d="${d0}" fill="none" stroke="${
+              DCL[d % 10]
+            }" stroke-width="3" ${
+              solid ? "" : "stroke-dasharray='10 8'"
+            } stroke-linecap="round"/>`;
+          };
+          const band = () => {
+            if (!(low && up)) return "";
+            let p1 = "", p2 = "";
+            for (let t = a; t < Math.min(b, n + m); t++) {
+              const k = t - n;
+              if (k < 0 || k >= up.length) continue;
+              const v = up[k];
+              if (!Number.isFinite(v)) continue;
+              p1 += (p1 ? " L " : "M ") + X(t).toFixed(2) + " " +
+                Y(v).toFixed(2);
+            }
+            for (let t = Math.min(b - 1, n + m - 1); t >= a; t--) {
+              const k = t - n;
+              if (k < 0 || k >= low.length) continue;
+              const v = low[k];
+              if (!Number.isFinite(v)) continue;
+              p2 += " L " + X(t).toFixed(2) + " " + Y(v).toFixed(2);
+            }
+            if (!p1) return "";
+            return `<path d="${p1 + p2} Z" fill="${
+              DCL[d % 10]
+            }22" stroke="none"/>`;
+          };
+          const svg =
+            `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+    <rect x="0" y="0" width="${W}" height="${H}" fill="#ffffff"/>
+    <text x="${pad}" y="${
+              pad - 14
+            }" font-family="ui-sans-serif" font-size="18" font-weight="900" fill="#0f172a">ESN Studio • D${
+              d + 1
+            }</text>
+    ${band()}
+    ${path(base, 0, true)}
+    ${pred ? path([base[n - 1], ...pred], n - 1, false) : ""}
+  </svg>`;
+          dl(
+            "esn_chart.svg",
+            new Blob([svg], { type: "image/svg+xml" }),
+          );
+          toast("Success", "SVG saved");
+          log("Success", "Export SVG");
+        });
+        const exportClip = withErr(async () => {
+          const b = cv.toBlob
+            ? await new Promise((r) => cv.toBlob(r, "image/png"))
+            : await (await fetch(cv.toDataURL("image/png"))).blob();
+          await navigator.clipboard.write([
+            new ClipboardItem({ "image/png": b }),
+          ]);
+          toast("Success", "Copied PNG");
+          log("Success", "Copy clipboard");
+        });
+
+        /* UI WIRING */
+        $("#btnCfg").onclick = () => {
+          closeMenu();
+          openCfg();
+        };
+        $("#btnMenu").onclick = () => openMenu();
+        $("#btnMenuClose").onclick = () => closeMenu();
+        $("#menuBackdrop").onclick = () => closeMenu();
+        const openMenu = () => {
+          $("#menuWrap").classList.remove("hidden");
+        };
+        const closeMenu = () => {
+          $("#menuWrap").classList.add("hidden");
+        };
+        $("#menu").addEventListener("click", (e) => {
+          const b = e.target.closest("[data-act]");
+          if (!b) return;
+          const a = b.getAttribute("data-act");
+          closeMenu();
+          ({
+            openCfg,
+            openSaveLoad,
+            openUpload,
+            openRand,
+            openTable,
+          }[a] || (() => 0))();
+        });
+
+        $("#tabGrid").onclick = () => setViz("grid");
+        $("#tabFocus").onclick = () => setViz("focus");
+        $("#btnDefaults").onclick = withErr(async () => {
+          openCfg();
+        });
+        $("#btnLoad").onclick = () => openSaveLoad();
+        $("#btnDemo").onclick = () => openRand();
+
+        $("#btnPredict").onclick = doPredict;
+        $("#btnPredictTop").onclick = doPredict;
+        $("#zIn").onclick = () =>
+          zoomAt(1.2, cv.getBoundingClientRect().width / 2);
+        $("#zOut").onclick = () =>
+          zoomAt(0.85, cv.getBoundingClientRect().width / 2);
+        $("#zReset").onclick = () => {
+          resetZoom();
+          draw();
+        };
+        $("#exPng").onclick = exportPNG;
+        $("#exSvg").onclick = exportSVG;
+        $("#exClip").onclick = exportClip;
+
+        $("#stepInp").oninput = () => {
+          S.selectedStep = +$("#stepInp").value | 0;
+          draw();
+        };
+        $("#futureInp").oninput = () => {
+          const v = +$("#futureInp").value | 0;
+          $("#futureInp").classList.toggle("ring-2", !(v > 0));
+          $("#futureInp").classList.toggle("ring-red-400", !(v > 0));
+        };
+
+        const boot = withErr(async () => {
+          log("Info", "Boot " + now());
+          setViz(S.vizMode);
+          setStatus();
+          renderMetrics();
+          try {
+            setLoading(true, "Initializing engine…", 5);
+            await engCall("init", {});
+            setLoading(false);
+            toast("Success", "Ready");
+            log("Success", "Ready");
+          } catch (e) {
+            setLoading(false);
+            toast(
+              "Warning",
+              "Worker unavailable; will degrade gracefully",
+            );
+            log("Warning", "Worker init failed");
+          }
+          resize();
+          renderDimRow();
+          updateStats();
+        });
+        boot();
+
+        /* FILE LOAD MODE FOR MODEL JSON */
+        $("#fileInp").addEventListener(
+          "change",
+          withErr(async (e) => {
+            const f = e.target.files?.[0];
+            if (!f) return;
+            const mode = $("#fileInp").dataset.mode || "";
+            const txt = await f.text();
+            e.target.value = "";
+            if (mode === "loadModel") {
+              $("#fileInp").dataset.mode = "";
+              const obj = await parseJSON(txt);
+              if (!obj?.state) {
+                throw new Error("Model JSON missing state");
+              }
+              setLoading(true, "Loading model…", 10);
+              await engCall("load", {
+                state: obj.state,
+                config: obj.config || S.config,
+              });
+              S.config = { ...S.config, ...(obj.config || {}) };
+              persist();
+              const sum = obj.summary || {};
+              S.modelExists = true;
+              S.nDimensions = sum?.nTargets || S.nDimensions || 0;
+              S.sampleCount = sum?.sampleCount || S.sampleCount || 0;
+              setStatus();
+              setLoading(false);
+              toast("Success", "Model loaded");
+              log("Success", "Loaded model JSON");
+              renderDimRow();
+              draw();
+              closeModal();
               return;
             }
-
-            const dims = app.state.data.length > 0
-              ? app.state.data[0].values.length
-              : (app.state.config.inputSize || 1); // Fallback
-
-            let html = "";
-            for (let i = 0; i < dims; i++) {
-              const isActive = app.state.selectedDim === i;
-              const color = DIM_COLORS[i % DIM_COLORS.length];
-              const style = isActive
-                ? `background: ${color}; color: white; border-color: ${color}`
-                : `background: #f1f5f9; color: #64748b`;
-              html +=
-                `<button onclick="app.state.selectedDim=${i}; app.setVizMode('focus')" class="w-8 h-8 rounded-lg text-xs font-bold border border-transparent transition-all flex-shrink-0" style="${style}">D${
-                  i + 1
-                }</button>`;
-            }
-            container.innerHTML = html;
-          },
-
-          updateStats() {
-            const bar = document.getElementById("statsBar");
-            const d = app.state.selectedDim;
-            if (!app.state.data.length) return;
-
-            // Simple stats calculation for the selected dimension
-            const values = app.state.data.map((r) => r.values[d]);
-            const min = Math.min(...values).toFixed(2);
-            const max = Math.max(...values).toFixed(2);
-            const mean =
-              (values.reduce((a, b) => a + b, 0) / values.length)
-                .toFixed(2);
-            const last = values[values.length - 1].toFixed(2);
-
-            const createCard = (
-              label,
-              val,
-              color = "text-slate-800",
-            ) => `
-                        <div class="bg-slate-50 border border-slate-100 rounded p-2 flex flex-col">
-                            <span class="text-[10px] uppercase text-slate-400 font-bold tracking-wider">${label}</span>
-                            <span class="font-mono font-bold text-sm ${color}">${val}</span>
-                        </div>
-                    `;
-
-            bar.innerHTML = createCard("Min", min) +
-              createCard("Max", max) +
-              createCard("Mean", mean) +
-              createCard("Last", last, "text-blue-600");
-
-            // Add prediction stats if available
-            if (app.state.predictions) {
-              const preds = app.state.predictions.predictions.map((r) =>
-                r[d]
-              );
-              const trend = preds[preds.length - 1] - preds[0];
-              const trendIcon = trend > 0 ? "↑" : "↓";
-              const trendColor = trend > 0
-                ? "text-emerald-600"
-                : "text-red-600";
-              bar.innerHTML += createCard(
-                "Trend",
-                `${trendIcon} ${Math.abs(trend).toFixed(2)}`,
-                trendColor,
-              );
-            }
-          },
-
-          refreshConfigForm() {
-            const form = document.getElementById("configForm");
-            let html = "";
-
-            // Group by category
-            const groups = {};
-            Object.entries(CONFIG_SCHEMA).forEach(([key, field]) => {
-              if (!groups[field.group]) groups[field.group] = [];
-              groups[field.group].push({ key, ...field });
-            });
-
-            Object.entries(groups).forEach(([groupName, fields]) => {
-              html += `
-                            <div class="bg-slate-50 rounded-xl border border-slate-100 p-4">
-                                <h4 class="text-xs font-bold text-slate-400 uppercase mb-3">${groupName}</h4>
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        `;
-              fields.forEach((f) => {
-                if (f.type === "select") {
-                  const options = f.options.map((o) =>
-                    `<option value="${o}" ${
-                      app.state.config[f.key] === o ? "selected" : ""
-                    }>${o}</option>`
-                  ).join("");
-                  html += `
-                                    <div class="flex flex-col gap-1">
-                                        <label class="text-xs font-medium text-slate-600">${f.label}</label>
-                                        <select onchange="app.state.config.${f.key}=this.value" class="bg-white border border-slate-200 rounded-lg p-2 text-sm outline-none focus:border-blue-500">${options}</select>
-                                    </div>
-                                `;
-                } else {
-                  html += `
-                                    <div class="flex flex-col gap-1">
-                                        <label class="text-xs font-medium text-slate-600">${f.label}</label>
-                                        <input type="number" step="${
-                    f.step || "any"
-                  }" value="${
-                    app.state.config[f.key]
-                  }" onchange="app.state.config.${f.key}=parseFloat(this.value)" class="bg-white border border-slate-200 rounded-lg p-2 text-sm outline-none focus:border-blue-500 font-mono">
-                                    </div>
-                                `;
-                }
-              });
-              html += `</div></div>`;
-            });
-            form.innerHTML = html;
-
-            // Presets
-            const presetsContainer = document.getElementById(
-              "presetContainer",
-            );
-            presetsContainer.innerHTML = Object.keys(PRESETS).map(
-              (k) => `
-                        <button onclick="app.applyPreset('${k}')" class="px-3 py-1 rounded-full border border-slate-200 bg-white text-xs font-medium hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 whitespace-nowrap transition-colors">
-                            ${k}
-                        </button>
-                    `,
-            ).join("");
-          },
-        },
-
-        // --- Modals & Interaction ---
-        modals: {
-          open(name) {
-            const modal = document.getElementById(name + "Modal") ||
-              document.getElementById("genericModal");
-            if (name === "upload") { /* reset logic */ }
-            if (name === "randomTest") {
-              modal.innerHTML = `
-                             <div class="p-6">
-                                <h3 class="font-bold text-xl text-slate-800 mb-4">✨ Random Test Generator</h3>
-                                <div class="space-y-4 mb-6">
-                                    <div><label class="text-xs font-bold text-slate-500">Dimensions</label><input id="rtDim" type="number" value="3" class="w-full border rounded p-2 mt-1"></div>
-                                    <div><label class="text-xs font-bold text-slate-500">Steps</label><input id="rtSteps" type="number" value="200" class="w-full border rounded p-2 mt-1"></div>
-                                    <div><label class="text-xs font-bold text-slate-500">Noise Level</label><input id="rtNoise" type="number" value="0.05" step="0.01" class="w-full border rounded p-2 mt-1"></div>
-                                </div>
-                                <div class="flex justify-end gap-3">
-                                    <button onclick="app.modals.close('generic')" class="px-4 py-2 text-slate-600">Cancel</button>
-                                    <button onclick="app.generateRandom()" class="px-6 py-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-lg shadow-lg">Generate & Run</button>
-                                </div>
-                             </div>
-                        `;
-            }
-            if (name === "saveLoad") {
-              modal.innerHTML = `
-                            <div class="p-6">
-                                <h3 class="font-bold text-xl text-slate-800 mb-4">💾 Save & Load</h3>
-                                <div class="grid grid-cols-2 gap-4 mb-6">
-                                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 hover:border-blue-300 cursor-pointer text-center" onclick="app.saveToFile()">
-                                        <div class="text-3xl mb-2">📥</div>
-                                        <div class="text-sm font-bold text-blue-800">Download JSON</div>
-                                    </div>
-                                    <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-100 hover:border-emerald-300 cursor-pointer text-center" onclick="app.saveToBrowser()">
-                                        <div class="text-3xl mb-2">💾</div>
-                                        <div class="text-sm font-bold text-emerald-800">Save to Browser</div>
-                                    </div>
-                                </div>
-                                <h4 class="text-xs font-bold text-slate-400 uppercase mb-2">Saved Models</h4>
-                                <div id="savedList" class="max-h-40 overflow-y-auto space-y-2">
-                                    </div>
-                                <div class="flex justify-end mt-4">
-                                     <button onclick="app.modals.close('generic')" class="text-slate-500">Close</button>
-                                </div>
-                            </div>
-                        `;
-              app.updateSavedList();
-            }
-            modal.showModal();
-
-            // Trap focus
-            modal.addEventListener("click", (e) => {
-              const rect = modal.getBoundingClientRect();
-              if (
-                e.clientX < rect.left || e.clientX > rect.right ||
-                e.clientY < rect.top || e.clientY > rect.bottom
-              ) {
-                modal.close();
-              }
-            });
-          },
-          close(name) {
-            (document.getElementById(name + "Modal") ||
-              document.getElementById("genericModal")).close();
-          },
-        },
-
-        toggleMenu() {
-          const menu = document.getElementById("slideMenu");
-          const backdrop = document.getElementById("menuBackdrop");
-          const isOpen = !menu.classList.contains("translate-x-full");
-
-          if (isOpen) {
-            menu.classList.add("translate-x-full");
-            backdrop.classList.add("hidden");
-            backdrop.classList.remove("opacity-100");
-          } else {
-            menu.classList.remove("translate-x-full");
-            backdrop.classList.remove("hidden");
-            // slight delay for opacity transition
-            setTimeout(() => backdrop.classList.add("opacity-100"), 10);
-          }
-        },
-
-        log(msg, type = "info") {
-          const entry = {
-            time: new Date().toLocaleTimeString(),
-            msg,
-            type,
-          };
-          this.state.logs.unshift(entry);
-          if (this.state.logs.length > 200) this.state.logs.pop();
-
-          const container = document.getElementById("eventLog");
-          const color = type === "error"
-            ? "text-red-600"
-            : (type === "success"
-              ? "text-emerald-600"
-              : "text-slate-600");
-
-          const html = `
-                    <div class="border-l-2 ${
-            type === "error"
-              ? "border-red-500"
-              : (type === "success"
-                ? "border-emerald-500"
-                : "border-blue-500")
-          } pl-2 py-1">
-                        <span class="text-slate-400 text-[10px]">${entry.time}</span>
-                        <p class="${color} leading-tight">${msg}</p>
-                    </div>
-                `;
-          container.insertAdjacentHTML("afterbegin", html);
-        },
-
-        // --- Logic Specifics ---
-        applyPreset(name) {
-          const p = PRESETS[name];
-          Object.assign(this.state.config, p);
-          this.ui.refreshConfigForm();
-          this.ui.toast(`Applied "${name}" preset`, "success");
-        },
-
-        async processUpload() {
-          const text = document.getElementById("pasteInput").value;
-          // Basic validation
-          try {
-            const json = JSON.parse(text); // Or handle file reading
-            if (!json.coordinates || !Array.isArray(json.coordinates)) {
-              throw new Error("Invalid format");
-            }
-
-            this.modals.close("upload");
-            await this.createModel(); // Re-init
-            await this.train(json.coordinates);
-
-            this.ui.toast("Dataset uploaded and trained", "success");
-          } catch (e) {
-            alert("Invalid JSON: " + e.message);
-          }
-        },
-
-        async generateRandom() {
-          const dims = parseInt(document.getElementById("rtDim").value);
-          const steps = parseInt(
-            document.getElementById("rtSteps").value,
-          );
-          const noise = parseFloat(
-            document.getElementById("rtNoise").value,
-          );
-
-          this.modals.close("generic");
-
-          // Config update
-          this.state.config.reservoirSize = 100; // Force lighter config for demo
-          await this.createModel();
-
-          const data = [];
-          for (let i = 0; i < steps; i++) {
-            const row = [];
-            for (let d = 0; d < dims; d++) {
-              // Mix of sine waves
-              let val = Math.sin(i * (0.1 + d * 0.05)) +
-                Math.sin(i * 0.01) * 2;
-              val += (Math.random() - 0.5) * noise;
-              row.push(val);
-            }
-            data.push(row);
-          }
-
-          await this.train(data);
-          await this.runPrediction();
-        },
-
-        saveToBrowser() {
-          const name = prompt("Model Name:");
-          if (!name) return;
-          const key = `esn_model_${name}`;
-          const saveObj = {
-            config: this.state.config,
-            // In a real app we'd serialize the worker state via 'save' command
-            // For this demo, we save config and basic metadata
-            date: new Date().toISOString(),
-          };
-          localStorage.setItem(key, JSON.stringify(saveObj));
-          this.updateSavedList();
-          this.ui.toast("Model saved to local storage", "success");
-        },
-
-        updateSavedList() {
-          const list = document.getElementById("savedList");
-          if (!list) return;
-          list.innerHTML = "";
-
-          for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key.startsWith("esn_model_")) {
-              const name = key.replace("esn_model_", "");
-              list.innerHTML += `
-                            <div class="flex justify-between items-center p-2 bg-slate-50 rounded border border-slate-100 text-sm">
-                                <span class="font-bold text-slate-700">${name}</span>
-                                <div class="flex gap-2">
-                                    <button class="text-blue-600 font-bold px-2" onclick="app.loadModel('${key}')">Load</button>
-                                    <button class="text-red-400 px-2" onclick="localStorage.removeItem('${key}');app.updateSavedList()">×</button>
-                                </div>
-                            </div>
-                        `;
-            }
-          }
-        },
-
-        loadModel(key) {
-          const data = JSON.parse(localStorage.getItem(key));
-          this.state.config = data.config;
-          this.createModel(); // Reset and init with config
-          this.modals.close("generic");
-          this.ui.toast(
-            `Configuration "${
-              key.replace("esn_model_", "")
-            }" loaded. Please train data.`,
-            "info",
-          );
-        },
-
-        setupUI() {
-          // Initialize input listeners
-          const fileInput = document.getElementById("fileInput");
-          const dropZone = document.getElementById("dropZone");
-
-          dropZone.onclick = () => fileInput.click();
-          dropZone.ondragover = (e) => {
-            e.preventDefault();
-            dropZone.classList.add("border-indigo-500", "bg-indigo-50");
-          };
-          dropZone.ondragleave = () => {
-            dropZone.classList.remove(
-              "border-indigo-500",
-              "bg-indigo-50",
-            );
-          };
-          dropZone.ondrop = (e) => {
-            e.preventDefault();
-            dropZone.classList.remove(
-              "border-indigo-500",
-              "bg-indigo-50",
-            );
-            if (e.dataTransfer.files.length) {
-              const file = e.dataTransfer.files[0];
-              const reader = new FileReader();
-              reader.onload = (ev) =>
-                document.getElementById("pasteInput").value =
-                  ev.target.result;
-              reader.readAsText(file);
-            }
-          };
-
-          fileInput.onchange = (e) => {
-            if (e.target.files.length) {
-              const reader = new FileReader();
-              reader.onload = (ev) =>
-                document.getElementById("pasteInput").value =
-                  ev.target.result;
-              reader.readAsText(e.target.files[0]);
-            }
-          };
-        },
-
-        setupCanvas() {
-          this.viz.init();
-        },
-
-        loadFromStorage() {
-          // Load UI settings if any
-          const mode = localStorage.getItem("esn_viz_mode");
-          if (mode) this.setVizMode(mode);
-        },
-
-        cancelOp() {
-          // Hard reset worker
-          worker.terminate();
-          // Recreate worker code would be complex here without reloading page or reconstructing blob
-          // For this demo, reload page or show error
-          alert(
-            "Operation cancelled. The application state will be reset.",
-          );
-          window.location.reload();
-        },
-      };
-
-      // Start
-      window.app.init();
+          }),
+        );
+      })();
     </script>
   </body>
 </html>
