@@ -1,5 +1,4 @@
-Create a premium, highly attractive, and fully mobile-responsive single-page web application called "ESN Regression Studio" for managing an autoregressive Echo State Network (ESN) library. The application should be built with HTML, Tailwind CSS (via CDN), and vanilla JavaScript. Use emojis exclusively instead of SVG icons throughout the entire interface. The website has to be really beautiful; exaggerate the use of graphics, visual elements, formatting styles, components, emojis, etc. All numeric inputs should be standard number inputs without range sliders to avoid limiting values to specific intervals.
-
+Create a premium, highly attractive, and fully mobile-first single-page web application called "ESN Regression Studio" for managing an autoregressive Echo State Network (ESN) library. The application should be built with HTML, Tailwind CSS (via CDN), and vanilla JavaScript. Use emojis exclusively instead of SVG icons throughout the entire interface. The website must be **stunningly beautiful and visually rich**—go over the top with polished graphics, bold visual elements, refined typography and spacing, premium components, vibrant emojis, and every modern UI styling touch needed to make it feel like a high-end product. All numeric inputs should be standard number inputs without range sliders to avoid limiting values to specific intervals. Don't forget that everything has to be mobile-first. Do not use animations or any visual features that are not native to Tailwind, do not write CSS.
 ---
 
 **HEADER SECTION:**
@@ -39,7 +38,7 @@ Below tabs, include a large chart container with:
 
 **Empty State (shown when no predictions):**
 Display centered content with:
-- Decorative layered rounded containers with gradient backgrounds and rotation animations
+- Decorative layered rounded containers with gradient backgrounds
 - Large 📊 emoji in center
 - Title "Create a Model to Begin"
 - Subtitle explaining ESN autoregressive forecasting
@@ -213,7 +212,7 @@ const model = new ESNRegression(config);
 
 2. **Online Training (fitOnline):**
 ```javascript
-model.fitOnline({ coordinates: [[x1,y1,z1], [x2,y2,z2]] });
+model.fitOnline({ coordinates: [[x1,y1,z1], [x2,y2,z2]] }); // min two coordinates per call (t, t+1), (t+2, t+3), ...
 // Trains on consecutive time step pairs
 // Returns: { averageLoss, gradientNorm, sampleWeight }
 ```
@@ -374,21 +373,6 @@ Bottom-positioned container (above mobile nav on small screens) with:
 - Message text
 - Close button with ✖️ emoji
 - Auto-dismiss after 4s (6s for errors)
-- Slide-in animation
-
----
-
-**ANIMATIONS AND TRANSITIONS:**
-
-Define these CSS keyframe animations:
-- fadeIn: opacity 0 to 1 in 0.2s
-- slideUp: translateY(10px) + opacity to normal in 0.3s
-- slideInRight: translateX(100%) to 0 in 0.3s
-- slideInBottom: translateY(100%) to 0 in 0.3s
-- pulseSubtle: opacity oscillating 1 to 0.7 in 2s infinite
-- skeleton: shimmer effect for loading states
-
-All interactive elements should have transition-colors or transition-all with appropriate durations.
 
 ---
 
