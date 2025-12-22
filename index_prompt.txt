@@ -33,6 +33,7 @@ Principles:
 - Premium, high-end aesthetic with bold visual elements
 - Rich typography, generous spacing, polished components
 - Vibrant emoji usage throughout
+- Use a light color theme
 
 Color Palette:
 
